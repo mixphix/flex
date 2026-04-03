@@ -1,0 +1,80 @@
+cabal-version:   3.0
+name:            flex
+version:         0.0.0
+author:          Melanie Phoenix Brown
+copyright:       2026 Melanie Phoenix Brown
+category:        Mathematics
+build-type:      Simple
+license-file:    LICENSE
+license:         BSD-2-Clause
+extra-doc-files: CHANGELOG.md
+synopsis:
+  
+description:
+  
+
+common setup
+  ghc-options: -Wall
+  default-language: GHC2021
+  default-extensions:
+    BlockArguments
+    DataKinds
+    DerivingStrategies
+    DuplicateRecordFields
+    LambdaCase
+    MultiWayIf
+    NoImplicitPrelude
+    OverloadedRecordDot
+    PatternSynonyms
+    TypeFamilies
+
+library
+  import:             setup
+  hs-source-dirs:     lib
+
+  build-depends:
+    , base
+    , containers >= 0.8
+    , finite-typelits
+    , list1
+    , template-haskell
+    , time >= 1.15
+    , vector
+
+  exposed-modules:
+    Flex.Math
+    Flex.Math.Algebra
+    Flex.Math.Base
+    Flex.Math.Category
+    Flex.Math.Distribution
+    Flex.Math.Dual
+    Flex.Math.Foldable
+    Flex.Math.Function
+    Flex.Math.Lattice
+    Flex.Math.LieBracket
+    Flex.Math.Matrix
+    Flex.Math.Minkowski
+    Flex.Math.Module
+    Flex.Math.Numbers
+    Flex.Math.Perplex
+    Flex.Math.Projective
+    Flex.Math.Optics
+    Flex.Math.Rack
+    Flex.Math.Suspension
+    Flex.Math.Variety
+
+  other-modules:
+    Flex.Math.Optics.TH
+
+test-suite flex-test
+  import:            setup
+  type:              exitcode-stdio-1.0
+  hs-source-dirs:    test
+  main-is:           Main.hs
+
+  build-depends:
+    , base
+    , flex
+    , generic-random
+    , hspec
+    , QuickCheck
