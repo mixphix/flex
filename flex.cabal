@@ -60,8 +60,8 @@ library
     Flex.Math.Projective
     Flex.Math.Optics
     Flex.Math.Rack
+    Flex.Math.Structure
     Flex.Math.Suspension
-    Flex.Math.Variety
 
   other-modules:
     Flex.Math.Optics.TH

@@ -66,7 +66,7 @@ module Flex.Math.Matrix
   , m44
   , Scalar (..)
   , Signature (..)
-  , Operations (..)
+  , Term (..)
   , Laws (..)
   ) where
 
@@ -77,7 +77,7 @@ import Flex.Math.Module
 import Flex.Math.Numbers
 import Flex.Math.Optics
 import Flex.Math.Optics.TH
-import Flex.Math.Variety
+import Flex.Math.Structure
 
 import Control.Applicative qualified as Control
 import Control.Monad qualified as Control
@@ -117,17 +117,17 @@ class
   where
   trace :: m x -> Scalar (m x)
   determinant :: m x -> Scalar (m x)
-instance Variety (Square m) where
-  type Requirements (Square m) = CC Eq m
+instance Structure (Square m) where
   data Signature (Square m) x
     = SquareTrace (m x)
     | SquareDeterminant (m x)
     deriving (Generic)
-  newtype Operations (Square m) x = OperationsSquare (Scalar (m x))
-  operations :: (Square m x) => Signature (Square m) x -> Operations (Square m) x
-  operations = OperationsSquare . \case
+  newtype Term (Square m) x = TermSquare (Scalar (m x))
+  operations :: (Square m x) => Signature (Square m) x -> Term (Square m) x
+  operations = TermSquare . \case
     SquareTrace a -> trace a
     SquareDeterminant a -> determinant a
+  type Requirements (Square m) = CC Eq m
   data Laws (Square m) x
     = SquareAssociativeAlgebraLaws (Laws AssociativeAlgebra (m x))
     | SquareDistributiveLaws (Laws Distributive (m x))

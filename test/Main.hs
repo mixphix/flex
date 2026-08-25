@@ -23,7 +23,7 @@ import Test.QuickCheck
 
 import Flex.Math
 import Flex.Math.Matrix
-import Flex.Math.Variety (EqLaw (..), OrdLaw (..))
+import Flex.Math.Structure (EqLaw (..), OrdLaw (..))
 
 instance (Ord x, Additive x, Arbitrary x) => Arbitrary (Ratio x) where
   arbitrary :: Gen (Ratio x)

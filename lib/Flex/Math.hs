@@ -143,9 +143,9 @@ module Flex.Math
   , suspension
 
     -- * Varieties
-  , Variety (Requirements, Signature, Operations, operations, Laws, lawful)
+  , Structure (Requirements, Signature, Term, operations, Laws, lawful)
   , Signature (..)
-  , Operations (..)
+  , Term (..)
   , Laws (..)
 
     -- * Other functions
@@ -195,7 +195,7 @@ import Flex.Math.Perplex
 import Flex.Math.Projective
 import Flex.Math.Rack
 import Flex.Math.Suspension
-import Flex.Math.Variety
+import Flex.Math.Structure
 
 import Data.Eq (Eq)
 import Data.Int (Int)

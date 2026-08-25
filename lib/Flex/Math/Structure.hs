@@ -1,12 +1,12 @@
 {-# OPTIONS_GHC -Wno-duplicate-exports #-}
 {-# LANGUAGE QuantifiedConstraints #-}
 
-module Flex.Math.Variety
-  ( Variety (Requirements, Signature, Operations, operations, Laws, lawful)
+module Flex.Math.Structure
+  ( Structure (Requirements, Signature, Term, operations, Laws, lawful)
   , EqLaw (EqLawReflexive, EqLawSymmetric, EqLawTransitive)
   , OrdLaw (OrdLawReflexive, OrdLawAntisymmetric, OrdLawTransitive)
   , Signature (..)
-  , Operations (..)
+  , Term (..)
   , Laws (..)
   ) where
 
@@ -22,16 +22,16 @@ import Data.Functor.Identity (Identity (..))
 import Data.Kind (Constraint, Type)
 import Data.Monoid (Monoid (mempty))
 import Data.Ord (Ord (..))
+import Data.Proxy (Proxy (..))
 import Data.Semigroup (Semigroup ((<>)))
 import GHC.Generics (Generic)
 import GHC.Show (Show)
-import Data.Proxy (Proxy (..))
 
-class Variety (var :: k -> Constraint) where
-  type Requirements var :: k -> Constraint
+class Structure (var :: k -> Constraint) where
   data Signature var :: k -> Type
-  data Operations var :: k -> Type
-  operations :: (var x) => Signature var x -> Operations var x
+  data Term var :: k -> Type
+  operations :: (var x) => Signature var x -> Term var x
+  type Requirements var :: k -> Constraint
   data Laws var :: k -> Type
   lawful :: (var x, Requirements var x) => Laws var x -> Bool
 
@@ -41,12 +41,12 @@ data EqLaw x
   | EqLawTransitive x x x
   deriving (Eq, Ord, Show, Generic)
 
-instance Variety Eq where
-  type Requirements Eq = C0
+instance Structure Eq where
   data Signature Eq x deriving (Generic)
-  data Operations Eq x
-  operations :: (Eq x) => Signature Eq x -> Operations Eq x
+  data Term Eq x
+  operations :: (Eq x) => Signature Eq x -> Term Eq x
   operations = \case {}
+  type Requirements Eq = C0
   newtype Laws Eq x = EqLaw (EqLaw x)
     deriving (Show, Generic)
   lawful :: (Eq x) => Laws Eq x -> Bool
@@ -61,12 +61,12 @@ data OrdLaw x
   | OrdLawTransitive x x x
   deriving (Eq, Ord, Show, Generic)
 
-instance Variety Ord where
-  type Requirements Ord = C0
+instance Structure Ord where
   data Signature Ord x deriving (Generic)
-  data Operations Ord x
-  operations :: (Ord x) => Signature Ord x -> Operations Ord x
+  data Term Ord x
+  operations :: (Ord x) => Signature Ord x -> Term Ord x
   operations = \case {}
+  type Requirements Ord = C0
   newtype Laws Ord x = OrdLaw (OrdLaw x)
     deriving (Show, Generic)
   lawful :: (Ord x) => Laws Ord x -> Bool
@@ -75,15 +75,15 @@ instance Variety Ord where
     OrdLaw (OrdLawAntisymmetric x y) -> (x <= y && y <= x) --> (x == y)
     OrdLaw (OrdLawTransitive x y z) -> (x <= y && y <= z) --> (x <= z)
 
-instance Variety Semigroup where
-  type Requirements Semigroup = Eq
+instance Structure Semigroup where
   data Signature Semigroup x
     = SemigroupAppend x x
     deriving (Show, Generic)
-  newtype Operations Semigroup x = OperationsSemigroup x
-  operations :: (Semigroup x) => Signature Semigroup x -> Operations Semigroup x
+  newtype Term Semigroup x = TermSemigroup x
+  operations :: (Semigroup x) => Signature Semigroup x -> Term Semigroup x
   operations = \case
-    SemigroupAppend x y -> OperationsSemigroup (x <> y)
+    SemigroupAppend x y -> TermSemigroup (x <> y)
+  type Requirements Semigroup = Eq
   data Laws Semigroup x
     = SemigroupAppendAssociative x x x
     deriving (Show, Generic)
@@ -93,18 +93,18 @@ instance Variety Semigroup where
   lawful = \case
     SemigroupAppendAssociative x y z -> x <> (y <> z) == (x <> y) <> z
 
-instance Variety Monoid where
-  type Requirements Monoid = Eq
+instance Structure Monoid where
   data Signature Monoid x
     = MonoidSemigroup (Signature Semigroup x)
     | MonoidMempty
     deriving (Show, Generic)
-  newtype Operations Monoid x = OperationsMonoid x
-  operations :: (Monoid x) => Signature Monoid x -> Operations Monoid x
+  newtype Term Monoid x = TermMonoid x
+  operations :: (Monoid x) => Signature Monoid x -> Term Monoid x
   operations = \case
     MonoidSemigroup sig -> case operations sig of
-      OperationsSemigroup op -> OperationsMonoid op
-    MonoidMempty -> OperationsMonoid mempty
+      TermSemigroup op -> TermMonoid op
+    MonoidMempty -> TermMonoid mempty
+  type Requirements Monoid = Eq
   data Laws Monoid x
     = MonoidSemigroupLaws (Laws Semigroup x)
     | MonoidMemptyLeft x
@@ -118,15 +118,15 @@ instance Variety Monoid where
     MonoidMemptyLeft x -> mempty <> x == x
     MonoidMemptyRight x -> x <> mempty == x
 
-instance Variety Conjugate where
-  type Requirements Conjugate = Eq
+instance Structure Conjugate where
   data Signature Conjugate x
     = Conjugate x
     deriving (Show, Generic)
-  newtype Operations Conjugate x = OperationsConjugate x
-  operations :: (Conjugate x) => Signature Conjugate x -> Operations Conjugate x
+  newtype Term Conjugate x = TermConjugate x
+  operations :: (Conjugate x) => Signature Conjugate x -> Term Conjugate x
   operations = \case
-    Conjugate x -> OperationsConjugate (conjugate x)
+    Conjugate x -> TermConjugate (conjugate x)
+  type Requirements Conjugate = Eq
   data Laws Conjugate x
     = ConjugateInvolution x
     deriving (Show, Generic)
@@ -136,17 +136,17 @@ instance Variety Conjugate where
   lawful = \case
     ConjugateInvolution x -> conjugate (conjugate x) == x
 
-instance Variety Rack where
-  type Requirements Rack = Eq
+instance Structure Rack where
   data Signature Rack x
     = Lack x x
     | Rack x x
     deriving (Show, Generic)
-  newtype Operations Rack x = OperationsRack x
-  operations :: (Rack x) => Signature Rack x -> Operations Rack x
-  operations = OperationsRack . \case
+  newtype Term Rack x = TermRack x
+  operations :: (Rack x) => Signature Rack x -> Term Rack x
+  operations = TermRack . \case
     Lack x y -> x <| y
     Rack x y -> x |> y
+  type Requirements Rack = Eq
   data Laws Rack x
     = LackSelfDistributive x x x
     | RackSelfDistributive x x x
@@ -162,16 +162,16 @@ instance Variety Rack where
     LackRackIdentity x y -> (x <| y) |> x == y
     RackLackIdentity x y -> x <| (y |> x) == y
 
-instance Variety Quandle where
-  type Requirements Quandle = Eq
+instance Structure Quandle where
   data Signature Quandle x
     = QuandleRack (Signature Rack x)
     deriving (Show, Generic)
-  newtype Operations Quandle x = OperationsQuandle x
-  operations :: (Quandle x) => Signature Quandle x -> Operations Quandle x
+  newtype Term Quandle x = TermQuandle x
+  operations :: (Quandle x) => Signature Quandle x -> Term Quandle x
   operations = \case
     QuandleRack sig -> case operations sig of
-      OperationsRack op -> OperationsQuandle op
+      TermRack op -> TermQuandle op
+  type Requirements Quandle = Eq
   data Laws Quandle x
     = QuandleRackLaws (Laws Rack x)
     | QuandleIdempotentLack x
@@ -185,17 +185,17 @@ instance Variety Quandle where
     QuandleIdempotentLack x -> x <| x == x
     QuandleIdempotentRack x -> x |> x == x
 
-instance Variety Additive where
-  type Requirements Additive = Eq
+instance Structure Additive where
   data Signature Additive x
     = AdditiveZero
     | AdditiveAdd x x
     deriving (Show, Generic)
-  newtype Operations Additive x = OperationsAdditive x
-  operations :: (Additive x) => Signature Additive x -> Operations Additive x
-  operations = OperationsAdditive . \case
+  newtype Term Additive x = TermAdditive x
+  operations :: (Additive x) => Signature Additive x -> Term Additive x
+  operations = TermAdditive . \case
     AdditiveZero -> zero
     AdditiveAdd x y -> x + y
+  type Requirements Additive = Eq
   data Laws Additive x
     = AdditiveZeroLeft x
     | AdditiveZeroRight x
@@ -210,19 +210,19 @@ instance Variety Additive where
     AdditiveZeroRight x -> x + zero @x == x
     AdditiveAssociative x y z -> x + (y + z) == (x + y) + z
 
-instance Variety AdditiveAbelian where
-  type Requirements AdditiveAbelian = Eq
+instance Structure AdditiveAbelian where
   data Signature AdditiveAbelian x
     = AdditiveAbelianAdditive (Signature Additive x)
     deriving (Show, Generic)
-  newtype Operations AdditiveAbelian x = OperationsAdditiveAbelian x
+  newtype Term AdditiveAbelian x = TermAdditiveAbelian x
   operations ::
     (AdditiveAbelian x) =>
     Signature AdditiveAbelian x ->
-    Operations AdditiveAbelian x
+    Term AdditiveAbelian x
   operations = \case
     AdditiveAbelianAdditive sig -> case operations sig of
-      OperationsAdditive op -> OperationsAdditiveAbelian op
+      TermAdditive op -> TermAdditiveAbelian op
+  type Requirements AdditiveAbelian = Eq
   data Laws AdditiveAbelian x
     = AdditiveAbelianAdditiveLaws (Laws Additive x)
     | AdditiveAbelianCommutative x x
@@ -235,23 +235,23 @@ instance Variety AdditiveAbelian where
     AdditiveAbelianAdditiveLaws laws -> lawful laws
     AdditiveAbelianCommutative x y -> x + y == y + x
 
-instance Variety AdditiveGroup where
-  type Requirements AdditiveGroup = Eq
+instance Structure AdditiveGroup where
   data Signature AdditiveGroup x
     = AdditiveGroupAdditive (Signature Additive x)
     | AdditiveGroupNegative x
     | AdditiveGroupSubtract x x
     deriving (Show, Generic)
-  newtype Operations AdditiveGroup x = OperationsAdditiveGroup x
+  newtype Term AdditiveGroup x = TermAdditiveGroup x
   operations ::
     (AdditiveGroup x) =>
     Signature AdditiveGroup x ->
-    Operations AdditiveGroup x
+    Term AdditiveGroup x
   operations = \case
     AdditiveGroupAdditive sig -> case operations sig of
-      OperationsAdditive op -> OperationsAdditiveGroup op
-    AdditiveGroupNegative x -> OperationsAdditiveGroup (negative x)
-    AdditiveGroupSubtract x y -> OperationsAdditiveGroup (x - y)
+      TermAdditive op -> TermAdditiveGroup op
+    AdditiveGroupNegative x -> TermAdditiveGroup (negative x)
+    AdditiveGroupSubtract x y -> TermAdditiveGroup (x - y)
+  type Requirements AdditiveGroup = Eq
   data Laws AdditiveGroup x
     = AdditiveGroupAdditiveLaws (Laws Additive x)
     | AdditiveGroupNegativeZeroZero
@@ -270,20 +270,20 @@ instance Variety AdditiveGroup where
     AdditiveGroupSubtractSelfZero x -> x - x == zero @x
     AdditiveGroupSubtractZeroSelf x -> x - zero @x == x
 
-instance Variety Multiplicative where
-  type Requirements Multiplicative = Eq
+instance Structure Multiplicative where
   data Signature Multiplicative x
     = MultiplicativeOne
     | MultiplicativeMultiply x x
     deriving (Show, Generic)
-  newtype Operations Multiplicative x = OperationsMultiplicative x
+  newtype Term Multiplicative x = TermMultiplicative x
   operations ::
     (Multiplicative x) =>
     Signature Multiplicative x ->
-    Operations Multiplicative x
+    Term Multiplicative x
   operations = \case
-    MultiplicativeOne -> OperationsMultiplicative one
-    MultiplicativeMultiply x y -> OperationsMultiplicative (x * y)
+    MultiplicativeOne -> TermMultiplicative one
+    MultiplicativeMultiply x y -> TermMultiplicative (x * y)
+  type Requirements Multiplicative = Eq
   data Laws Multiplicative x
     = MultiplicativeOneLeft x
     | MultiplicativeOneRight x
@@ -298,19 +298,19 @@ instance Variety Multiplicative where
     MultiplicativeOneRight x -> x * one @x == x
     MultiplicativeAssociative x y z -> x * (y * z) == (x * y) * z
 
-instance Variety MultiplicativeAbelian where
-  type Requirements MultiplicativeAbelian = Eq
+instance Structure MultiplicativeAbelian where
   data Signature MultiplicativeAbelian x
     = MultiplicativeAbelianMultiplicative (Signature Multiplicative x)
     deriving (Show, Generic)
-  newtype Operations MultiplicativeAbelian x = OperationsMultiplicativeAbelian x
+  newtype Term MultiplicativeAbelian x = TermMultiplicativeAbelian x
   operations ::
     (MultiplicativeAbelian x) =>
     Signature MultiplicativeAbelian x ->
-    Operations MultiplicativeAbelian x
+    Term MultiplicativeAbelian x
   operations = \case
     MultiplicativeAbelianMultiplicative sig -> case operations sig of
-      OperationsMultiplicative op -> OperationsMultiplicativeAbelian op
+      TermMultiplicative op -> TermMultiplicativeAbelian op
+  type Requirements MultiplicativeAbelian = Eq
   data Laws MultiplicativeAbelian x
     = MultiplicativeAbelianMultiplicativeLaws (Laws Multiplicative x)
     | MultiplicativeAbelianCommutative x x
@@ -323,23 +323,23 @@ instance Variety MultiplicativeAbelian where
     MultiplicativeAbelianMultiplicativeLaws laws -> lawful laws
     MultiplicativeAbelianCommutative x y -> x * y == y * x
 
-instance Variety MultiplicativeGroup where
-  type Requirements MultiplicativeGroup = C2 Eq Additive
+instance Structure MultiplicativeGroup where
   data Signature MultiplicativeGroup x
     = MultiplicativeGroupMultiplicative (Signature Multiplicative x)
     | MultiplicativeGroupReciprocal x
     | MultiplicativeGroupDivide x x
     deriving (Show, Generic)
-  newtype Operations MultiplicativeGroup x = OperationsMultiplicativeGroup x
+  newtype Term MultiplicativeGroup x = TermMultiplicativeGroup x
   operations ::
     (MultiplicativeGroup x) =>
     Signature MultiplicativeGroup x ->
-    Operations MultiplicativeGroup x
+    Term MultiplicativeGroup x
   operations = \case
     MultiplicativeGroupMultiplicative sig -> case operations sig of
-      OperationsMultiplicative op -> OperationsMultiplicativeGroup op
-    MultiplicativeGroupReciprocal x -> OperationsMultiplicativeGroup (reciprocal x)
-    MultiplicativeGroupDivide x y -> OperationsMultiplicativeGroup (x / y)
+      TermMultiplicative op -> TermMultiplicativeGroup op
+    MultiplicativeGroupReciprocal x -> TermMultiplicativeGroup (reciprocal x)
+    MultiplicativeGroupDivide x y -> TermMultiplicativeGroup (x / y)
+  type Requirements MultiplicativeGroup = C2 Eq Additive
   data Laws MultiplicativeGroup x
     = MultiplicativeGroupMultiplicativeLaws (Laws Multiplicative x)
     | MultiplicativeGroupSelfReciprocalOne x
@@ -356,22 +356,22 @@ instance Variety MultiplicativeGroup where
     MultiplicativeGroupDivideSelfOne x ->
       (x /= zero @x) --> (x / x == one @x)
 
-instance Variety Distributive where
-  type Requirements Distributive = Eq
+instance Structure Distributive where
   data Signature Distributive x
     = DistributiveAdditive (Signature Additive x)
     | DistributiveMultiplicative (Signature Multiplicative x)
     deriving (Show, Generic)
-  newtype Operations Distributive x = OperationsDistributive x
+  newtype Term Distributive x = TermDistributive x
   operations ::
     (Distributive x) =>
     Signature Distributive x ->
-    Operations Distributive x
+    Term Distributive x
   operations = \case
     DistributiveAdditive sig -> case operations sig of
-      OperationsAdditive op -> OperationsDistributive op
+      TermAdditive op -> TermDistributive op
     DistributiveMultiplicative sig -> case operations sig of
-      OperationsMultiplicative op -> OperationsDistributive op
+      TermMultiplicative op -> TermDistributive op
+  type Requirements Distributive = Eq
   data Laws Distributive x
     = DistributiveAdditiveLaws (Laws Additive x)
     | DistributiveMultiplicativeLaws (Laws Multiplicative x)
@@ -388,19 +388,19 @@ instance Variety Distributive where
     DistributiveLeft a b c -> a * (b + c) == a * b + a * c
     DistributiveRight a b c -> (a + b) * c == (a * c) + (b * c)
 
-instance Variety Semiring where
-  type Requirements Semiring = Eq
+instance Structure Semiring where
   data Signature Semiring x
     = SemiringDistributive (Signature Distributive x)
     deriving (Show, Generic)
-  newtype Operations Semiring x = OperationsSemiring x
+  newtype Term Semiring x = TermSemiring x
   operations ::
     (Semiring x) =>
     Signature Semiring x ->
-    Operations Semiring x
+    Term Semiring x
   operations = \case
     SemiringDistributive sig -> case operations sig of
-      OperationsDistributive op -> OperationsSemiring op
+      TermDistributive op -> TermSemiring op
+  type Requirements Semiring = Eq
   data Laws Semiring x
     = SemiringDistributiveLaws (Laws Distributive x)
     | SemiringZeroMulZero x
@@ -415,22 +415,22 @@ instance Variety Semiring where
     SemiringZeroMulZero x -> zero @x * x == zero @x
     SemiringMulZeroZero x -> x * zero @x == zero @x
 
-instance Variety Ring where
-  type Requirements Ring = Eq
+instance Structure Ring where
   data Signature Ring x
     = RingSemiring (Signature Semiring x)
     | RingAdditiveAbelian (Signature AdditiveAbelian x)
     | RingAdditiveGroup (Signature AdditiveGroup x)
     deriving (Show, Generic)
-  newtype Operations Ring x = OperationsRing x
-  operations :: (Ring x) => Signature Ring x -> Operations Ring x
+  newtype Term Ring x = TermRing x
+  operations :: (Ring x) => Signature Ring x -> Term Ring x
   operations = \case
     RingSemiring sig -> case operations sig of
-      OperationsSemiring op -> OperationsRing op
+      TermSemiring op -> TermRing op
     RingAdditiveAbelian sig -> case operations sig of
-      OperationsAdditiveAbelian op -> OperationsRing op
+      TermAdditiveAbelian op -> TermRing op
     RingAdditiveGroup sig -> case operations sig of
-      OperationsAdditiveGroup op -> OperationsRing op
+      TermAdditiveGroup op -> TermRing op
+  type Requirements Ring = Eq
   data Laws Ring x
     = RingSemiringLaws (Laws Semiring x)
     | RingAdditiveAbelianLaws (Laws AdditiveAbelian x)
@@ -442,19 +442,19 @@ instance Variety Ring where
     RingAdditiveAbelianLaws laws -> lawful laws
     RingAdditiveGroupLaws laws -> lawful laws
 
-instance Variety Domain where
-  type Requirements Domain = Eq
+instance Structure Domain where
   data Signature Domain x
     = DomainRing (Signature Ring x)
     deriving (Show, Generic)
-  newtype Operations Domain x = OperationsDomain x
+  newtype Term Domain x = TermDomain x
   operations ::
     (Domain x) =>
     Signature Domain x ->
-    Operations Domain x
+    Term Domain x
   operations = \case
     DomainRing sig -> case operations sig of
-      OperationsRing x -> OperationsDomain x
+      TermRing x -> TermDomain x
+  type Requirements Domain = Eq
   data Laws Domain x
     = DomainRingLaws (Laws Ring x)
     | DomainZeroProduct x x
@@ -467,19 +467,19 @@ instance Variety Domain where
     DomainRingLaws laws -> lawful laws
     DomainZeroProduct x y -> (x * y == zero @x) --> (x == zero || y == zero)
 
-instance Variety IntegralDomain where
-  type Requirements IntegralDomain = Eq
+instance Structure IntegralDomain where
   data Signature IntegralDomain x
     = IntegralDomainDomain (Signature Domain x)
     deriving (Show, Generic)
-  newtype Operations IntegralDomain x = OperationsIntegralDomain x
+  newtype Term IntegralDomain x = TermIntegralDomain x
   operations ::
     (IntegralDomain x) =>
     Signature IntegralDomain x ->
-    Operations IntegralDomain x
+    Term IntegralDomain x
   operations = \case
     IntegralDomainDomain sig -> case operations sig of
-      OperationsDomain x -> OperationsIntegralDomain x
+      TermDomain x -> TermIntegralDomain x
+  type Requirements IntegralDomain = Eq
   data Laws IntegralDomain x
     = IntegralDomainDomainLaws (Laws Domain x)
     | IntegralDomainMultiplicativeAbelian (Laws MultiplicativeAbelian x)
@@ -492,19 +492,19 @@ instance Variety IntegralDomain where
     IntegralDomainDomainLaws laws -> lawful laws
     IntegralDomainMultiplicativeAbelian laws -> lawful laws
 
-instance Variety Field where
-  type Requirements Field = Eq
+instance Structure Field where
   data Signature Field x
     = FieldIntegralDomain (Signature IntegralDomain x)
     | FieldMultiplicativeGroup (Signature MultiplicativeGroup x)
     deriving (Show, Generic)
-  newtype Operations Field x = OperationsField x
-  operations :: (Field x) => Signature Field x -> Operations Field x
+  newtype Term Field x = TermField x
+  operations :: (Field x) => Signature Field x -> Term Field x
   operations = \case
     FieldIntegralDomain sig -> case operations sig of
-      OperationsIntegralDomain op -> OperationsField op
+      TermIntegralDomain op -> TermField op
     FieldMultiplicativeGroup sig -> case operations sig of
-      OperationsMultiplicativeGroup op -> OperationsField op
+      TermMultiplicativeGroup op -> TermField op
+  type Requirements Field = Eq
   data Laws Field x
     = FieldIntegralDomainLaws (Laws IntegralDomain x)
     | FieldMultiplicativeGroupLaws (Laws MultiplicativeGroup x)
@@ -519,17 +519,17 @@ instance Variety Field where
     FieldMultiplicativeGroupLaws laws -> lawful laws
     FieldZeroNeqOne -> zero @x /= one
 
-instance Variety Euclidean where
-  type Requirements Euclidean = C2 Eq Additive
+instance Structure Euclidean where
   data Signature Euclidean x
     = EuclideanQuotient x x
     | EuclideanRemainder x x
     deriving (Show, Generic)
-  newtype Operations Euclidean x = OperationsEuclidean x
-  operations :: (Euclidean x) => Signature Euclidean x -> Operations Euclidean x
+  newtype Term Euclidean x = TermEuclidean x
+  operations :: (Euclidean x) => Signature Euclidean x -> Term Euclidean x
   operations = \case
-    EuclideanQuotient n d -> OperationsEuclidean (quotient n d)
-    EuclideanRemainder n d -> OperationsEuclidean (remainder n d)
+    EuclideanQuotient n d -> TermEuclidean (quotient n d)
+    EuclideanRemainder n d -> TermEuclidean (remainder n d)
+  type Requirements Euclidean = C2 Eq Additive
   data Laws Euclidean x
     = EuclideanRemainderDegree x x
     deriving (Show, Generic)
@@ -541,16 +541,16 @@ instance Variety Euclidean where
     EuclideanRemainderDegree n d ->
       (d /= zero @x) --> (degree (remainder n d) < degree d)
 
-instance Variety Fractional where
-  type Requirements Fractional = C2 Eq Additive
+instance Structure Fractional where
   data Signature Fractional x
     = Proper x
     deriving (Show, Generic)
-  data Operations Fractional x
-    = OperationsFractional (Integral x) x
-  operations :: (Fractional x) => Signature Fractional x -> Operations Fractional x
+  data Term Fractional x
+    = TermFractional (Integral x) x
+  operations :: (Fractional x) => Signature Fractional x -> Term Fractional x
   operations = \case
-    Proper x -> case proper x of (i, f) -> OperationsFractional i f
+    Proper x -> case proper x of (i, f) -> TermFractional i f
+  type Requirements Fractional = C2 Eq Additive
   data Laws Fractional x
     = FractionalSum x
     deriving (Show, Generic)
@@ -562,18 +562,18 @@ instance Variety Fractional where
     FractionalSum x -> case proper x of
       (l, y) -> x == l +. y
 
-instance Variety Meet where
-  type Requirements Meet = C0
+instance Structure Meet where
   data Signature Meet x
     = Meet x x
     deriving (Show, Generic)
-  newtype Operations Meet x = OperationsMeet x
+  newtype Term Meet x = TermMeet x
   operations ::
     (Meet x, Requirements Meet x) =>
     Signature Meet x ->
-    Operations Meet x
+    Term Meet x
   operations = \case
-    Meet x y -> OperationsMeet (x /\ y)
+    Meet x y -> TermMeet (x /\ y)
+  type Requirements Meet = C0
   data Laws Meet x
     = MeetAssociative x x x
     | MeetCommutative x x
@@ -589,21 +589,21 @@ instance Variety Meet where
     MeetIdempotent x -> x /\ x == x
     MeetLessThan x y -> (x /\ y) <= x && (x /\ y) <= y
 
-instance Variety Lowest where
-  type Requirements Lowest = C0
+instance Structure Lowest where
   data Signature Lowest x
     = LowestMeet (Signature Meet x)
     | LowestLowest
     deriving (Show, Generic)
-  newtype Operations Lowest x = OperationsLowest x
+  newtype Term Lowest x = TermLowest x
   operations ::
     (Lowest x, Requirements Lowest x) =>
     Signature Lowest x ->
-    Operations Lowest x
+    Term Lowest x
   operations = \case
     LowestMeet sig -> case operations sig of
-      OperationsMeet x -> OperationsLowest x
-    LowestLowest -> OperationsLowest lowest
+      TermMeet x -> TermLowest x
+    LowestLowest -> TermLowest lowest
+  type Requirements Lowest = C0
   data Laws Lowest x
     = LowestMeetLaws (Laws Meet x)
     | LowestLeast x
@@ -615,18 +615,18 @@ instance Variety Lowest where
     LowestMeetLaws laws -> lawful laws
     LowestLeast x -> lowest <= x
 
-instance Variety Join where
-  type Requirements Join = C0
+instance Structure Join where
   data Signature Join x
     = Join x x
     deriving (Show, Generic)
-  newtype Operations Join x = OperationsJoin x
+  newtype Term Join x = TermJoin x
   operations ::
     (Join x, Requirements Join x) =>
     Signature Join x ->
-    Operations Join x
+    Term Join x
   operations = \case
-    Join x y -> OperationsJoin (x \/ y)
+    Join x y -> TermJoin (x \/ y)
+  type Requirements Join = C0
   data Laws Join x
     = JoinAssociative x x x
     | JoinCommutative x x
@@ -642,21 +642,21 @@ instance Variety Join where
     JoinIdempotent x -> x \/ x == x
     JoinGreaterThan x y -> x <= (x \/ y) && y <= (x \/ y)
 
-instance Variety Highest where
-  type Requirements Highest = C0
+instance Structure Highest where
   data Signature Highest x
     = HighestJoin (Signature Join x)
     | HighestHighest
     deriving (Show, Generic)
-  newtype Operations Highest x = OperationsHighest x
+  newtype Term Highest x = TermHighest x
   operations ::
     (Highest x, Requirements Highest x) =>
     Signature Highest x ->
-    Operations Highest x
+    Term Highest x
   operations = \case
     HighestJoin sig -> case operations sig of
-      OperationsJoin op -> OperationsHighest op
-    HighestHighest -> OperationsHighest highest
+      TermJoin op -> TermHighest op
+    HighestHighest -> TermHighest highest
+  type Requirements Highest = C0
   data Laws Highest x
     = HighestJoinLaws (Laws Join x)
     | HighestGreatest x
@@ -668,22 +668,22 @@ instance Variety Highest where
     HighestJoinLaws laws -> lawful laws
     HighestGreatest x -> x <= highest
 
-instance Variety Lattice where
-  type Requirements Lattice = C0
+instance Structure Lattice where
   data Signature Lattice x
     = LatticeMeet (Signature Meet x)
     | LatticeJoin (Signature Join x)
     deriving (Show, Generic)
-  newtype Operations Lattice x = OperationsLattice x
+  newtype Term Lattice x = TermLattice x
   operations ::
     (Lattice x, Requirements Lattice x) =>
     Signature Lattice x ->
-    Operations Lattice x
+    Term Lattice x
   operations = \case
     LatticeMeet sig -> case operations sig of
-      OperationsMeet op -> OperationsLattice op
+      TermMeet op -> TermLattice op
     LatticeJoin sig -> case operations sig of
-      OperationsJoin op -> OperationsLattice op
+      TermJoin op -> TermLattice op
+  type Requirements Lattice = C0
   data Laws Lattice x
     = LatticeMeetLaws (Laws Meet x)
     | LatticeJoinLaws (Laws Join x)
@@ -699,22 +699,22 @@ instance Variety Lattice where
     LatticeAbsorptionMeet x y -> x /\ (x \/ y) == x
     LatticeAbsorptionJoin x y -> x \/ (x /\ y) == x
 
-instance Variety Extrema where
-  type Requirements Extrema = C0
+instance Structure Extrema where
   data Signature Extrema x
     = ExtremaLowest (Signature Lowest x)
     | ExtremaHighest (Signature Highest x)
     deriving (Show, Generic)
-  newtype Operations Extrema x = OperationsExtrema x
+  newtype Term Extrema x = TermExtrema x
   operations ::
     (Extrema x, Requirements Extrema x) =>
     Signature Extrema x ->
-    Operations Extrema x
+    Term Extrema x
   operations = \case
     ExtremaLowest sig -> case operations sig of
-      OperationsLowest op -> OperationsExtrema op
+      TermLowest op -> TermExtrema op
     ExtremaHighest sig -> case operations sig of
-      OperationsHighest op -> OperationsExtrema op
+      TermHighest op -> TermExtrema op
+  type Requirements Extrema = C0
   data Laws Extrema x
     = ExtremaLowestLaws (Laws Lowest x)
     | ExtremaHighestLaws (Laws Highest x)
@@ -730,23 +730,23 @@ instance Variety Extrema where
     ExtremaMeetHighest x -> x /\ highest == x
     ExtremaJoinLowest x -> x \/ lowest == x
 
-instance Variety Heyting where
-  type Requirements Heyting = C0
+instance Structure Heyting where
   data Signature Heyting x
     = HeytingExtrema (Signature Extrema x)
     | HeytingImplies x x
     | HeytingComplement x
     deriving (Show, Generic)
-  newtype Operations Heyting x = OperationsHeyting x
+  newtype Term Heyting x = TermHeyting x
   operations ::
     (Heyting x, Requirements Heyting x) =>
     Signature Heyting x ->
-    Operations Heyting x
+    Term Heyting x
   operations = \case
     HeytingExtrema sig -> case operations sig of
-      OperationsExtrema op -> OperationsHeyting op
-    HeytingImplies x y -> OperationsHeyting (x --> y)
-    HeytingComplement x -> OperationsHeyting (complement x)
+      TermExtrema op -> TermHeyting op
+    HeytingImplies x y -> TermHeyting (x --> y)
+    HeytingComplement x -> TermHeyting (complement x)
+  type Requirements Heyting = C0
   data Laws Heyting x
     = HeytingExtremaLaws (Laws Extrema x)
     | HeytingDistributeMeet x x x
@@ -770,19 +770,19 @@ instance Variety Heyting where
     HeytingImpliesMeetMeetImplies x y z -> x --> (y /\ z) == (x --> y) /\ (x --> z)
     HeytingComplementSelfMeetLowest x -> x /\ complement x == lowest
 
-instance Variety Boolean where
-  type Requirements Boolean = C0
+instance Structure Boolean where
   data Signature Boolean x
     = BooleanHeyting (Signature Heyting x)
     deriving (Show, Generic)
-  newtype Operations Boolean x = OperationsBoolean x
+  newtype Term Boolean x = TermBoolean x
   operations ::
     (Boolean x, Requirements Boolean x) =>
     Signature Boolean x ->
-    Operations Boolean x
+    Term Boolean x
   operations = \case
     BooleanHeyting sig -> case operations sig of
-      OperationsHeyting op -> OperationsBoolean op
+      TermHeyting op -> TermBoolean op
+  type Requirements Boolean = C0
   data Laws Boolean x
     = BooleanHeytingLaws (Laws Heyting x)
     | BooleanComplementSelfJoinHighest x
@@ -800,21 +800,21 @@ instance Variety Boolean where
     BooleanDistributeJoin x y z -> x \/ (y /\ z) == (x \/ y) /\ (x \/ z)
     BooleanImplicationComplement x y -> (x --> y) == (complement x \/ y)
 
-instance Variety Median where
-  type Requirements Median = Eq
+instance Structure Median where
   data Signature Median x
     = MedianBoolean (Signature Boolean x)
     | MedianMedian x x x
     deriving (Show, Generic)
-  newtype Operations Median x = OperationsMedian x
+  newtype Term Median x = TermMedian x
   operations ::
     (Median x, Requirements Median x) =>
     Signature Median x ->
-    Operations Median x
+    Term Median x
   operations = \case
     MedianBoolean sig -> case operations sig of
-      OperationsBoolean op -> OperationsMedian op
-    MedianMedian x y z -> OperationsMedian (median x y z)
+      TermBoolean op -> TermMedian op
+    MedianMedian x y z -> TermMedian (median x y z)
+  type Requirements Median = Eq
   data Laws Median x
     = MedianMajority x x
     | MedianCyclic x x x
@@ -829,22 +829,22 @@ instance Variety Median where
     MedianOfMedian x y z w ->
       median (median x w y) w z == median x w (median y w z)
 
-instance Variety Logarithmic where
-  type Requirements Logarithmic = C2 Ord (C2 Additive Multiplicative)
+instance Structure Logarithmic where
   data Signature Logarithmic x
     = LogarithmicExp x
     | LogarithmicLog x
     | LogarithmicLogBase x x
     deriving (Show, Generic)
-  newtype Operations Logarithmic x = OperationsLogarithmic x
+  newtype Term Logarithmic x = TermLogarithmic x
   operations ::
     (Logarithmic x) =>
     Signature Logarithmic x ->
-    Operations Logarithmic x
-  operations = OperationsLogarithmic . \case
+    Term Logarithmic x
+  operations = TermLogarithmic . \case
     LogarithmicExp x -> exp x
     LogarithmicLog x -> log x
     LogarithmicLogBase b x -> logBase b x
+  type Requirements Logarithmic = C2 Ord (C2 Additive Multiplicative)
   data Laws Logarithmic x
     = LogarithmicExpLogIdentity x
     | LogarithmicLogExpIdentity x
@@ -861,8 +861,7 @@ instance Variety Logarithmic where
     LogarithmicExpSumProductExp x y -> exp @x (x + y) == exp x * exp y
     LogarithmicLogProductSumLog x y -> log @x (x * y) == log x + log y
 
-instance Variety Trigonometric where
-  type Requirements Trigonometric = C2 Eq Field
+instance Structure Trigonometric where
   data Signature Trigonometric x
     = TrigonometricSin x
     | TrigonometricCos x
@@ -871,18 +870,19 @@ instance Variety Trigonometric where
     | TrigonometricArccos x
     | TrigonometricArctan x
     deriving (Show, Generic)
-  newtype Operations Trigonometric x = OperationsTrigonometric x
+  newtype Term Trigonometric x = TermTrigonometric x
   operations ::
     (Trigonometric x) =>
     Signature Trigonometric x ->
-    Operations Trigonometric x
-  operations = OperationsTrigonometric . \case
+    Term Trigonometric x
+  operations = TermTrigonometric . \case
     TrigonometricSin x -> sin x
     TrigonometricCos x -> cos x
     TrigonometricTan x -> tan x
     TrigonometricArcsin x -> arcsin x
     TrigonometricArccos x -> arccos x
     TrigonometricArctan x -> arctan x
+  type Requirements Trigonometric = C2 Eq Field
   data Laws Trigonometric x
     = TrigonometricPythagoras x
     | TrigonometricSinOdd x
@@ -898,18 +898,18 @@ instance Variety Trigonometric where
     TrigonometricSinOdd x -> sin (negative x) == negative (sin x)
     TrigonometricCosEven x -> cos (negative x) == cos x
 
-instance Variety Root where
-  type Requirements Root = C2 Eq Field
+instance Structure Root where
   data Signature Root x
     = RootField (Signature Field x)
     | RootPower x Rational
     deriving (Show, Generic)
-  newtype Operations Root x = OperationsRoot x
-  operations :: (Root x) => Signature Root x -> Operations Root x
+  newtype Term Root x = TermRoot x
+  operations :: (Root x) => Signature Root x -> Term Root x
   operations = \case
     RootField sig -> case operations sig of
-      OperationsField op -> OperationsRoot op
-    RootPower x r -> OperationsRoot (x ^ r)
+      TermField op -> TermRoot op
+    RootPower x r -> TermRoot (x ^ r)
+  type Requirements Root = C2 Eq Field
   data Laws Root x
     = RootFieldLaws (Laws Field x)
     | RootPowerZero x
@@ -923,18 +923,18 @@ instance Variety Root where
     RootPowerOne x -> (x ^ (one :: Rational)) == x
     RootPowerReciprocal x r@(Ratio n d) -> ((x ^ r :: x) ^ (reduce d n)) == x
 
-instance Variety (Morphisms (->) (->)) where
-  type Requirements (Morphisms (->) (->)) = Eq1
+instance Structure (Morphisms (->) (->)) where
   data Signature (Morphisms (->) (->)) f
     = forall x y. MorphismsFunction (x -> y)
-  data Operations (Morphisms (->) (->)) f
-    = forall x y. OperationsMorphism (f x -> f y)
+  data Term (Morphisms (->) (->)) f
+    = forall x y. TermMorphism (f x -> f y)
   operations ::
     (Morphisms (->) (->) f) =>
     Signature (Morphisms (->) (->)) f ->
-    Operations (Morphisms (->) (->)) f
+    Term (Morphisms (->) (->)) f
   operations = \case
-    MorphismsFunction x_y -> OperationsMorphism (morphism x_y)
+    MorphismsFunction x_y -> TermMorphism (morphism x_y)
+  type Requirements (Morphisms (->) (->)) = Eq1
   data Laws (Morphisms (->) (->)) f
     = forall x. (Eq x) => MorphismIdentityIdentity (f x)
   lawful ::
@@ -945,18 +945,18 @@ instance Variety (Morphisms (->) (->)) where
   lawful = \case
     MorphismIdentityIdentity fx -> fx == morphism (id :: x -> x) fx
 
-instance Variety (Traversals (->) (->)) where
-  type Requirements (Traversals (->) (->)) = Eq1
+instance Structure (Traversals (->) (->)) where
   data Signature (Traversals (->) (->)) f
     = forall x y g. (Applicative g) => TraversalsFunction (x -> g y)
-  data Operations (Traversals (->) (->)) f
-    = forall x y g. (Applicative g) => OperationsTraverse (f x -> g (f y))
+  data Term (Traversals (->) (->)) f
+    = forall x y g. (Applicative g) => TermTraverse (f x -> g (f y))
   operations ::
     (Traversals (->) (->) f) =>
     Signature (Traversals (->) (->)) f ->
-    Operations (Traversals (->) (->)) f
+    Term (Traversals (->) (->)) f
   operations = \case
-    TraversalsFunction x_gy -> OperationsTraverse (traverse x_gy)
+    TraversalsFunction x_gy -> TermTraverse (traverse x_gy)
+  type Requirements (Traversals (->) (->)) = Eq1
   data Laws (Traversals (->) (->)) f
     = forall x. (Eq x) => TraverseIdentityIdentity (f x)
     | forall x g. (Eq x, Eq1 g, Applicative g) => TraversePurePure (Proxy g, f x)
@@ -969,18 +969,18 @@ instance Variety (Traversals (->) (->)) where
     TraverseIdentityIdentity fx -> Identity fx == traverse Identity fx
     TraversePurePure (Proxy :: Proxy g, fx) -> pure @g fx == traverse (pure @g) fx
 
-instance Variety (Traversals1 (->) (->)) where
-  type Requirements (Traversals1 (->) (->)) = Eq1
+instance Structure (Traversals1 (->) (->)) where
   data Signature (Traversals1 (->) (->)) f
     = forall x y g. (Apply g) => Traversals1Function (x -> g y)
-  data Operations (Traversals1 (->) (->)) f
-    = forall x y g. (Apply g) => OperationsTraverse1 (f x -> g (f y))
+  data Term (Traversals1 (->) (->)) f
+    = forall x y g. (Apply g) => TermTraverse1 (f x -> g (f y))
   operations ::
     (Traversals1 (->) (->) f) =>
     Signature (Traversals1 (->) (->)) f ->
-    Operations (Traversals1 (->) (->)) f
+    Term (Traversals1 (->) (->)) f
   operations = \case
-    Traversals1Function x_gy -> OperationsTraverse1 (traverse1 x_gy)
+    Traversals1Function x_gy -> TermTraverse1 (traverse1 x_gy)
+  type Requirements (Traversals1 (->) (->)) = Eq1
   data Laws (Traversals1 (->) (->)) f
     = forall x. (Eq x) => Traverse1IdentityIdentity (f x)
     | forall x g. (Eq x, Eq1 g, Applicative g) => Traverse1PurePure (Proxy g, f x)

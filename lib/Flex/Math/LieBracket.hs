@@ -9,7 +9,7 @@ module Flex.Math.LieBracket
 import Flex.Math.Matrix
 import Flex.Math.Module
 import Flex.Math.Numbers
-import Flex.Math.Variety
+import Flex.Math.Structure
 
 import Data.Bool (Bool)
 import Data.Eq (Eq (..))
@@ -18,21 +18,21 @@ import GHC.Show (Show)
 
 class (Module v) => LieBracket v where
   (><) :: v -> v -> v
-instance Variety LieBracket where
-  type Requirements LieBracket = Eq
+instance Structure LieBracket where
   data Signature LieBracket v
     = LieBracketAdditiveGroup (Signature AdditiveGroup v)
     | LieBracketMultiply v v
     deriving (Generic)
-  newtype Operations LieBracket v = OperationsLieBracket v
+  newtype Term LieBracket v = TermLieBracket v
   operations ::
     (LieBracket v) =>
     Signature LieBracket v ->
-    Operations LieBracket v
+    Term LieBracket v
   operations = \case
     LieBracketAdditiveGroup sig -> case operations sig of
-      OperationsAdditiveGroup op -> OperationsLieBracket op
-    LieBracketMultiply x y -> OperationsLieBracket (x >< y)
+      TermAdditiveGroup op -> TermLieBracket op
+    LieBracketMultiply x y -> TermLieBracket (x >< y)
+  type Requirements LieBracket = Eq
   data Laws LieBracket v
     = LieBracketAdditiveGroupLaws (Laws AdditiveGroup v)
     | LieBracketLinearFirst (Scalar v) v (Scalar v) v v

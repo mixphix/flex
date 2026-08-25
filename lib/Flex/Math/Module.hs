@@ -18,13 +18,13 @@ module Flex.Math.Module
   , imag
   , Quaternion (Quaternion)
   , Signature (..)
-  , Operations (..)
+  , Term (..)
   , Laws (..)
   ) where
 
 import Flex.Math.Category
 import Flex.Math.Numbers
-import Flex.Math.Variety
+import Flex.Math.Structure
 
 import Data.Bool (Bool, (||))
 import Data.Complex (Complex ((:+)))
@@ -96,23 +96,23 @@ class
   Module v
   where
   data Scalar v :: Type
-instance Variety Module where
-  type Requirements Module = C2 Eq (CC Eq Scalar)
+instance Structure Module where
   data Signature Module v
     = ModuleScalarRing (Signature Ring (Scalar v))
     | ModuleAdditiveGroup (Signature AdditiveGroup v)
     | ModuleScale (Scalar v) v
     deriving (Generic)
-  data Operations Module v
-    = OperationsModule v
-    | OperationsModuleScalar (Scalar v)
-  operations :: (Module v) => Signature Module v -> Operations Module v
+  data Term Module v
+    = TermModule v
+    | TermModuleScalar (Scalar v)
+  operations :: (Module v) => Signature Module v -> Term Module v
   operations = \case
     ModuleScalarRing sig -> case operations sig of
-      OperationsRing op -> OperationsModuleScalar op
+      TermRing op -> TermModuleScalar op
     ModuleAdditiveGroup sig -> case operations sig of
-      OperationsAdditiveGroup op -> OperationsModule op
-    ModuleScale k v -> OperationsModule (k *. v)
+      TermAdditiveGroup op -> TermModule op
+    ModuleScale k v -> TermModule (k *. v)
+  type Requirements Module = C2 Eq (CC Eq Scalar)
   data Laws Module v
     = ModuleRingLaws (Laws Ring (Scalar v))
     | ModuleAdditiveGroupLaws (Laws AdditiveAbelian v)
@@ -180,19 +180,19 @@ instance (Ring x) => Module (Complex x) where
 -- Vector
 
 class (Module v, Field (Scalar v)) => Vector v
-instance Variety Vector where
-  type Requirements Vector = C2 Eq (CC Eq Scalar)
+instance Structure Vector where
   data Signature Vector v
     = VectorModule (Signature Module v)
     deriving (Generic)
-  data Operations Vector v
-    = OperationsVector v
-    | OperationsVectorScalar (Scalar v)
-  operations :: (Vector v) => Signature Vector v -> Operations Vector v
+  data Term Vector v
+    = TermVector v
+    | TermVectorScalar (Scalar v)
+  operations :: (Vector v) => Signature Vector v -> Term Vector v
   operations = \case
     VectorModule sig -> case operations sig of
-      OperationsModule op -> OperationsVector op
-      OperationsModuleScalar op -> OperationsVectorScalar op
+      TermModule op -> TermVector op
+      TermModuleScalar op -> TermVectorScalar op
+  type Requirements Vector = C2 Eq (CC Eq Scalar)
   data Laws Vector v
     = VectorModuleLaws (Laws Module v)
     | VectorFieldLaws (Laws Field (Scalar v))
@@ -215,26 +215,26 @@ class (Module v) => Bilinear v where
 qd :: (Bilinear v) => v -> Scalar v
 qd = join (•)
 
-instance Variety Bilinear where
-  type Requirements Bilinear = C2 Eq (CC Eq Scalar)
+instance Structure Bilinear where
   data Signature Bilinear v
     = BilinearModule (Signature Module v)
     | BilinearDot v v
     | BilinearQd v
     deriving (Generic)
-  data Operations Bilinear v
-    = OperationsBilinear v
-    | OperationsBilinearScalar (Scalar v)
+  data Term Bilinear v
+    = TermBilinear v
+    | TermBilinearScalar (Scalar v)
   operations ::
     (Bilinear v) =>
     Signature Bilinear v ->
-    Operations Bilinear v
+    Term Bilinear v
   operations = \case
     BilinearModule sig -> case operations sig of
-      OperationsModule op -> OperationsBilinear op
-      OperationsModuleScalar op -> OperationsBilinearScalar op
-    BilinearDot u0 u1 -> OperationsBilinearScalar (u0 • u1)
-    BilinearQd u -> OperationsBilinearScalar (qd u)
+      TermModule op -> TermBilinear op
+      TermModuleScalar op -> TermBilinearScalar op
+    BilinearDot u0 u1 -> TermBilinearScalar (u0 • u1)
+    BilinearQd u -> TermBilinearScalar (qd u)
+  type Requirements Bilinear = C2 Eq (CC Eq Scalar)
   data Laws Bilinear v
     = BilinearModuleLaws (Laws Module v)
     | BilinearLinearFirst (Scalar v) v (Scalar v) v v
@@ -269,28 +269,28 @@ normalized ::
   (Sesquilinear v, Root (Scalar v), Division v (Scalar v) v) => v -> v
 normalized u = u /. (2 √ quadrance u)
 
-instance Variety Sesquilinear where
-  type Requirements Sesquilinear = C2 Eq (CC Eq Scalar)
+instance Structure Sesquilinear where
   data Signature Sesquilinear v
     = SesquilinearModule (Signature Module v)
     | SesquilinearConjugateScalar (Scalar v)
     | SesquilinearAngleDot v v
     | SesquilinearQuadrance v
     deriving (Generic)
-  data Operations Sesquilinear v
-    = OperationsSesquilinear v
-    | OperationsSesquilinearScalar (Scalar v)
+  data Term Sesquilinear v
+    = TermSesquilinear v
+    | TermSesquilinearScalar (Scalar v)
   operations ::
     (Sesquilinear x) =>
     Signature Sesquilinear x ->
-    Operations Sesquilinear x
+    Term Sesquilinear x
   operations = \case
     SesquilinearModule sig -> case operations sig of
-      OperationsModule op -> OperationsSesquilinear op
-      OperationsModuleScalar op -> OperationsSesquilinearScalar op
-    SesquilinearConjugateScalar x -> OperationsSesquilinearScalar (conjugate x)
-    SesquilinearAngleDot u0 u1 -> OperationsSesquilinearScalar (u0 <•> u1)
-    SesquilinearQuadrance u -> OperationsSesquilinearScalar (quadrance u)
+      TermModule op -> TermSesquilinear op
+      TermModuleScalar op -> TermSesquilinearScalar op
+    SesquilinearConjugateScalar x -> TermSesquilinearScalar (conjugate x)
+    SesquilinearAngleDot u0 u1 -> TermSesquilinearScalar (u0 <•> u1)
+    SesquilinearQuadrance u -> TermSesquilinearScalar (quadrance u)
+  type Requirements Sesquilinear = C2 Eq (CC Eq Scalar)
   data Laws Sesquilinear v
     = SesquilinearConjugateSwap v v
     | SesquilinearLinearFirst (Scalar v) v (Scalar v) v v
@@ -317,22 +317,22 @@ instance (Ring x, Conjugate x) => Sesquilinear (Complex x) where
 -- InnerProduct
 
 class (Sesquilinear v) => InnerProduct v
-instance Variety InnerProduct where
-  type Requirements InnerProduct = C2 Eq (CC Eq Scalar)
+instance Structure InnerProduct where
   data Signature InnerProduct v
     = InnerProductSesquilinear (Signature Sesquilinear v)
     deriving (Generic)
-  data Operations InnerProduct v
-    = OperationsInnerProduct v
-    | OperationsInnerProductScalar (Scalar v)
+  data Term InnerProduct v
+    = TermInnerProduct v
+    | TermInnerProductScalar (Scalar v)
   operations ::
     (InnerProduct v) =>
     Signature InnerProduct v ->
-    Operations InnerProduct v
+    Term InnerProduct v
   operations = \case
     InnerProductSesquilinear sig -> case operations sig of
-      OperationsSesquilinear op -> OperationsInnerProduct op
-      OperationsSesquilinearScalar x -> OperationsInnerProductScalar x
+      TermSesquilinear op -> TermInnerProduct op
+      TermSesquilinearScalar x -> TermInnerProductScalar x
+  type Requirements InnerProduct = C2 Eq (CC Eq Scalar)
   data Laws InnerProduct v
     = InnerProductSesquilinearLaws (Laws Sesquilinear v)
     | InnerProductPositiveDefinite v

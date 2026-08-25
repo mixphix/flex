@@ -11,4 +11,4 @@ and Lawvere theories for algebraic structures.
 
 To get started, see `Flex.Math.Numbers` and `Flex.Math.Module`. For category theory, see `Flex.Math.Category`.
 For lenses and other optics, see `Flex.Math.Optics`. For vectors and matrices, see `Flex.Math.Matrix`.
-For Lawvere theories and their uses, see `Flex.Math.Variety` and `tests/Main.hs`.
+For (pseudo-)Lawvere theories and their uses, see `Flex.Math.Structure` and `tests/Main.hs`.
