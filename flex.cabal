@@ -7,7 +7,6 @@ category:        Mathematics
 build-type:      Simple
 license-file:    LICENSE
 license:         BSD-2-Clause
-extra-doc-files: CHANGELOG.md
 synopsis:
   
 description:

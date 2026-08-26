@@ -162,6 +162,12 @@ instance (Division x x x) => Division (Perplex x) (Scalar (Perplex x)) (Perplex 
 instance (Power x r x) => Power (Scalar (Perplex x)) r (Scalar (Perplex x)) where
   (^) :: Scalar (Perplex x) -> r -> Scalar (Perplex x)
   ScalarPerplex x ^ r = ScalarPerplex (x ^ r)
+instance (Absolute x x) => Absolute (Scalar (Perplex x)) x where
+  absolute :: Scalar (Perplex x) -> x
+  absolute (ScalarPerplex k) = absolute k
+instance (Absolute x x) => Absolute (Scalar (Perplex x)) (Scalar (Perplex x)) where
+  absolute :: Scalar (Perplex x) -> Scalar (Perplex x)
+  absolute (ScalarPerplex k) = ScalarPerplex (absolute k)
 
 instance (Semiring x) => Semiring (Scalar (Perplex x))
 instance (Ring x) => Ring (Scalar (Perplex x))
@@ -175,6 +181,7 @@ instance (Ring x) => Module (Perplex x) where
       ( Eq
       , Ord
       , Show
+      , Signed
       , Conjugate
       , Additive
       , AdditiveAbelian

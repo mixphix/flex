@@ -305,6 +305,12 @@ instance (KnownNat n, Division x x x) => Division (V n x) (Scalar (V n x)) (V n 
 instance (KnownNat n, Power x Rational x) => Power (Scalar (V n x)) Rational (Scalar (V n x)) where
   (^) :: Scalar (V n x) -> Rational -> Scalar (V n x)
   ScalarV x ^ r = ScalarV (x ^ r)
+instance (KnownNat n, Absolute x x) => Absolute (Scalar (V n x)) x where
+  absolute :: Scalar (V n x) -> x
+  absolute (ScalarV k) = absolute k
+instance (KnownNat n, Absolute x x) => Absolute (Scalar (V n x)) (Scalar (V n x)) where
+  absolute :: Scalar (V n x) -> Scalar (V n x)
+  absolute (ScalarV k) = ScalarV (absolute k)
 
 instance (KnownNat n, Semiring x) => Semiring (Scalar (V n x))
 instance (KnownNat n, Ring x) => Ring (Scalar (V n x))
@@ -315,6 +321,7 @@ instance (KnownNat n, Ring x) => Module (V n x) where
       ( Eq
       , Ord
       , Show
+      , Signed
       , Conjugate
       , Additive
       , AdditiveAbelian
@@ -569,6 +576,12 @@ instance
   where
   (^) :: Scalar (M m n x) -> r -> Scalar (M m n x)
   ScalarM x ^ r = ScalarM (x ^ r)
+instance (KnownNat m, KnownNat n, Absolute x x) => Absolute (Scalar (M m n x)) x where
+  absolute :: Scalar (M m n x) -> x
+  absolute (ScalarM k) = absolute k
+instance (KnownNat m, KnownNat n, Absolute x x) => Absolute (Scalar (M m n x)) (Scalar (M m n x)) where
+  absolute :: Scalar (M m n x) -> Scalar (M m n x)
+  absolute (ScalarM k) = ScalarM (absolute k)
 
 instance (KnownNat m, KnownNat n, Semiring x) => Semiring (Scalar (M m n x))
 instance (KnownNat m, KnownNat n, Ring x) => Ring (Scalar (M m n x))

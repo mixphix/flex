@@ -17,6 +17,7 @@ module Flex.Math.Module
   , real
   , imag
   , Quaternion (Quaternion)
+  , variable
   , Signature (..)
   , Term (..)
   , Laws (..)
@@ -31,7 +32,6 @@ import Data.Complex (Complex ((:+)))
 import Data.Eq (Eq (..))
 import Data.Functor qualified as Data
 import Data.Foldable qualified as Data
-import Data.Int (Int)
 import Data.Traversable qualified as Data
 import Data.Kind (Type)
 import Data.List1
@@ -39,9 +39,7 @@ import Data.Ord (Ord (..))
 import Data.Monoid (Monoid)
 import Data.Semigroup (Semigroup ((<>)))
 import GHC.Generics (Generic)
-import GHC.Num (Integer)
 import GHC.Show (Show)
-import Numeric.Natural (Natural)
 
 -- Complex numbers
 
@@ -163,6 +161,7 @@ instance (Ring x) => Module (Complex x) where
       ( Eq
       , Ord
       , Show
+      , Signed
       , Conjugate
       , Additive
       , AdditiveAbelian
@@ -176,6 +175,12 @@ instance (Ring x) => Module (Complex x) where
       , Root
       , Generic
       )
+instance (Absolute x x) => Absolute (Scalar (Complex x)) x where
+  absolute :: Scalar (Complex x) -> x
+  absolute (ScalarComplex k) = absolute k
+instance (Absolute x x) => Absolute (Scalar (Complex x)) (Scalar (Complex x)) where
+  absolute :: Scalar (Complex x) -> Scalar (Complex x)
+  absolute (ScalarComplex k) = ScalarComplex (absolute k)
 
 -- Vector
 
@@ -478,6 +483,12 @@ instance (Multiplication x x x) => Multiplication (Quaternion x) (Scalar (Quater
 instance (Power x r x) => Power (Scalar (Quaternion x)) r (Scalar (Quaternion x)) where
   (^) :: Scalar (Quaternion x) -> r -> Scalar (Quaternion x)
   ScalarQuaternion x ^ r = ScalarQuaternion (x ^ r)
+instance (Absolute x x) => Absolute (Scalar (Quaternion x)) x where
+  absolute :: Scalar (Quaternion x) -> x
+  absolute (ScalarQuaternion k) = absolute k
+instance (Absolute x x) => Absolute (Scalar (Quaternion x)) (Scalar (Quaternion x)) where
+  absolute :: Scalar (Quaternion x) -> Scalar (Quaternion x)
+  absolute (ScalarQuaternion k) = ScalarQuaternion (absolute k)
 
 instance
   (Additive x, Subtraction x x x, Multiplicative x) =>
@@ -493,6 +504,7 @@ instance (Ring x) => Module (Quaternion x) where
       ( Eq
       , Ord
       , Show
+      , Signed
       , Conjugate
       , Additive
       , AdditiveAbelian
@@ -519,17 +531,11 @@ instance (AdditiveGroup x) => Conjugate (Quaternion x) where
 
 -- Polynomials
 
-instance (From Natural x) => From Natural (Scalar (List1 x)) where
-  from :: Natural -> Scalar (List1 x)
-  from n = ScalarList1 (from n)
-instance (From Int x) => From Int (Scalar (List1 x)) where
-  from :: Int -> Scalar (List1 x)
-  from n = ScalarList1 (from n)
-instance (From Integer x) => From Integer (Scalar (List1 x)) where
-  from :: Integer -> Scalar (List1 x)
-  from n = ScalarList1 (from n)
-instance (From Rational x) => From Rational (Scalar (List1 x)) where
-  from :: Rational -> Scalar (List1 x)
+variable :: (Additive x, Multiplicative x) => List1 x
+variable = zero :|| Sole one
+
+instance (From y x) => From y (Scalar (List1 x)) where
+  from :: y -> Scalar (List1 x)
   from n = ScalarList1 (from n)
 
 instance (Addition x x x) => Addition (Scalar (List1 x)) (Scalar (List1 x)) (Scalar (List1 x)) where
@@ -553,6 +559,12 @@ instance (Eq x, Additive x, Multiplicative x) => Multiplication (List1 x) (Scala
 instance (Power x r x) => Power (Scalar (List1 x)) r (Scalar (List1 x)) where
   (^) :: Scalar (List1 x) -> r -> Scalar (List1 x)
   ScalarList1 x ^ r = ScalarList1 (x ^ r)
+instance (Absolute x x) => Absolute (Scalar (List1 x)) x where
+  absolute :: Scalar (List1 x) -> x
+  absolute (ScalarList1 k) = absolute k
+instance (Absolute x x) => Absolute (Scalar (List1 x)) (Scalar (List1 x)) where
+  absolute :: Scalar (List1 x) -> Scalar (List1 x)
+  absolute (ScalarList1 k) = ScalarList1 (absolute k)
 
 instance
   (Additive x, Subtraction x x x, Multiplicative x) =>
@@ -568,6 +580,7 @@ instance (Ring x, AdditiveAbelian x, Eq x) => Module (List1 x) where
       ( Eq
       , Ord
       , Show
+      , Signed
       , Conjugate
       , Additive
       , AdditiveAbelian

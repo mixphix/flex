@@ -76,6 +76,12 @@ instance (Division x x x) => Division (Minkowski x) (Scalar (Minkowski x)) (Mink
 instance (Power x r x) => Power (Scalar (Minkowski x)) r (Scalar (Minkowski x)) where
   (^) :: Scalar (Minkowski x) -> r -> Scalar (Minkowski x)
   ScalarMinkowski x ^ r = ScalarMinkowski (x ^ r)
+instance (Absolute x x) => Absolute (Scalar (Minkowski x)) x where
+  absolute :: Scalar (Minkowski x) -> x
+  absolute (ScalarMinkowski k) = absolute k
+instance (Absolute x x) => Absolute (Scalar (Minkowski x)) (Scalar (Minkowski x)) where
+  absolute :: Scalar (Minkowski x) -> Scalar (Minkowski x)
+  absolute (ScalarMinkowski k) = ScalarMinkowski (absolute k)
 
 instance (Semiring x) => Semiring (Scalar (Minkowski x))
 instance (Ring x) => Ring (Scalar (Minkowski x))
@@ -86,6 +92,7 @@ instance (Ring x) => Module (Minkowski x) where
       ( Eq
       , Ord
       , Show
+      , Signed
       , Conjugate
       , Additive
       , AdditiveAbelian

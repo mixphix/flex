@@ -184,6 +184,12 @@ instance (Division x x x) => Division (Dual x) (Scalar (Dual x)) (Dual x) where
 instance (Power x r x) => Power (Scalar (Dual x)) r (Scalar (Dual x)) where
   (^) :: Scalar (Dual x) -> r -> Scalar (Dual x)
   ScalarDual x ^ r = ScalarDual (x ^ r)
+instance (Absolute x x) => Absolute (Scalar (Dual x)) x where
+  absolute :: Scalar (Dual x) -> x
+  absolute (ScalarDual k) = absolute k
+instance (Absolute x x) => Absolute (Scalar (Dual x)) (Scalar (Dual x)) where
+  absolute :: Scalar (Dual x) -> Scalar (Dual x)
+  absolute (ScalarDual k) = ScalarDual (absolute k)
 
 instance (Semiring x) => Semiring (Scalar (Dual x))
 instance (Ring x) => Ring (Scalar (Dual x))
@@ -197,6 +203,7 @@ instance (Ring x) => Module (Dual x) where
       ( Eq
       , Ord
       , Show
+      , Signed
       , Conjugate
       , Additive
       , AdditiveAbelian
