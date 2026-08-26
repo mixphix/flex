@@ -83,7 +83,6 @@ module Flex.Math
   , Minkowski (Minkowski)
   , List1
   , eval
-  , evalMat
 
     -- ** Modules, vector spaces, algebras
   , Module (type Scalar)
@@ -205,16 +204,11 @@ import Data.List1 (List1)
 import GHC.Base (Double)
 import GHC.Num (Integer, Num)
 import GHC.Real qualified as Num
-import GHC.TypeNats (KnownNat)
 import Numeric.Natural (Natural)
 
 default Num (Natural, Integer, Int, Rational, Double)
 default Num.Integral (Natural, Integer, Int)
 default Num.Fractional (Rational, Double)
 
-eval :: (Eq x, Field x) => List1 x -> x -> x
-eval xs x = foldr (\a p -> a + x * p) zero xs
-
-evalMat ::
-  forall n x. (KnownNat n, Eq x, Field x) => List1 x -> M n n x -> M n n x
-evalMat xs x = foldr (\a p -> (a *. one @(M n n x)) + x * p) zero xs
+eval :: forall v. (Eq v, Ring (Scalar v), Algebra v) => List1 (Scalar v) -> v -> v
+eval ps x = foldr (\a p -> (a *. one @v) + x *. p) zero ps
