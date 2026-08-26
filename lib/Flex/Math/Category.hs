@@ -131,11 +131,6 @@ module Flex.Math.Category
   , Extend (duplicate, extend)
   , Coapply ((<@>))
   , Comonad
-  , StoreT (StoreT, runStoreT)
-  , Store
-  , store
-  , runStore
-  , ComonadStore (position, peek, peeks, seek, seeks, experiment)
   , Collectable (collect, distribute)
   , cotraverse
   , Tabulation (type Table, fromTable, toTable)
@@ -3215,76 +3210,6 @@ instance (Comonad f) => Category (Cokleisli f) where
   id = Cokleisli copure
   (.) :: Cokleisli f y z -> Cokleisli f x y -> Cokleisli f x z
   Cokleisli fy_z . Cokleisli fx_y = Cokleisli (fy_z . extend fx_y)
-
-type StoreT :: Type -> (Type -> Type) -> Type -> Type
-newtype StoreT s f x = StoreT {runStoreT :: (f (s -> x), s)}
-type Store s = StoreT s Identity
-
-store :: (s -> x) -> s -> Store s x
-store s_x s = StoreT (Identity s_x, s)
-runStore :: Store s x -> (s -> x, s)
-runStore = morphism' runIdentity . runStoreT
-
-instance (Data.Functor f) => Data.Functor (StoreT s f) where
-  fmap :: (x -> y) -> StoreT s f x -> StoreT s f y
-  fmap x_y (StoreT (f_s_x, s)) = StoreT (Data.fmap (x_y .) f_s_x, s)
-instance (Along f) => Morphisms (->) (->) (StoreT s f) where
-  morphism :: (x -> y) -> StoreT s f x -> StoreT s f y
-  morphism x_y (StoreT (f_s_x, s)) =
-    StoreT (morphism (x_y .) f_s_x, s)
-instance (Pure f, Monoid s) => Pure (StoreT s f) where
-  pure :: x -> StoreT s f x
-  pure x = StoreT (pure (const x), mempty)
-instance (Apply f, Semigroup s) => Apply (StoreT s f) where
-  (<*>) :: StoreT s f (x -> y) -> StoreT s f x -> StoreT s f y
-  StoreT (f_s_x_y, s0) <*> StoreT (f_s_x, s1) =
-    StoreT (liftA2 (<*>) f_s_x_y f_s_x, s0 <> s1)
-instance
-  (Control.Applicative f, Monoid s) =>
-  Control.Applicative (StoreT s f)
-  where
-  pure :: a -> StoreT s f a
-  pure x = StoreT (Control.pure (const x), mempty)
-  (<*>) :: StoreT s f (x -> y) -> StoreT s f x -> StoreT s f y
-  StoreT (f_s_x_y, s0) <*> StoreT (f_s_x, s1) =
-    StoreT (Control.liftA2 (Control.<*>) f_s_x_y f_s_x, s0 <> s1)
-instance (Copure f) => Copure (StoreT s f) where
-  copure :: StoreT s f x -> x
-  copure (StoreT (f_s_x, s)) = copure f_s_x s
-instance (Extend f) => Extend (StoreT s f) where
-  duplicate :: StoreT s f x -> StoreT s f (StoreT s f x)
-  duplicate (StoreT (f_s_x, s)) =
-    StoreT (extend (curry StoreT) f_s_x, s)
-  extend :: (StoreT s f x -> y) -> StoreT s f x -> StoreT s f y
-  extend ssfx_y (StoreT (f_s_x, s)) =
-    StoreT (flip extend f_s_x \wf s' -> ssfx_y (StoreT (wf, s')), s)
-instance (Coapply f, Semigroup s) => Coapply (StoreT s f) where
-  (<@>) :: StoreT s f (x -> y) -> StoreT s f x -> StoreT s f y
-  StoreT (s_f_x_y, s0) <@> StoreT (s_f_x, s1) =
-    StoreT (morphism (<*>) s_f_x_y <@> s_f_x, s0 <> s1)
-
-class (Comonad f) => ComonadStore s f | f -> s where
-  {-# MINIMAL position, peek #-}
-  position :: f x -> s
-  peek :: s -> f x -> x
-
-  peeks :: (s -> s) -> f x -> x
-  peeks s_s fx = peek (s_s (position fx)) fx
-
-  seek :: s -> f x -> f x
-  seek s = peek s . duplicate
-
-  seeks :: (s -> s) -> f x -> f x
-  seeks f = peeks f . duplicate
-
-  experiment :: (Along g) => (s -> g s) -> f x -> g x
-  experiment s_gs fx = morphism (`peek` fx) (s_gs (position fx))
-
-instance (Comonad f) => ComonadStore s (StoreT s f) where
-  position :: StoreT s f x -> s
-  position (StoreT (_, s)) = s
-  peek :: s -> StoreT s f x -> x
-  peek s (StoreT (f_s_x, _)) = copure f_s_x s
 
 -- Collectable and Tabulation
 
