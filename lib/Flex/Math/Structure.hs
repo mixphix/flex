@@ -73,8 +73,7 @@ instance Structure Ord where
 instance Variety Ord
 
 instance Structure Semigroup where
-  data Signature Semigroup x
-    = SemigroupAppend x x
+  data Signature Semigroup x = SemigroupAppend x x
     deriving (Show, Generic)
   newtype Term Semigroup x = TermSemigroup x
   operations :: (Semigroup x) => Signature Semigroup x -> Term Semigroup x
@@ -118,8 +117,7 @@ instance Structure Monoid where
 instance Variety Monoid
 
 instance Structure Conjugate where
-  data Signature Conjugate x
-    = Conjugate x
+  newtype Signature Conjugate x = Conjugate x
     deriving (Show, Generic)
   newtype Term Conjugate x = TermConjugate x
   operations :: (Conjugate x) => Signature Conjugate x -> Term Conjugate x
@@ -163,8 +161,7 @@ instance Structure Rack where
 instance Variety Rack
 
 instance Structure Quandle where
-  data Signature Quandle x
-    = QuandleRack (Signature Rack x)
+  newtype Signature Quandle x = QuandleRack (Signature Rack x)
     deriving (Show, Generic)
   newtype Term Quandle x = TermQuandle x
   operations :: (Quandle x) => Signature Quandle x -> Term Quandle x
@@ -213,8 +210,7 @@ instance Structure Additive where
 instance Variety Additive
 
 instance Structure AdditiveAbelian where
-  data Signature AdditiveAbelian x
-    = AdditiveAbelianAdditive (Signature Additive x)
+  newtype Signature AdditiveAbelian x = AdditiveAbelianAdditive (Signature Additive x)
     deriving (Show, Generic)
   newtype Term AdditiveAbelian x = TermAdditiveAbelian x
   operations ::
@@ -333,7 +329,7 @@ instance Structure Multiplicative where
 instance Variety Multiplicative
 
 instance Structure MultiplicativeAbelian where
-  data Signature MultiplicativeAbelian x
+  newtype Signature MultiplicativeAbelian x
     = MultiplicativeAbelianMultiplicative (Signature Multiplicative x)
     deriving (Show, Generic)
   newtype Term MultiplicativeAbelian x = TermMultiplicativeAbelian x
@@ -455,8 +451,7 @@ instance Structure Distributive where
 instance Variety Distributive
 
 instance Structure Semiring where
-  data Signature Semiring x
-    = SemiringDistributive (Signature Distributive x)
+  newtype Signature Semiring x = SemiringDistributive (Signature Distributive x)
     deriving (Show, Generic)
   newtype Term Semiring x = TermSemiring x
   operations ::
@@ -511,8 +506,7 @@ instance Structure Ring where
 instance Variety Ring
 
 instance Structure Domain where
-  data Signature Domain x
-    = DomainRing (Signature Ring x)
+  newtype Signature Domain x = DomainRing (Signature Ring x)
     deriving (Show, Generic)
   newtype Term Domain x = TermDomain x
   operations ::
@@ -588,18 +582,14 @@ instance Structure Field where
     FieldZeroNeqOne -> zero @x /= one
 
 instance Structure Euclidean where
-  data Signature Euclidean x
-    = EuclideanQuotient x x
-    | EuclideanRemainder x x
+  data Signature Euclidean x = Euclidean x x
     deriving (Show, Generic)
-  newtype Term Euclidean x = TermEuclidean x
+  newtype Term Euclidean x = TermEuclidean (x, x)
   operations :: (Euclidean x) => Signature Euclidean x -> Term Euclidean x
   operations = \case
-    EuclideanQuotient n d -> TermEuclidean (quotient n d)
-    EuclideanRemainder n d -> TermEuclidean (remainder n d)
+    Euclidean n d -> TermEuclidean (euclidean n d)
   type Requirements Euclidean = C2 Eq Additive
-  data Laws Euclidean x
-    = EuclideanRemainderDegree x x
+  data Laws Euclidean x = EuclideanRemainderDegree x x
     deriving (Show, Generic)
   lawful ::
     forall x.
@@ -840,8 +830,7 @@ instance Structure Heyting where
 instance Variety Heyting
 
 instance Structure Boolean where
-  data Signature Boolean x
-    = BooleanHeyting (Signature Heyting x)
+  newtype Signature Boolean x = BooleanHeyting (Signature Heyting x)
     deriving (Show, Generic)
   newtype Term Boolean x = TermBoolean x
   operations ::
