@@ -352,7 +352,7 @@ class Indices xs where
 
 iindex ::
   (Indices xs) =>
-  Index xs -> IxTraversal (Index xs) xs xs (Value xs) (Value xs)
+  Index xs -> IxTraversal' (Index xs) xs (Value xs)
 iindex i pvfv = index i (ixed pvfv i)
 
 instance (Eq z) => Indices (z -> x) where
@@ -438,12 +438,9 @@ instance Indices (Vector.Vector x) where
     | otherwise = pure vs
 
 class (Indices xs) => At xs where
-  at :: Index xs -> Lens xs xs (Maybe (Value xs)) (Maybe (Value xs))
+  at :: Index xs -> Lens' xs (Maybe (Value xs))
 
-iat ::
-  (At xs) =>
-  Index xs ->
-  IxLens (Index xs) xs xs (Maybe (Value xs)) (Maybe (Value xs))
+iat :: (At xs) => Index xs -> IxLens' (Index xs) xs (Maybe (Value xs))
 iat i f = at i (ixed f i)
 
 instance At (Maybe x) where
