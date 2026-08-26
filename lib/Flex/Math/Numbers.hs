@@ -35,9 +35,11 @@ module Flex.Math.Numbers
   , Additive (zero)
   , AdditiveAbelian
   , AdditiveGroup (negative)
+  , AdditiveAbelianGroup
   , Multiplicative (one)
   , MultiplicativeAbelian
   , MultiplicativeGroup (reciprocal)
+  , MultiplicativeAbelianGroup
   , Distributive
   , Semiring
   , Ring
@@ -1413,16 +1415,11 @@ instance AdditiveGroup NominalDiffTime where
   negative :: NominalDiffTime -> NominalDiffTime
   negative (Nominal x) = Nominal (negative x)
 
-instance
-  ( AdditiveAbelian x
-  , AdditiveGroup x
-  , AdditiveAbelian y
-  , AdditiveGroup y
-  ) =>
-  AdditiveGroup (x, y)
-  where
+instance (AdditiveGroup x, AdditiveGroup y) => AdditiveGroup (x, y) where
   negative :: (x, y) -> (x, y)
   negative (x, y) = (negative x, negative y)
+
+type AdditiveAbelianGroup = C2 AdditiveAbelian AdditiveGroup
 
 -- Multiplication
 
@@ -1986,15 +1983,13 @@ instance (MultiplicativeGroup x) => MultiplicativeGroup (Product x) where
   reciprocal (Product x) = Product (reciprocal x)
 
 instance
-  ( MultiplicativeAbelian x
-  , MultiplicativeGroup x
-  , MultiplicativeAbelian y
-  , MultiplicativeGroup y
-  ) =>
+  (MultiplicativeGroup x, MultiplicativeGroup y) =>
   MultiplicativeGroup (x, y)
   where
   reciprocal :: (x, y) -> (x, y)
   reciprocal (x, y) = (reciprocal x, reciprocal y)
+
+type MultiplicativeAbelianGroup = C2 MultiplicativeAbelian MultiplicativeGroup  
 
 -- Power
 

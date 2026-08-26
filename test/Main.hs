@@ -23,7 +23,6 @@ import Test.QuickCheck
 
 import Flex.Math
 import Flex.Math.Matrix
-import Flex.Math.Structure (EqLaw (..), OrdLaw (..))
 
 instance (Ord x, Additive x, Arbitrary x) => Arbitrary (Ratio x) where
   arbitrary :: Gen (Ratio x)
@@ -35,16 +34,8 @@ instance (Ord x, Additive x, Arbitrary x) => Arbitrary (Ratio x) where
         then Control.pure x
         else nonnegative g
 
-instance (Eq x, Arbitrary x) => Arbitrary (EqLaw x) where
-  arbitrary :: Gen (EqLaw x)
-  arbitrary = genericArbitrary uniform
-
 instance (Eq x, Arbitrary x) => Arbitrary (Laws Eq x) where
   arbitrary :: Gen (Laws Eq x)
-  arbitrary = genericArbitrary uniform
-
-instance (Eq x, Arbitrary x) => Arbitrary (OrdLaw x) where
-  arbitrary :: Gen (OrdLaw x)
   arbitrary = genericArbitrary uniform
 
 instance (Eq x, Arbitrary x) => Arbitrary (Laws Ord x) where

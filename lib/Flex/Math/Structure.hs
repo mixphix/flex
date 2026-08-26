@@ -3,8 +3,6 @@
 
 module Flex.Math.Structure
   ( Structure (Requirements, Signature, Term, operations, Laws, lawful)
-  , EqLaw (EqLawReflexive, EqLawSymmetric, EqLawTransitive)
-  , OrdLaw (OrdLawReflexive, OrdLawAntisymmetric, OrdLawTransitive)
   , Signature (..)
   , Term (..)
   , Laws (..)
@@ -19,6 +17,7 @@ import Data.Bool (Bool, (&&), (||))
 import Data.Eq (Eq (..))
 import Data.Functor.Classes (Eq1)
 import Data.Functor.Identity (Identity (..))
+import Data.Functor.Product (Product)
 import Data.Kind (Constraint, Type)
 import Data.Monoid (Monoid (mempty))
 import Data.Ord (Ord (..))
@@ -34,12 +33,8 @@ class Structure (var :: k -> Constraint) where
   type Requirements var :: k -> Constraint
   data Laws var :: k -> Type
   lawful :: (var x, Requirements var x) => Laws var x -> Bool
-
-data EqLaw x
-  = EqLawReflexive x
-  | EqLawSymmetric x x
-  | EqLawTransitive x x x
-  deriving (Eq, Ord, Show, Generic)
+class (Structure var, forall x y. (var x, var y) => var (x, y)) => Variety var
+class (Structure var, forall f g. (var f, var g) => var (Product f g)) => Variety1 var
 
 instance Structure Eq where
   data Signature Eq x deriving (Generic)
@@ -47,19 +42,17 @@ instance Structure Eq where
   operations :: (Eq x) => Signature Eq x -> Term Eq x
   operations = \case {}
   type Requirements Eq = C0
-  newtype Laws Eq x = EqLaw (EqLaw x)
+  data Laws Eq x 
+    = EqReflexive x
+    | EqSymmetric x x
+    | EqTransitive x x x
     deriving (Show, Generic)
   lawful :: (Eq x) => Laws Eq x -> Bool
   lawful = \case
-    EqLaw (EqLawReflexive x) -> x == x
-    EqLaw (EqLawSymmetric x y) -> (x == y) --> (y == x)
-    EqLaw (EqLawTransitive x y z) -> (x == y && y == z) --> (x == z)
-
-data OrdLaw x
-  = OrdLawReflexive x
-  | OrdLawAntisymmetric x x
-  | OrdLawTransitive x x x
-  deriving (Eq, Ord, Show, Generic)
+    EqReflexive x -> x == x
+    EqSymmetric x y -> (x == y) --> (y == x)
+    EqTransitive x y z -> (x == y && y == z) --> (x == z)
+instance Variety Eq
 
 instance Structure Ord where
   data Signature Ord x deriving (Generic)
@@ -67,13 +60,17 @@ instance Structure Ord where
   operations :: (Ord x) => Signature Ord x -> Term Ord x
   operations = \case {}
   type Requirements Ord = C0
-  newtype Laws Ord x = OrdLaw (OrdLaw x)
+  data Laws Ord x
+    = OrdReflexive x
+    | OrdAntisymmetric x x
+    | OrdTransitive x x x
     deriving (Show, Generic)
   lawful :: (Ord x) => Laws Ord x -> Bool
   lawful = \case
-    OrdLaw (OrdLawReflexive x) -> x <= x
-    OrdLaw (OrdLawAntisymmetric x y) -> (x <= y && y <= x) --> (x == y)
-    OrdLaw (OrdLawTransitive x y z) -> (x <= y && y <= z) --> (x <= z)
+    OrdReflexive x -> x <= x
+    OrdAntisymmetric x y -> (x <= y && y <= x) --> (x == y)
+    OrdTransitive x y z -> (x <= y && y <= z) --> (x <= z)
+instance Variety Ord
 
 instance Structure Semigroup where
   data Signature Semigroup x
@@ -92,6 +89,7 @@ instance Structure Semigroup where
     Laws Semigroup x -> Bool
   lawful = \case
     SemigroupAppendAssociative x y z -> x <> (y <> z) == (x <> y) <> z
+instance Variety Semigroup
 
 instance Structure Monoid where
   data Signature Monoid x
@@ -102,7 +100,7 @@ instance Structure Monoid where
   operations :: (Monoid x) => Signature Monoid x -> Term Monoid x
   operations = \case
     MonoidSemigroup sig -> case operations sig of
-      TermSemigroup op -> TermMonoid op
+      TermSemigroup term -> TermMonoid term
     MonoidMempty -> TermMonoid mempty
   type Requirements Monoid = Eq
   data Laws Monoid x
@@ -117,6 +115,7 @@ instance Structure Monoid where
     MonoidSemigroupLaws laws -> lawful laws
     MonoidMemptyLeft x -> mempty <> x == x
     MonoidMemptyRight x -> x <> mempty == x
+instance Variety Monoid
 
 instance Structure Conjugate where
   data Signature Conjugate x
@@ -161,6 +160,7 @@ instance Structure Rack where
     RackSelfDistributive x y z -> (x |> y) |> z == (x |> y) |> (x |> z)
     LackRackIdentity x y -> (x <| y) |> x == y
     RackLackIdentity x y -> x <| (y |> x) == y
+instance Variety Rack
 
 instance Structure Quandle where
   data Signature Quandle x
@@ -170,7 +170,7 @@ instance Structure Quandle where
   operations :: (Quandle x) => Signature Quandle x -> Term Quandle x
   operations = \case
     QuandleRack sig -> case operations sig of
-      TermRack op -> TermQuandle op
+      TermRack term -> TermQuandle term
   type Requirements Quandle = Eq
   data Laws Quandle x
     = QuandleRackLaws (Laws Rack x)
@@ -184,6 +184,7 @@ instance Structure Quandle where
     QuandleRackLaws laws -> lawful laws
     QuandleIdempotentLack x -> x <| x == x
     QuandleIdempotentRack x -> x |> x == x
+instance Variety Quandle
 
 instance Structure Additive where
   data Signature Additive x
@@ -209,6 +210,7 @@ instance Structure Additive where
     AdditiveZeroLeft x -> zero @x + x == x
     AdditiveZeroRight x -> x + zero @x == x
     AdditiveAssociative x y z -> x + (y + z) == (x + y) + z
+instance Variety Additive
 
 instance Structure AdditiveAbelian where
   data Signature AdditiveAbelian x
@@ -221,7 +223,7 @@ instance Structure AdditiveAbelian where
     Term AdditiveAbelian x
   operations = \case
     AdditiveAbelianAdditive sig -> case operations sig of
-      TermAdditive op -> TermAdditiveAbelian op
+      TermAdditive term -> TermAdditiveAbelian term
   type Requirements AdditiveAbelian = Eq
   data Laws AdditiveAbelian x
     = AdditiveAbelianAdditiveLaws (Laws Additive x)
@@ -229,11 +231,12 @@ instance Structure AdditiveAbelian where
     deriving (Show, Generic)
   lawful ::
     forall x.
-    (AdditiveAbelian x, Requirements Additive x) =>
+    (AdditiveAbelian x, Requirements AdditiveAbelian x) =>
     Laws AdditiveAbelian x -> Bool
   lawful = \case
     AdditiveAbelianAdditiveLaws laws -> lawful laws
     AdditiveAbelianCommutative x y -> x + y == y + x
+instance Variety AdditiveAbelian
 
 instance Structure AdditiveGroup where
   data Signature AdditiveGroup x
@@ -248,7 +251,7 @@ instance Structure AdditiveGroup where
     Term AdditiveGroup x
   operations = \case
     AdditiveGroupAdditive sig -> case operations sig of
-      TermAdditive op -> TermAdditiveGroup op
+      TermAdditive term -> TermAdditiveGroup term
     AdditiveGroupNegative x -> TermAdditiveGroup (negative x)
     AdditiveGroupSubtract x y -> TermAdditiveGroup (x - y)
   type Requirements AdditiveGroup = Eq
@@ -269,6 +272,36 @@ instance Structure AdditiveGroup where
     AdditiveGroupNegativeAddSelfZero x -> negative x + x == zero @x
     AdditiveGroupSubtractSelfZero x -> x - x == zero @x
     AdditiveGroupSubtractZeroSelf x -> x - zero @x == x
+instance Variety AdditiveGroup
+
+instance Structure AdditiveAbelianGroup where
+  data Signature AdditiveAbelianGroup x
+    = AdditiveAbelianGroupAdditiveAbelian (Signature AdditiveAbelian x)
+    | AdditiveAbelianGroupAdditiveGroup (Signature AdditiveGroup x)
+    deriving (Show, Generic)
+  newtype Term AdditiveAbelianGroup x = TermAdditiveAbelianGroup x
+  operations ::
+    (AdditiveAbelianGroup x) =>
+    Signature AdditiveAbelianGroup x ->
+    Term AdditiveAbelianGroup x
+  operations = \case
+    AdditiveAbelianGroupAdditiveAbelian sig -> case operations sig of
+      TermAdditiveAbelian term -> TermAdditiveAbelianGroup term
+    AdditiveAbelianGroupAdditiveGroup sig -> case operations sig of
+      TermAdditiveGroup term -> TermAdditiveAbelianGroup term
+  data Laws AdditiveAbelianGroup x
+    = LawsAdditiveAbelianGroupAdditiveAbelian (Laws AdditiveAbelian x)
+    | LawsAdditiveAbelianGroupAdditiveGroup (Laws AdditiveGroup x)
+    deriving (Show, Generic)
+  type Requirements AdditiveAbelianGroup = Eq
+  lawful ::
+    forall x.
+    (AdditiveAbelianGroup x, Requirements AdditiveAbelianGroup x) =>
+    Laws AdditiveAbelianGroup x -> Bool
+  lawful = \case
+    LawsAdditiveAbelianGroupAdditiveAbelian laws -> lawful laws
+    LawsAdditiveAbelianGroupAdditiveGroup laws -> lawful laws
+instance Variety AdditiveAbelianGroup
 
 instance Structure Multiplicative where
   data Signature Multiplicative x
@@ -297,6 +330,7 @@ instance Structure Multiplicative where
     MultiplicativeOneLeft x -> one @x * x == x
     MultiplicativeOneRight x -> x * one @x == x
     MultiplicativeAssociative x y z -> x * (y * z) == (x * y) * z
+instance Variety Multiplicative
 
 instance Structure MultiplicativeAbelian where
   data Signature MultiplicativeAbelian x
@@ -309,7 +343,7 @@ instance Structure MultiplicativeAbelian where
     Term MultiplicativeAbelian x
   operations = \case
     MultiplicativeAbelianMultiplicative sig -> case operations sig of
-      TermMultiplicative op -> TermMultiplicativeAbelian op
+      TermMultiplicative term -> TermMultiplicativeAbelian term
   type Requirements MultiplicativeAbelian = Eq
   data Laws MultiplicativeAbelian x
     = MultiplicativeAbelianMultiplicativeLaws (Laws Multiplicative x)
@@ -322,6 +356,7 @@ instance Structure MultiplicativeAbelian where
   lawful = \case
     MultiplicativeAbelianMultiplicativeLaws laws -> lawful laws
     MultiplicativeAbelianCommutative x y -> x * y == y * x
+instance Variety MultiplicativeAbelian
 
 instance Structure MultiplicativeGroup where
   data Signature MultiplicativeGroup x
@@ -336,7 +371,7 @@ instance Structure MultiplicativeGroup where
     Term MultiplicativeGroup x
   operations = \case
     MultiplicativeGroupMultiplicative sig -> case operations sig of
-      TermMultiplicative op -> TermMultiplicativeGroup op
+      TermMultiplicative term -> TermMultiplicativeGroup term
     MultiplicativeGroupReciprocal x -> TermMultiplicativeGroup (reciprocal x)
     MultiplicativeGroupDivide x y -> TermMultiplicativeGroup (x / y)
   type Requirements MultiplicativeGroup = C2 Eq Additive
@@ -355,6 +390,36 @@ instance Structure MultiplicativeGroup where
       (x /= zero @x) --> (x * reciprocal x == one @x)
     MultiplicativeGroupDivideSelfOne x ->
       (x /= zero @x) --> (x / x == one @x)
+instance Variety MultiplicativeGroup
+
+instance Structure MultiplicativeAbelianGroup where
+  data Signature MultiplicativeAbelianGroup x
+    = MultiplicativeAbelianGroupMultiplicativeAbelian
+        (Signature MultiplicativeAbelian x)
+    | MultiplicativeAbelianGroupMultiplicativeGroup
+        (Signature MultiplicativeGroup x)
+    deriving (Show, Generic)
+  newtype Term MultiplicativeAbelianGroup x = TermMultiplicativeAbelianGroup x
+  operations ::
+    (MultiplicativeAbelianGroup x) =>
+    Signature MultiplicativeAbelianGroup x ->
+    Term MultiplicativeAbelianGroup x
+  operations = \case
+    MultiplicativeAbelianGroupMultiplicativeAbelian sig -> case operations sig of
+      TermMultiplicativeAbelian term -> TermMultiplicativeAbelianGroup term
+    MultiplicativeAbelianGroupMultiplicativeGroup sig -> case operations sig of
+      TermMultiplicativeGroup term -> TermMultiplicativeAbelianGroup term
+  type Requirements MultiplicativeAbelianGroup = C2 Eq Additive
+  data Laws MultiplicativeAbelianGroup x
+    = LawsMultiplicativeAbelianGroupMultiplicativeAbelian (Laws MultiplicativeAbelian x)
+    | LawsMultiplicativeAbelianGroupMultiplicativeGroup (Laws MultiplicativeGroup x)
+    deriving (Show, Generic)
+  lawful ::
+    (MultiplicativeAbelianGroup x, Requirements MultiplicativeAbelianGroup x) =>
+    Laws MultiplicativeAbelianGroup x -> Bool
+  lawful = \case
+    LawsMultiplicativeAbelianGroupMultiplicativeAbelian laws -> lawful laws
+    LawsMultiplicativeAbelianGroupMultiplicativeGroup laws -> lawful laws
 
 instance Structure Distributive where
   data Signature Distributive x
@@ -368,9 +433,9 @@ instance Structure Distributive where
     Term Distributive x
   operations = \case
     DistributiveAdditive sig -> case operations sig of
-      TermAdditive op -> TermDistributive op
+      TermAdditive term -> TermDistributive term
     DistributiveMultiplicative sig -> case operations sig of
-      TermMultiplicative op -> TermDistributive op
+      TermMultiplicative term -> TermDistributive term
   type Requirements Distributive = Eq
   data Laws Distributive x
     = DistributiveAdditiveLaws (Laws Additive x)
@@ -387,6 +452,7 @@ instance Structure Distributive where
     DistributiveMultiplicativeLaws laws -> lawful laws
     DistributiveLeft a b c -> a * (b + c) == a * b + a * c
     DistributiveRight a b c -> (a + b) * c == (a * c) + (b * c)
+instance Variety Distributive
 
 instance Structure Semiring where
   data Signature Semiring x
@@ -399,7 +465,7 @@ instance Structure Semiring where
     Term Semiring x
   operations = \case
     SemiringDistributive sig -> case operations sig of
-      TermDistributive op -> TermSemiring op
+      TermDistributive term -> TermSemiring term
   type Requirements Semiring = Eq
   data Laws Semiring x
     = SemiringDistributiveLaws (Laws Distributive x)
@@ -414,6 +480,7 @@ instance Structure Semiring where
     SemiringDistributiveLaws laws -> lawful laws
     SemiringZeroMulZero x -> zero @x * x == zero @x
     SemiringMulZeroZero x -> x * zero @x == zero @x
+instance Variety Semiring
 
 instance Structure Ring where
   data Signature Ring x
@@ -425,11 +492,11 @@ instance Structure Ring where
   operations :: (Ring x) => Signature Ring x -> Term Ring x
   operations = \case
     RingSemiring sig -> case operations sig of
-      TermSemiring op -> TermRing op
+      TermSemiring term -> TermRing term
     RingAdditiveAbelian sig -> case operations sig of
-      TermAdditiveAbelian op -> TermRing op
+      TermAdditiveAbelian term -> TermRing term
     RingAdditiveGroup sig -> case operations sig of
-      TermAdditiveGroup op -> TermRing op
+      TermAdditiveGroup term -> TermRing term
   type Requirements Ring = Eq
   data Laws Ring x
     = RingSemiringLaws (Laws Semiring x)
@@ -441,6 +508,7 @@ instance Structure Ring where
     RingSemiringLaws laws -> lawful laws
     RingAdditiveAbelianLaws laws -> lawful laws
     RingAdditiveGroupLaws laws -> lawful laws
+instance Variety Ring
 
 instance Structure Domain where
   data Signature Domain x
@@ -501,9 +569,9 @@ instance Structure Field where
   operations :: (Field x) => Signature Field x -> Term Field x
   operations = \case
     FieldIntegralDomain sig -> case operations sig of
-      TermIntegralDomain op -> TermField op
+      TermIntegralDomain term -> TermField term
     FieldMultiplicativeGroup sig -> case operations sig of
-      TermMultiplicativeGroup op -> TermField op
+      TermMultiplicativeGroup term -> TermField term
   type Requirements Field = Eq
   data Laws Field x
     = FieldIntegralDomainLaws (Laws IntegralDomain x)
@@ -542,29 +610,24 @@ instance Structure Euclidean where
       (d /= zero @x) --> (degree (remainder n d) < degree d)
 
 instance Structure Fractional where
-  data Signature Fractional x
-    = Proper x
+  newtype Signature Fractional x = Proper x
     deriving (Show, Generic)
-  data Term Fractional x
-    = TermFractional (Integral x) x
+  newtype Term Fractional x = TermFractional (Integral x, x)
   operations :: (Fractional x) => Signature Fractional x -> Term Fractional x
   operations = \case
-    Proper x -> case proper x of (i, f) -> TermFractional i f
+    Proper x -> TermFractional (proper x)
   type Requirements Fractional = C2 Eq Additive
-  data Laws Fractional x
-    = FractionalSum x
+  newtype Laws Fractional x = FractionalSum x
     deriving (Show, Generic)
   lawful ::
     forall x.
     (Fractional x, Requirements Fractional x) =>
     Laws Fractional x -> Bool
   lawful = \case
-    FractionalSum x -> case proper x of
-      (l, y) -> x == l +. y
+    FractionalSum x -> case proper x of (l, y) -> x == l +. y
 
 instance Structure Meet where
-  data Signature Meet x
-    = Meet x x
+  data Signature Meet x = Meet x x
     deriving (Show, Generic)
   newtype Term Meet x = TermMeet x
   operations ::
@@ -588,6 +651,7 @@ instance Structure Meet where
     MeetCommutative x y -> x /\ y == y /\ x
     MeetIdempotent x -> x /\ x == x
     MeetLessThan x y -> (x /\ y) <= x && (x /\ y) <= y
+instance Variety Meet
 
 instance Structure Lowest where
   data Signature Lowest x
@@ -614,10 +678,10 @@ instance Structure Lowest where
   lawful = \case
     LowestMeetLaws laws -> lawful laws
     LowestLeast x -> lowest <= x
+instance Variety Lowest
 
 instance Structure Join where
-  data Signature Join x
-    = Join x x
+  data Signature Join x = Join x x
     deriving (Show, Generic)
   newtype Term Join x = TermJoin x
   operations ::
@@ -641,6 +705,7 @@ instance Structure Join where
     JoinCommutative x y -> x \/ y == y \/ x
     JoinIdempotent x -> x \/ x == x
     JoinGreaterThan x y -> x <= (x \/ y) && y <= (x \/ y)
+instance Variety Join
 
 instance Structure Highest where
   data Signature Highest x
@@ -654,7 +719,7 @@ instance Structure Highest where
     Term Highest x
   operations = \case
     HighestJoin sig -> case operations sig of
-      TermJoin op -> TermHighest op
+      TermJoin term -> TermHighest term
     HighestHighest -> TermHighest highest
   type Requirements Highest = C0
   data Laws Highest x
@@ -667,6 +732,7 @@ instance Structure Highest where
   lawful = \case
     HighestJoinLaws laws -> lawful laws
     HighestGreatest x -> x <= highest
+instance Variety Highest
 
 instance Structure Lattice where
   data Signature Lattice x
@@ -680,9 +746,9 @@ instance Structure Lattice where
     Term Lattice x
   operations = \case
     LatticeMeet sig -> case operations sig of
-      TermMeet op -> TermLattice op
+      TermMeet term -> TermLattice term
     LatticeJoin sig -> case operations sig of
-      TermJoin op -> TermLattice op
+      TermJoin term -> TermLattice term
   type Requirements Lattice = C0
   data Laws Lattice x
     = LatticeMeetLaws (Laws Meet x)
@@ -698,6 +764,7 @@ instance Structure Lattice where
     LatticeJoinLaws laws -> lawful laws
     LatticeAbsorptionMeet x y -> x /\ (x \/ y) == x
     LatticeAbsorptionJoin x y -> x \/ (x /\ y) == x
+instance Variety Lattice
 
 instance Structure Extrema where
   data Signature Extrema x
@@ -711,9 +778,9 @@ instance Structure Extrema where
     Term Extrema x
   operations = \case
     ExtremaLowest sig -> case operations sig of
-      TermLowest op -> TermExtrema op
+      TermLowest term -> TermExtrema term
     ExtremaHighest sig -> case operations sig of
-      TermHighest op -> TermExtrema op
+      TermHighest term -> TermExtrema term
   type Requirements Extrema = C0
   data Laws Extrema x
     = ExtremaLowestLaws (Laws Lowest x)
@@ -729,6 +796,7 @@ instance Structure Extrema where
     ExtremaHighestLaws laws -> lawful laws
     ExtremaMeetHighest x -> x /\ highest == x
     ExtremaJoinLowest x -> x \/ lowest == x
+instance Variety Extrema
 
 instance Structure Heyting where
   data Signature Heyting x
@@ -743,7 +811,7 @@ instance Structure Heyting where
     Term Heyting x
   operations = \case
     HeytingExtrema sig -> case operations sig of
-      TermExtrema op -> TermHeyting op
+      TermExtrema term -> TermHeyting term
     HeytingImplies x y -> TermHeyting (x --> y)
     HeytingComplement x -> TermHeyting (complement x)
   type Requirements Heyting = C0
@@ -769,6 +837,7 @@ instance Structure Heyting where
     HeytingMeetImpliesSelf x y -> y /\ (x --> y) == y
     HeytingImpliesMeetMeetImplies x y z -> x --> (y /\ z) == (x --> y) /\ (x --> z)
     HeytingComplementSelfMeetLowest x -> x /\ complement x == lowest
+instance Variety Heyting
 
 instance Structure Boolean where
   data Signature Boolean x
@@ -781,7 +850,7 @@ instance Structure Boolean where
     Term Boolean x
   operations = \case
     BooleanHeyting sig -> case operations sig of
-      TermHeyting op -> TermBoolean op
+      TermHeyting term -> TermBoolean term
   type Requirements Boolean = C0
   data Laws Boolean x
     = BooleanHeytingLaws (Laws Heyting x)
@@ -799,6 +868,7 @@ instance Structure Boolean where
     BooleanDistributeMeet x y z -> x /\ (y \/ z) == (x /\ y) \/ (x /\ z)
     BooleanDistributeJoin x y z -> x \/ (y /\ z) == (x \/ y) /\ (x \/ z)
     BooleanImplicationComplement x y -> (x --> y) == (complement x \/ y)
+instance Variety Boolean
 
 instance Structure Median where
   data Signature Median x
@@ -812,7 +882,7 @@ instance Structure Median where
     Term Median x
   operations = \case
     MedianBoolean sig -> case operations sig of
-      TermBoolean op -> TermMedian op
+      TermBoolean term -> TermMedian term
     MedianMedian x y z -> TermMedian (median x y z)
   type Requirements Median = Eq
   data Laws Median x
@@ -907,7 +977,7 @@ instance Structure Root where
   operations :: (Root x) => Signature Root x -> Term Root x
   operations = \case
     RootField sig -> case operations sig of
-      TermField op -> TermRoot op
+      TermField term -> TermRoot term
     RootPower x r -> TermRoot (x ^ r)
   type Requirements Root = C2 Eq Field
   data Laws Root x
@@ -944,6 +1014,7 @@ instance Structure (Morphisms (->) (->)) where
     Laws (Morphisms (->) (->)) f -> Bool
   lawful = \case
     MorphismIdentityIdentity fx -> fx == morphism (id :: x -> x) fx
+instance Variety1 (Morphisms (->) (->))
 
 instance Structure (Traversals (->) (->)) where
   data Signature (Traversals (->) (->)) f
@@ -968,6 +1039,7 @@ instance Structure (Traversals (->) (->)) where
   lawful = \case
     TraverseIdentityIdentity fx -> Identity fx == traverse Identity fx
     TraversePurePure (Proxy :: Proxy g, fx) -> pure @g fx == traverse (pure @g) fx
+instance Variety1 (Traversals (->) (->))
 
 instance Structure (Traversals1 (->) (->)) where
   data Signature (Traversals1 (->) (->)) f
@@ -992,3 +1064,4 @@ instance Structure (Traversals1 (->) (->)) where
   lawful = \case
     Traverse1IdentityIdentity fx -> Identity fx == traverse1 Identity fx
     Traverse1PurePure (Proxy :: Proxy g, fx) -> pure @g fx == traverse1 (pure @g) fx
+instance Variety1 (Traversals1 (->) (->))

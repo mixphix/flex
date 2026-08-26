@@ -17,14 +17,38 @@ import Data.Ord (Ord)
 
 class (Ord x) => Meet x where
   (/\) :: x -> x -> x
+
+instance (Meet x, Meet y) => Meet (x, y) where
+  (/\) :: (x, y) -> (x, y) -> (x, y)
+  (x, y) /\ (x', y') = (x /\ x', y /\ y')
+
 class (Meet x) => Lowest x where
   lowest :: x
+
+instance (Lowest x, Lowest y) => Lowest (x, y) where
+  lowest :: (x, y)
+  lowest = (lowest, lowest)
+
 class (Ord x) => Join x where
   (\/) :: x -> x -> x
+
+instance (Join x, Join y) => Join (x, y) where
+  (\/) :: (x, y) -> (x, y) -> (x, y)
+  (x, y) \/ (x', y') = (x \/ x', y \/ y')
+
 class (Join x) => Highest x where
   highest :: x
+
+instance (Highest x, Highest y) => Highest (x, y) where
+  highest :: (x, y)
+  highest = (highest, highest)
+
 class (Meet x, Join x) => Lattice x
+instance (Lattice x, Lattice y) => Lattice (x, y)
+
 class (Lowest x, Highest x) => Extrema x
+instance (Extrema x, Extrema y) => Extrema (x, y)
+
 class (Extrema x) => Heyting x where
   (-->) :: x -> x -> x
 
@@ -33,8 +57,13 @@ class (Extrema x) => Heyting x where
 
   xor :: x -> x -> x
   xor p q = (p \/ q) /\ complement (p /\ q)
+instance (Heyting x, Heyting y) => Heyting (x, y) where
+  (-->) :: (x, y) -> (x, y) -> (x, y)
+  (x, y) --> (x', y') = (x --> x', y --> y')
 
 class (Heyting x) => Boolean x
+instance (Boolean x, Boolean y) => Boolean (x, y)
+
 class (Boolean x) => Median x where
   median :: x -> x -> x -> x
   median x y z = (x \/ y) /\ (y \/ z) /\ (z \/ x)
