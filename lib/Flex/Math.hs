@@ -24,6 +24,8 @@ module Flex.Math
     -- * Algebraic structures
 
     -- ** Numbers
+  , Natural
+  , Integer
   , Ratio (Ratio)
   , Rational
   , Ration
