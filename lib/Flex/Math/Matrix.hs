@@ -242,6 +242,16 @@ instance (KnownNat n) => Tabulation (V n) where
   toTable v i = v ! from (getFinite i)
 
 instance (KnownNat n) => Each (V n x) (V n x) x x
+instance (KnownNat n) => Indices (V n x) where
+  type Index (V n x) = Natural
+  type Value (V n x) = x
+  index :: Natural -> Traversal' (V n x) x
+  index i x_fx' v@(V vs)
+    | from i < n = case v ! i of
+        x -> morphism (\x' -> V $ vs Vector.// [(from i, x')]) (x_fx' x)
+    | otherwise = pure v
+   where
+    n = natVal (Proxy @n)
 
 toList :: forall n x. (KnownNat n) => V n x -> [x]
 toList (V v) = Vector.toList v
@@ -660,6 +670,17 @@ instance
   (KnownNat n, Eq x, Ring x) =>
   AssociativeAlgebra (M n n x)
 instance (KnownNat m, KnownNat n, Eq x, Field x) => Vector (M m n x)
+
+instance (KnownNat m, KnownNat n) => Indices (M m n x) where
+  type Index (M m n x) = (Natural, Natural)
+  type Value (M m n x) = x
+  index :: (Natural, Natural) -> Traversal' (M m n x) x
+  index (i, j) x_fx' v@(M vs)
+    | from i < n = case vs ! i ! j of
+        x -> morphism (\x' -> M ((index i . index j .~ x') vs)) (x_fx' x)
+    | otherwise = pure v
+   where
+    n = natVal (Proxy @n)
 
 outer ::
   ( KnownNat m
