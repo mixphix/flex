@@ -386,9 +386,7 @@ orthogonalize (v0 : vs0) = gramSchmidt1 [v0] vs0
 orthonormalize ::
   (KnownNat n, Field x, Conjugate x, Root x) =>
   [V n x] -> [V n x]
-orthonormalize vs = morphism
-  do \u -> reciprocal (2 √ quadrance u) *. u
-  do orthogonalize vs
+orthonormalize = morphism normalized . orthogonalize
 
 newtype M m n x = M {unM :: V m (V n x)} deriving (Data.Functor)
 instance Morphisms (->) (->) (M m n) where
@@ -414,16 +412,10 @@ instance (KnownNat m, KnownNat n) => Data.Traversable (M m n) where
   traverse f (M a) = M Data.<$> Data.traverse (Data.traverse f) a
 instance (KnownNat m, KnownNat n, Eq x) => Eq (M m n x) where
   (==) :: M m n x -> M m n x -> Bool
-  M a == M b =
-    List.all
-      (\i -> List.all (\j -> a ! i ! j == b ! i ! j) (dimensions (Proxy @n)))
-      (dimensions (Proxy @m))
+  M a == M b = a == b
 instance (KnownNat m, KnownNat n, Ord x) => Ord (M m n x) where
   compare :: M m n x -> M m n x -> Ordering
-  compare (M a) (M b) =
-    flip foldWith (dimensions (Proxy @m)) \i ->
-      flip foldWith (dimensions (Proxy @n)) \j ->
-        compare (a ! i ! j) (b ! i ! j)
+  compare (M a) (M b) = compare a b
 
 instance (KnownNat m, KnownNat n, Show x) => Show (M m n x) where
   show :: M m n x -> [Char]
