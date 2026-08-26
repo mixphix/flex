@@ -1054,3 +1054,41 @@ instance Structure (Traversals1 (->) (->)) where
     Traverse1IdentityIdentity fx -> Identity fx == traverse1 Identity fx
     Traverse1PurePure (Proxy :: Proxy g, fx) -> pure @g fx == traverse1 (pure @g) fx
 instance Variety1 (Traversals1 (->) (->))
+
+instance Structure Category where
+  data Signature Category cat where
+    CategoryId :: forall k (cat :: k -> k -> Type) (x :: k). (Objects cat x) => Proxy x -> Signature Category cat
+    CategoryCompose ::
+      forall k (cat :: k -> k -> Type) (x :: k) (y :: k) (z :: k).
+      (Objects cat x, Objects cat y, Objects cat z) =>
+      cat y z -> cat x y -> Signature Category cat
+  data Term Category cat where
+    TermCategory :: cat x y -> Term Category cat
+  operations ::
+    (Category cat) =>
+    Signature Category cat ->
+    Term Category cat
+  operations = \case
+    (CategoryId p :: Signature Category cat) -> case p of
+      (Proxy :: Proxy x) -> TermCategory (id :: cat x x)
+    CategoryCompose y_z x_y -> TermCategory (y_z . x_y)
+  type Requirements Category = C0
+  data Laws Category cat
+    = forall x y.
+        ( Eq (cat x y) -- works in theory - good luck!
+        , Objects cat x
+        , Objects cat y
+        ) =>
+        CategoryComposeIdLeft (cat x y)
+    | forall x y.
+        ( Eq (cat x y) -- works in theory - good luck!
+        , Objects cat x
+        , Objects cat y
+        ) =>
+        CategoryComposeIdRight (cat x y)
+  lawful ::
+    (Category cat, Requirements Category cat) =>
+    Laws Category cat -> Bool
+  lawful = \case
+    CategoryComposeIdLeft x_y -> id . x_y == x_y
+    CategoryComposeIdRight x_y -> x_y . id == x_y
