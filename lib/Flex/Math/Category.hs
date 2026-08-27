@@ -14,6 +14,7 @@
 
 module Flex.Math.Category
   ( Category (type Objects, id, (.))
+  , Groupoid (invert)
   , C0
   , C2
   , CC
@@ -262,6 +263,9 @@ class Category cat where
   (.) ::
     (Objects cat x, Objects cat y, Objects cat z) =>
     cat y z -> cat x y -> cat x z
+type Groupoid :: (k -> k -> Type) -> Constraint
+class (Category cat) => Groupoid cat where
+  invert :: cat x y -> cat y x
 
 instance Category (->) where
   type Objects (->) = C0

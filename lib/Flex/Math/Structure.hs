@@ -1092,3 +1092,45 @@ instance Structure Category where
   lawful = \case
     CategoryComposeIdLeft x_y -> id . x_y == x_y
     CategoryComposeIdRight x_y -> x_y . id == x_y
+
+instance Structure Groupoid where
+  data Signature Groupoid cat
+    = GroupoidCategory (Signature Category cat)
+    | forall x y. GroupoidInvert (cat x y)
+  data Term Groupoid cat where
+    TermGroupoid :: cat x y -> Term Groupoid cat
+  operations ::
+    (Groupoid cat) =>
+    Signature Groupoid cat ->
+    Term Groupoid cat
+  operations = \case
+    GroupoidCategory sig -> case operations sig of
+      TermCategory term -> TermGroupoid term
+    GroupoidInvert x_y -> TermGroupoid (invert x_y)
+  type Requirements Groupoid = C0
+  data Laws Groupoid cat
+    = forall x y.
+        ( Eq (cat x y)
+        , Objects cat x
+        , Objects cat y
+        ) =>
+        GroupoidInvertInvolution (cat x y)
+    | forall x y.
+        ( Eq (cat y y)
+        , Objects cat x
+        , Objects cat y
+        ) =>
+        GroupoidComposeInvertIdentityLeft (cat x y)
+    | forall x y.
+        ( Eq (cat x x)
+        , Objects cat x
+        , Objects cat y
+        ) =>
+        GroupoidComposeInvertIdentityRight (cat x y)
+  lawful ::
+    (Groupoid cat, Requirements Groupoid cat) =>
+    Laws Groupoid cat -> Bool
+  lawful = \case
+    GroupoidInvertInvolution x_y -> invert (invert x_y) == x_y
+    GroupoidComposeInvertIdentityLeft x_y -> x_y . invert x_y == id
+    GroupoidComposeInvertIdentityRight x_y -> invert x_y . x_y == id

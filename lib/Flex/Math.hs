@@ -134,6 +134,8 @@ module Flex.Math
     -- ** Other structures
   , Rack ((<|), (|>))
   , Quandle
+  , Category (Objects, id, (.))
+  , Groupoid (invert)
 
     -- * Extensions of number types
   , Projective (Projective, Infinity)
