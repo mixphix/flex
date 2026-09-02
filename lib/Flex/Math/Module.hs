@@ -16,7 +16,7 @@ module Flex.Math.Module
   , eye
   , real
   , imag
-  , Quaternion (Quaternion)
+  , Quaternion (..)
   , QuaternionBasis (E, I, J, K)
   , variable
   , Signature (..)

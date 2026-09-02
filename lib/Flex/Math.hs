@@ -80,7 +80,7 @@ module Flex.Math
   , Perplex ((:!))
   , simple
   , perplex
-  , Minkowski (Minkowski)
+  , Minkowski (..)
   , List1
   , eval
 
@@ -101,7 +101,7 @@ module Flex.Math
 
     -- *** Examples
   , Complex ((:+))
-  , Quaternion (Quaternion)
+  , Quaternion (..)
   , V (V, unV)
   , dimensions
   , M (M, unM)

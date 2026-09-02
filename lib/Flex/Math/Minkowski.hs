@@ -1,7 +1,7 @@
 {-# LANGUAGE NoFieldSelectors #-}
 
 module Flex.Math.Minkowski
-  ( Minkowski (Minkowski, t, x, y, z)
+  ( Minkowski (..)
   , MinkowskiBasis (..)
   , Scalar (..)
   )
