@@ -44,6 +44,7 @@ library
     Flex.Math
     Flex.Math.Algebra
     Flex.Math.Base
+    Flex.Math.Basis
     Flex.Math.Category
     Flex.Math.Distribution
     Flex.Math.Dual

@@ -135,6 +135,7 @@ module Flex.Math.Category
   , Collectable (collect, distribute)
   , cotraverse
   , Tabulation (type Table, fromTable, toTable)
+  , ComplexBasis (Real, Imaginary)
   , Adjunction (unit, counit, left, right)
   , zipR
   , unzipR
@@ -185,10 +186,12 @@ import Control.Category qualified as Control
 import Control.Monad qualified as Control
 import Control.Monad.Fix (MonadFix (..), fix)
 import Data.Bool (Bool, not, otherwise)
+import Data.Bounded (Bounded)
 import Data.Coerce (Coercible, coerce)
 import Data.Complex (Complex (..), imagPart, realPart)
 import Data.Either (Either (..), either)
 import Data.Enum (Enum (..))
+import Data.Eq (Eq)
 import Data.Foldable qualified as Data
 import Data.Function (const, flip, ($))
 import Data.Functor qualified as Data
@@ -3317,14 +3320,21 @@ instance Tabulation Proxy where
   fromTable _ = Proxy
   toTable :: Proxy x -> Table Proxy -> x
   toTable Proxy = absurd
+
+data ComplexBasis
+  = Real
+  | Imaginary
+  deriving (Eq, Ord, Enum, Bounded)
+
 instance Tabulation Complex where
-  type Table Complex = Either () ()
+  type Table Complex = ComplexBasis
   fromTable :: (Table Complex -> x) -> Complex x
-  fromTable f = f (Left ()) :+ f (Right ())
+  fromTable f = f Real :+ f Imaginary
   toTable :: Complex x -> Table Complex -> x
   toTable (r :+ i) = \case
-    Left () -> r
-    Right () -> i
+    Real -> r
+    Imaginary -> i
+
 instance
   (Data.Functor f, Data.Functor g, Tabulation f, Tabulation g) =>
   Tabulation (Product f g)

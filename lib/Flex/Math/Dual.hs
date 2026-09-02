@@ -1,5 +1,6 @@
 module Flex.Math.Dual
   ( Dual ((:&))
+  , DualBasis (Primal, Dual)
   , epsilon
   , apply
   , primal
@@ -15,8 +16,9 @@ import Flex.Math.Module
 import Flex.Math.Numbers
 
 import Data.Bool
+import Data.Bounded (Bounded)
 import Data.Either
-import Data.Enum
+import Data.Enum (Enum (..))
 import Data.Eq (Eq (..))
 import Data.Foldable qualified as Data
 import Data.Foldable1 qualified as Data
@@ -35,6 +37,11 @@ import Text.Show (Show)
 infixl 4 :&
 data Dual x = x :& x
   deriving (Eq, Ord, Show, Read, Data.Functor, Data.Foldable, Data.Traversable)
+
+data DualBasis
+  = Primal
+  | Dual
+  deriving (Eq, Ord, Enum, Bounded)
 
 instance Morphisms (->) (->) Dual where
   morphism :: (x -> y) -> Dual x -> Dual y
@@ -74,13 +81,13 @@ instance Collectable Dual where
   distribute :: (Along f) => f (Dual x) -> Dual (f x)
   distribute fd = morphism primal fd :& morphism tangent fd
 instance Tabulation Dual where
-  type Table Dual = Either () ()
-  fromTable :: (Table Dual -> a) -> Dual a
-  fromTable f = f (Left ()) :& f (Right ())
-  toTable :: Dual a -> Table Dual -> a
+  type Table Dual = DualBasis
+  fromTable :: (DualBasis -> a) -> Dual a
+  fromTable f = f Primal :& f Dual
+  toTable :: Dual a -> DualBasis -> a
   toTable (r :& i) = \case
-    Left () -> r
-    Right () -> i
+    Primal -> r
+    Dual -> i
 instance Data.Foldable1 Dual where
   foldMap1 :: (Semigroup m) => (x -> m) -> Dual x -> m
   foldMap1 x_m (xp :& xt) = x_m xp <> x_m xt

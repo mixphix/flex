@@ -17,6 +17,7 @@ module Flex.Math.Module
   , real
   , imag
   , Quaternion (Quaternion)
+  , QuaternionBasis (E, I, J, K)
   , variable
   , Signature (..)
   , Term (..)
@@ -356,7 +357,7 @@ instance (Ring x, Conjugate x) => InnerProduct (Complex x)
 
 -- Quaternions
 
-data Quaternion x = Quaternion !x !x !x !x
+data Quaternion x = Quaternion {e :: !x, i :: !x, j :: !x, k :: !x}
   deriving
     ( Eq
     , Ord
@@ -372,11 +373,34 @@ instance Morphisms (->) (->) Quaternion where
   morphism = Data.fmap
 instance Folds (->) (->) Quaternion where
   foldWith :: Monoid z => (x -> z) -> Quaternion x -> z
-  foldWith x_z (Quaternion q i j k) = x_z q <> x_z i <> x_z j <> x_z k
+  foldWith x_z (Quaternion e i j k) = x_z e <> x_z i <> x_z j <> x_z k
 instance Traversals (->) (->) Quaternion where
   traverse :: Applicative g => (x -> g y) -> Quaternion x -> g (Quaternion y)
-  traverse x_gy (Quaternion q i j k) =
-    liftA3 Quaternion (x_gy q) (x_gy i) (x_gy j) <*> (x_gy k)
+  traverse x_gy (Quaternion e i j k) =
+    liftA3 Quaternion (x_gy e) (x_gy i) (x_gy j) <*> (x_gy k)
+instance Collectable Quaternion where
+  distribute :: (Along f) => f (Quaternion x) -> Quaternion (f x)
+  distribute f = Quaternion
+    do morphism (.e) f
+    do morphism (.i) f
+    do morphism (.j) f
+    do morphism (.k) f
+
+data QuaternionBasis
+  = E
+  | I
+  | J
+  | K
+instance Tabulation Quaternion where
+  type Table Quaternion = QuaternionBasis
+  fromTable :: (Table Quaternion -> x) -> Quaternion x
+  fromTable f = Quaternion (f E) (f I) (f J) (f K)
+  toTable :: Quaternion x -> Table Quaternion -> x
+  toTable (Quaternion e i j k) = \case
+    E -> e
+    I -> i
+    J -> j
+    K -> k
 
 instance (Additive y, From y x) => From y (Quaternion x) where
   from :: y -> Quaternion x
@@ -476,10 +500,10 @@ instance (Division x x x) => Division (Scalar (Quaternion x)) (Scalar (Quaternio
   ScalarQuaternion x /. ScalarQuaternion y = ScalarQuaternion (x / y)
 instance (Multiplication x x x) => Multiplication (Scalar (Quaternion x)) (Quaternion x) (Quaternion x) where
   (*.) :: Scalar (Quaternion x) -> Quaternion x -> Quaternion x
-  ScalarQuaternion x *. q = x *. q
+  ScalarQuaternion x *. e = x *. e
 instance (Multiplication x x x) => Multiplication (Quaternion x) (Scalar (Quaternion x)) (Quaternion x) where
   (*.) :: Quaternion x -> Scalar (Quaternion x) -> Quaternion x
-  q *. ScalarQuaternion x = q *. x
+  e *. ScalarQuaternion x = e *. x
 instance (Power x r x) => Power (Scalar (Quaternion x)) r (Scalar (Quaternion x)) where
   (^) :: Scalar (Quaternion x) -> r -> Scalar (Quaternion x)
   ScalarQuaternion x ^ r = ScalarQuaternion (x ^ r)

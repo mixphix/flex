@@ -1,5 +1,6 @@
 module Flex.Math.Perplex
   ( Perplex ((:!))
+  , PerplexBasis (Simple, Perplex)
   , simple
   , perplex
   , diagonal
@@ -29,6 +30,10 @@ import Text.Show (Show)
 infixl 4 :!
 data Perplex x = !x :! !x 
   deriving (Eq, Ord, Show, Read, Data.Functor, Data.Foldable, Data.Traversable)
+
+data PerplexBasis
+  = Simple
+  | Perplex
 
 simple :: Perplex x -> x
 simple (x :! _) = x
@@ -80,13 +85,13 @@ instance Collectable Perplex where
   distribute :: (Along f) => f (Perplex x) -> Perplex (f x)
   distribute fd = morphism simple fd :! morphism perplex fd
 instance Tabulation Perplex where
-  type Table Perplex = Either () ()
+  type Table Perplex = PerplexBasis
   fromTable :: (Table Perplex -> a) -> Perplex a
-  fromTable f = f (Left ()) :! f (Right ())
+  fromTable f = f Simple :! f Perplex
   toTable :: Perplex a -> Table Perplex -> a
   toTable (r :! i) = \case
-    Left () -> r
-    Right () -> i
+    Simple -> r
+    Perplex -> i
 instance Data.Foldable1 Perplex where
   foldMap1 :: (Semigroup m) => (x -> m) -> Perplex x -> m
   foldMap1 x_m (xp :! xt) = x_m xp <> x_m xt

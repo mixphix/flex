@@ -155,6 +155,8 @@ module Flex.Math
   , loop
   , loopM
   , while
+
+    -- ** Folds
   , length
   , all
   , iall
@@ -180,10 +182,14 @@ module Flex.Math
   , minimumOn
   , maximumOf
   , minimumOf
+
+    -- ** Bases
+  , Basis (basis)
   ) where
 
 import Flex.Math.Algebra
 import Flex.Math.Base
+import Flex.Math.Basis
 import Flex.Math.Category
 import Flex.Math.Dual
 import Flex.Math.Foldable
