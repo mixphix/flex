@@ -36,7 +36,15 @@ import Text.Show (Show)
 
 infixl 4 :&
 data Dual x = x :& x
-  deriving (Eq, Ord, Show, Read, Data.Functor, Data.Foldable, Data.Traversable)
+  deriving
+    ( Eq
+    , Ord
+    , Show
+    , Read
+    , Data.Functor
+    , Data.Foldable
+    , Data.Traversable
+    )
 
 data DualBasis
   = Primal
@@ -167,16 +175,28 @@ instance (From y x) => From y (Scalar (Dual x)) where
   from :: y -> Scalar (Dual x)
   from n = ScalarDual (from n)
 
-instance (Addition x x x) => Addition (Scalar (Dual x)) (Scalar (Dual x)) (Scalar (Dual x)) where
+instance
+  (Addition x x x) =>
+  Addition (Scalar (Dual x)) (Scalar (Dual x)) (Scalar (Dual x))
+  where
   (+.) :: Scalar (Dual x) -> Scalar (Dual x) -> Scalar (Dual x)
   ScalarDual x +. ScalarDual y = ScalarDual (x + y)
-instance (Subtraction x x x) => Subtraction (Scalar (Dual x)) (Scalar (Dual x)) (Scalar (Dual x)) where
+instance
+  (Subtraction x x x) =>
+  Subtraction (Scalar (Dual x)) (Scalar (Dual x)) (Scalar (Dual x))
+  where
   (-.) :: Scalar (Dual x) -> Scalar (Dual x) -> Scalar (Dual x)
   ScalarDual x -. ScalarDual y = ScalarDual (x - y)
-instance (Multiplication x x x) => Multiplication (Scalar (Dual x)) (Scalar (Dual x)) (Scalar (Dual x)) where
+instance
+  (Multiplication x x x) =>
+  Multiplication (Scalar (Dual x)) (Scalar (Dual x)) (Scalar (Dual x))
+  where
   (*.) :: Scalar (Dual x) -> Scalar (Dual x) -> Scalar (Dual x)
   ScalarDual x *. ScalarDual y = ScalarDual (x * y)
-instance (Division x x x) => Division (Scalar (Dual x)) (Scalar (Dual x)) (Scalar (Dual x)) where
+instance
+  (Division x x x) =>
+  Division (Scalar (Dual x)) (Scalar (Dual x)) (Scalar (Dual x))
+  where
   (/.) :: Scalar (Dual x) -> Scalar (Dual x) -> Scalar (Dual x)
   ScalarDual x /. ScalarDual y = ScalarDual (x / y)
 instance (Multiplication x x x) => Multiplication (Scalar (Dual x)) (Dual x) (Dual x) where

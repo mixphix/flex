@@ -13,9 +13,6 @@ import Flex.Math.Numbers
 import Flex.Math.Perplex
 
 import Data.Eq (Eq ((==)))
-import Data.Finite (Finite, getFinite)
-import Data.Proxy (Proxy (..))
-import GHC.TypeNats (KnownNat, natVal)
 
 class (Module (v x), Tabulation v) => Basis v x where
   basis :: Table v -> v x

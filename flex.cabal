@@ -42,6 +42,7 @@ library
 
   exposed-modules:
     Flex.Math
+    Flex.Math.Action
     Flex.Math.Algebra
     Flex.Math.Base
     Flex.Math.Basis
@@ -56,6 +57,7 @@ library
     Flex.Math.Minkowski
     Flex.Math.Module
     Flex.Math.Numbers
+    Flex.Math.Permutation
     Flex.Math.Perplex
     Flex.Math.Projective
     Flex.Math.Optics

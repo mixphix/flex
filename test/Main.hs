@@ -7,16 +7,16 @@ import Control.Applicative qualified as Control
 import Control.Monad qualified as Control
 import Data.Bool (Bool)
 import Data.Eq
-import Data.Int (Int)
 import Data.Functor qualified as Data
+import Data.Int (Int)
 import Data.Monoid
 import Data.Ord
 import Data.Semigroup (Semigroup)
+import GHC.Err qualified as GHC
+import GHC.Float (Double, Float)
+import GHC.Num (Integer)
 import Generic.Random (genericArbitrary, uniform)
 import Numeric.Natural (Natural)
-import GHC.Err qualified as GHC
-import GHC.Num (Integer)
-import GHC.Float (Float, Double)
 import System.IO (IO)
 import Test.Hspec
 import Test.QuickCheck

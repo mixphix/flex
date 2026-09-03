@@ -68,6 +68,14 @@ module Flex.Math.Matrix
   , Signature (..)
   , Term (..)
   , Laws (..)
+
+    -- ** Re-exports
+  , Nat
+  , KnownNat
+  , natVal
+  , Proxy (Proxy)
+  , Finite
+  , getFinite
   ) where
 
 import Flex.Math.Algebra
@@ -124,9 +132,10 @@ instance Structure (Square m) where
     deriving (Generic)
   newtype Term (Square m) x = TermSquare (Scalar (m x))
   operations :: (Square m x) => Signature (Square m) x -> Term (Square m) x
-  operations = TermSquare . \case
-    SquareTrace a -> trace a
-    SquareDeterminant a -> determinant a
+  operations =
+    TermSquare . \case
+      SquareTrace a -> trace a
+      SquareDeterminant a -> determinant a
   type Requirements (Square m) = CC Eq m
   data Laws (Square m) x
     = SquareAssociativeAlgebraLaws (Laws AssociativeAlgebra (m x))
@@ -248,7 +257,7 @@ instance (KnownNat n) => Indices (V n x) where
   index :: Natural -> Traversal' (V n x) x
   index i x_fx' v@(V vs)
     | from i < n = case v ! i of
-        x -> morphism (\x' -> V $ vs Vector.// [(from i, x')]) (x_fx' x)
+        x -> morphism (\x' -> V (vs Vector.// [(from i, x')])) (x_fx' x)
     | otherwise = pure v
    where
     n = natVal (Proxy @n)
@@ -291,28 +300,49 @@ instance (KnownNat n, From y x) => From y (Scalar (V n x)) where
   from :: y -> Scalar (V n x)
   from n = ScalarV (from n)
 
-instance (KnownNat n, Addition x x x) => Addition (Scalar (V n x)) (Scalar (V n x)) (Scalar (V n x)) where
+instance
+  (KnownNat n, Addition x x x) =>
+  Addition (Scalar (V n x)) (Scalar (V n x)) (Scalar (V n x))
+  where
   (+.) :: Scalar (V n x) -> Scalar (V n x) -> Scalar (V n x)
   ScalarV x +. ScalarV y = ScalarV (x + y)
-instance (KnownNat n, Subtraction x x x) => Subtraction (Scalar (V n x)) (Scalar (V n x)) (Scalar (V n x)) where
+instance
+  (KnownNat n, Subtraction x x x) =>
+  Subtraction (Scalar (V n x)) (Scalar (V n x)) (Scalar (V n x))
+  where
   (-.) :: Scalar (V n x) -> Scalar (V n x) -> Scalar (V n x)
   ScalarV x -. ScalarV y = ScalarV (x - y)
-instance (KnownNat n, Multiplication x x x) => Multiplication (Scalar (V n x)) (Scalar (V n x)) (Scalar (V n x)) where
+instance
+  (KnownNat n, Multiplication x x x) =>
+  Multiplication (Scalar (V n x)) (Scalar (V n x)) (Scalar (V n x))
+  where
   (*.) :: Scalar (V n x) -> Scalar (V n x) -> Scalar (V n x)
   ScalarV x *. ScalarV y = ScalarV (x * y)
-instance (KnownNat n, Division x x x) => Division (Scalar (V n x)) (Scalar (V n x)) (Scalar (V n x)) where
+instance
+  (KnownNat n, Division x x x) =>
+  Division (Scalar (V n x)) (Scalar (V n x)) (Scalar (V n x))
+  where
   (/.) :: Scalar (V n x) -> Scalar (V n x) -> Scalar (V n x)
   ScalarV x /. ScalarV y = ScalarV (x / y)
-instance (KnownNat n, Multiplication x x x) => Multiplication (Scalar (V n x)) (V n x) (V n x) where
+instance
+  (KnownNat n, Multiplication x x x) =>
+  Multiplication (Scalar (V n x)) (V n x) (V n x)
+  where
   (*.) :: Scalar (V n x) -> V n x -> V n x
   ScalarV x *. v = x *. v
-instance (KnownNat n, Multiplication x x x) => Multiplication (V n x) (Scalar (V n x)) (V n x) where
+instance
+  (KnownNat n, Multiplication x x x) =>
+  Multiplication (V n x) (Scalar (V n x)) (V n x)
+  where
   (*.) :: V n x -> Scalar (V n x) -> V n x
   v *. ScalarV x = v *. x
 instance (KnownNat n, Division x x x) => Division (V n x) (Scalar (V n x)) (V n x) where
   (/.) :: V n x -> Scalar (V n x) -> V n x
   v /. ScalarV x = v /. x
-instance (KnownNat n, Power x Rational x) => Power (Scalar (V n x)) Rational (Scalar (V n x)) where
+instance
+  (KnownNat n, Power x Rational x) =>
+  Power (Scalar (V n x)) Rational (Scalar (V n x))
+  where
   (^) :: Scalar (V n x) -> Rational -> Scalar (V n x)
   ScalarV x ^ r = ScalarV (x ^ r)
 instance (KnownNat n, Absolute x x) => Absolute (Scalar (V n x)) x where
@@ -542,16 +572,28 @@ instance (KnownNat m, KnownNat n, From y x) => From y (Scalar (M m n x)) where
   from :: y -> Scalar (M m n x)
   from y = ScalarM (from y)
 
-instance (KnownNat m, KnownNat n, Addition x x x) => Addition (Scalar (M m n x)) (Scalar (M m n x)) (Scalar (M m n x)) where
+instance
+  (KnownNat m, KnownNat n, Addition x x x) =>
+  Addition (Scalar (M m n x)) (Scalar (M m n x)) (Scalar (M m n x))
+  where
   (+.) :: Scalar (M m n x) -> Scalar (M m n x) -> Scalar (M m n x)
   ScalarM x +. ScalarM y = ScalarM (x + y)
-instance (KnownNat m, KnownNat n, Subtraction x x x) => Subtraction (Scalar (M m n x)) (Scalar (M m n x)) (Scalar (M m n x)) where
+instance
+  (KnownNat m, KnownNat n, Subtraction x x x) =>
+  Subtraction (Scalar (M m n x)) (Scalar (M m n x)) (Scalar (M m n x))
+  where
   (-.) :: Scalar (M m n x) -> Scalar (M m n x) -> Scalar (M m n x)
   ScalarM x -. ScalarM y = ScalarM (x - y)
-instance (KnownNat m, KnownNat n, Multiplication x x x) => Multiplication (Scalar (M m n x)) (Scalar (M m n x)) (Scalar (M m n x)) where
+instance
+  (KnownNat m, KnownNat n, Multiplication x x x) =>
+  Multiplication (Scalar (M m n x)) (Scalar (M m n x)) (Scalar (M m n x))
+  where
   (*.) :: Scalar (M m n x) -> Scalar (M m n x) -> Scalar (M m n x)
   ScalarM x *. ScalarM y = ScalarM (x * y)
-instance (KnownNat m, KnownNat n, Division x x x) => Division (Scalar (M m n x)) (Scalar (M m n x)) (Scalar (M m n x)) where
+instance
+  (KnownNat m, KnownNat n, Division x x x) =>
+  Division (Scalar (M m n x)) (Scalar (M m n x)) (Scalar (M m n x))
+  where
   (/.) :: Scalar (M m n x) -> Scalar (M m n x) -> Scalar (M m n x)
   ScalarM x /. ScalarM y = ScalarM (x / y)
 instance
@@ -581,7 +623,10 @@ instance
 instance (KnownNat m, KnownNat n, Absolute x x) => Absolute (Scalar (M m n x)) x where
   absolute :: Scalar (M m n x) -> x
   absolute (ScalarM k) = absolute k
-instance (KnownNat m, KnownNat n, Absolute x x) => Absolute (Scalar (M m n x)) (Scalar (M m n x)) where
+instance
+  (KnownNat m, KnownNat n, Absolute x x) =>
+  Absolute (Scalar (M m n x)) (Scalar (M m n x))
+  where
   absolute :: Scalar (M m n x) -> Scalar (M m n x)
   absolute (ScalarM k) = ScalarM (absolute k)
 
@@ -644,7 +689,7 @@ instance
   (<•>) :: M m n x -> M m n x -> Scalar (M m n x)
   a <•> b = case trace @(M m m) (a *. adjoint @x @(M m n) @(M n m) b) of
     ScalarM x -> ScalarM x
-instance 
+instance
   ( KnownNat n
   , Eq x
   , Ring x
@@ -727,7 +772,7 @@ rows (M a) = morphism (a !) (dimensions (Proxy @m))
 unrows :: forall m n x. (KnownNat m, KnownNat n) => [V n x] -> Maybe (M m n x)
 unrows vs
   | count (const True) vs == natVal (Proxy @m) =
-      Just . M . V $ Vector.fromList vs
+      Just . M $ V (Vector.fromList vs)
   | otherwise = Nothing
 
 row :: V n x -> M 1 n x
@@ -781,7 +826,7 @@ lu (M a) = build 0 zero one
           | k == j = s
           | otherwise = go (succ k) (s + l ! i ! k * u ! k ! j)
         s' = go zero zero
-     in M $ vn n \i' -> vn n \j' -> 
+     in M $ vn n \i' -> vn n \j' ->
           if i == i' && j == j' then a ! i' ! j' - s' else l ! i' ! j'
   buildL !i !j l u
     | i == natVal (Proxy @n) = l
@@ -945,66 +990,66 @@ withV4 v f = f (v ! 0) (v ! 1) (v ! 2) (v ! 3)
 m22 :: forall x. x -> x -> x -> x -> M 2 2 x
 m22 a b c d = M $ V do
   Vector.fromList
-    [ V $ Vector.fromList [a, b]
-    , V $ Vector.fromList [c, d]
+    [ V (Vector.fromList [a, b])
+    , V (Vector.fromList [c, d])
     ]
 
 m23 :: forall x. x -> x -> x -> x -> x -> x -> M 2 3 x
 m23 a b c d e f = M $ V do
   Vector.fromList
-    [ V $ Vector.fromList [a, b, c]
-    , V $ Vector.fromList [d, e, f]
+    [ V (Vector.fromList [a, b, c])
+    , V (Vector.fromList [d, e, f])
     ]
 
 m32 :: forall x. x -> x -> x -> x -> x -> x -> M 3 2 x
 m32 a b c d e f = M $ V do
   Vector.fromList
-    [ V $ Vector.fromList [a, b]
-    , V $ Vector.fromList [c, d]
-    , V $ Vector.fromList [e, f]
+    [ V (Vector.fromList [a, b])
+    , V (Vector.fromList [c, d])
+    , V (Vector.fromList [e, f])
     ]
 
 m24 :: forall x. x -> x -> x -> x -> x -> x -> x -> x -> M 2 4 x
 m24 a b c d e f g h = M $ V do
   Vector.fromList
-    [ V $ Vector.fromList [a, b, c, d]
-    , V $ Vector.fromList [e, f, g, h]
+    [ V (Vector.fromList [a, b, c, d])
+    , V (Vector.fromList [e, f, g, h])
     ]
 
 m42 :: forall x. x -> x -> x -> x -> x -> x -> x -> x -> M 4 2 x
 m42 a b c d e f g h = M $ V do
   Vector.fromList
-    [ V $ Vector.fromList [a, b]
-    , V $ Vector.fromList [c, d]
-    , V $ Vector.fromList [e, f]
-    , V $ Vector.fromList [g, h]
+    [ V (Vector.fromList [a, b])
+    , V (Vector.fromList [c, d])
+    , V (Vector.fromList [e, f])
+    , V (Vector.fromList [g, h])
     ]
 
 m33 :: forall x. x -> x -> x -> x -> x -> x -> x -> x -> x -> M 3 3 x
 m33 a b c d e f g h i = M $ V do
   Vector.fromList
-    [ V $ Vector.fromList [a, b, c]
-    , V $ Vector.fromList [d, e, f]
-    , V $ Vector.fromList [g, h, i]
+    [ V (Vector.fromList [a, b, c])
+    , V (Vector.fromList [d, e, f])
+    , V (Vector.fromList [g, h, i])
     ]
 
 m34 ::
   forall x. x -> x -> x -> x -> x -> x -> x -> x -> x -> x -> x -> x -> M 3 4 x
 m34 a b c d e f g h i j k l = M $ V do
   Vector.fromList
-    [ V $ Vector.fromList [a, b, c, d]
-    , V $ Vector.fromList [e, f, g, h]
-    , V $ Vector.fromList [i, j, k, l]
+    [ V (Vector.fromList [a, b, c, d])
+    , V (Vector.fromList [e, f, g, h])
+    , V (Vector.fromList [i, j, k, l])
     ]
 
 m43 ::
   forall x. x -> x -> x -> x -> x -> x -> x -> x -> x -> x -> x -> x -> M 4 3 x
 m43 a b c d e f g h i j k l = M $ V do
   Vector.fromList
-    [ V $ Vector.fromList [a, b, c]
-    , V $ Vector.fromList [d, e, f]
-    , V $ Vector.fromList [g, h, i]
-    , V $ Vector.fromList [j, k, l]
+    [ V (Vector.fromList [a, b, c])
+    , V (Vector.fromList [d, e, f])
+    , V (Vector.fromList [g, h, i])
+    , V (Vector.fromList [j, k, l])
     ]
 
 m44 ::
@@ -1028,8 +1073,8 @@ m44 ::
   M 4 4 x
 m44 a b c d e f g h i j k l m n o p = M $ V do
   Vector.fromList
-    [ V $ Vector.fromList [a, b, c, d]
-    , V $ Vector.fromList [e, f, g, h]
-    , V $ Vector.fromList [i, j, k, l]
-    , V $ Vector.fromList [m, n, o, p]
+    [ V (Vector.fromList [a, b, c, d])
+    , V (Vector.fromList [e, f, g, h])
+    , V (Vector.fromList [i, j, k, l])
+    , V (Vector.fromList [m, n, o, p])
     ]

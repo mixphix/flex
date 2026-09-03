@@ -31,14 +31,14 @@ import Flex.Math.Structure
 import Data.Bool (Bool, (||))
 import Data.Complex (Complex ((:+)))
 import Data.Eq (Eq (..))
-import Data.Functor qualified as Data
 import Data.Foldable qualified as Data
-import Data.Traversable qualified as Data
+import Data.Functor qualified as Data
 import Data.Kind (Type)
 import Data.List1
-import Data.Ord (Ord (..))
 import Data.Monoid (Monoid)
+import Data.Ord (Ord (..))
 import Data.Semigroup (Semigroup ((<>)))
+import Data.Traversable qualified as Data
 import GHC.Generics (Generic)
 import GHC.Show (Show)
 
@@ -57,22 +57,58 @@ instance (From y x) => From y (Scalar (Complex x)) where
   from :: y -> Scalar (Complex x)
   from n = ScalarComplex (from n)
 
-instance (Addition x x x) => Addition (Scalar (Complex x)) (Scalar (Complex x)) (Scalar (Complex x)) where
+instance
+  (Addition x x x) =>
+  Addition
+    (Scalar (Complex x))
+    (Scalar (Complex x))
+    (Scalar (Complex x))
+  where
   (+.) :: Scalar (Complex x) -> Scalar (Complex x) -> Scalar (Complex x)
   ScalarComplex x +. ScalarComplex y = ScalarComplex (x + y)
-instance (Subtraction x x x) => Subtraction (Scalar (Complex x)) (Scalar (Complex x)) (Scalar (Complex x)) where
+instance
+  (Subtraction x x x) =>
+  Subtraction
+    (Scalar (Complex x))
+    (Scalar (Complex x))
+    (Scalar (Complex x))
+  where
   (-.) :: Scalar (Complex x) -> Scalar (Complex x) -> Scalar (Complex x)
   ScalarComplex x -. ScalarComplex y = ScalarComplex (x - y)
-instance (Multiplication x x x) => Multiplication (Scalar (Complex x)) (Scalar (Complex x)) (Scalar (Complex x)) where
+instance
+  (Multiplication x x x) =>
+  Multiplication
+    (Scalar (Complex x))
+    (Scalar (Complex x))
+    (Scalar (Complex x))
+  where
   (*.) :: Scalar (Complex x) -> Scalar (Complex x) -> Scalar (Complex x)
   ScalarComplex x *. ScalarComplex y = ScalarComplex (x * y)
-instance (Division x x x) => Division (Scalar (Complex x)) (Scalar (Complex x)) (Scalar (Complex x)) where
+instance
+  (Division x x x) =>
+  Division
+    (Scalar (Complex x))
+    (Scalar (Complex x))
+    (Scalar (Complex x))
+  where
   (/.) :: Scalar (Complex x) -> Scalar (Complex x) -> Scalar (Complex x)
   ScalarComplex x /. ScalarComplex y = ScalarComplex (x / y)
-instance (Multiplication x x x) => Multiplication (Scalar (Complex x)) (Complex x) (Complex x) where
+instance
+  (Multiplication x x x) =>
+  Multiplication
+    (Scalar (Complex x))
+    (Complex x)
+    (Complex x)
+  where
   (*.) :: Scalar (Complex x) -> Complex x -> Complex x
   ScalarComplex k *. x = k *. x
-instance (Multiplication x x x) => Multiplication (Complex x) (Scalar (Complex x)) (Complex x) where
+instance
+  (Multiplication x x x) =>
+  Multiplication
+    (Complex x)
+    (Scalar (Complex x))
+    (Complex x)
+  where
   (*.) :: Complex x -> Scalar (Complex x) -> Complex x
   x *. ScalarComplex k = x *. k
 instance (Power x r x) => Power (Scalar (Complex x)) r (Scalar (Complex x)) where
@@ -308,11 +344,17 @@ instance Structure Sesquilinear where
   lawful = \case
     SesquilinearConjugateSwap v w -> v <•> w == conjugate (w <•> v)
     SesquilinearLinearFirst a x b y z ->
-      (a *. x + b *. y) <•> z
-        == a * (x <•> z) + b * (y <•> z)
+      (a *. x + b *. y)
+        <•> z
+        == a
+        * (x <•> z)
+        + b
+        * (y <•> z)
     SesquilinearConjugateLinearSecond x a y b z ->
-      x <•> (a *. y + b *. z)
-        == (conjugate a * (x <•> y)) + (conjugate b * (x <•> z))
+      x
+        <•> (a *. y + b *. z)
+        == (conjugate a * (x <•> y))
+        + (conjugate b * (x <•> z))
 deriving instance (Show v, Show (Scalar v)) => Show (Signature Sesquilinear v)
 deriving instance (Show v, Show (Scalar v)) => Show (Laws Sesquilinear v)
 
@@ -372,10 +414,10 @@ instance Morphisms (->) (->) Quaternion where
   morphism :: (x -> y) -> Quaternion x -> Quaternion y
   morphism = Data.fmap
 instance Folds (->) (->) Quaternion where
-  foldWith :: Monoid z => (x -> z) -> Quaternion x -> z
+  foldWith :: (Monoid z) => (x -> z) -> Quaternion x -> z
   foldWith x_z (Quaternion e i j k) = x_z e <> x_z i <> x_z j <> x_z k
 instance Traversals (->) (->) Quaternion where
-  traverse :: Applicative g => (x -> g y) -> Quaternion x -> g (Quaternion y)
+  traverse :: (Applicative g) => (x -> g y) -> Quaternion x -> g (Quaternion y)
   traverse x_gy (Quaternion e i j k) =
     liftA3 Quaternion (x_gy e) (x_gy i) (x_gy j) <*> (x_gy k)
 instance Collectable Quaternion where
@@ -411,7 +453,10 @@ instance (Additive y, From y x) => From y (Quaternion x) where
       (from @y zero)
       (from @y zero)
 
-instance (Addition x x x) => Addition (Quaternion x) (Quaternion x) (Quaternion x) where
+instance
+  (Addition x x x) =>
+  Addition (Quaternion x) (Quaternion x) (Quaternion x)
+  where
   (+.) :: Quaternion x -> Quaternion x -> Quaternion x
   Quaternion z1 i1 j1 k1 +. Quaternion z2 i2 j2 k2 =
     Quaternion (z1 + z2) (i1 + i2) (j1 + j2) (k1 + k2)
@@ -420,7 +465,10 @@ instance (Additive x) => Additive (Quaternion x) where
   zero = Quaternion zero zero zero zero
 instance (AdditiveAbelian x) => AdditiveAbelian (Quaternion x)
 
-instance (Subtraction x x x) => Subtraction (Quaternion x) (Quaternion x) (Quaternion x) where
+instance
+  (Subtraction x x x) =>
+  Subtraction (Quaternion x) (Quaternion x) (Quaternion x)
+  where
   (-.) :: Quaternion x -> Quaternion x -> Quaternion x
   Quaternion z1 i1 j1 k1 -. Quaternion z2 i2 j2 k2 =
     Quaternion (z1 - z2) (i1 - i2) (j1 - j2) (k1 - k2)
@@ -465,10 +513,16 @@ instance
     reciprocal ((bz * bz) + (bi * bi) + (bj * bj) + (bk * bk))
       *. conjugate b
 
-instance (Multiplication x x x) => Multiplication x (Quaternion x) (Quaternion x) where
+instance
+  (Multiplication x x x) =>
+  Multiplication x (Quaternion x) (Quaternion x)
+  where
   (*.) :: x -> Quaternion x -> Quaternion x
   x *. Quaternion z i j k = Quaternion (x * z) (x * i) (x * j) (x * k)
-instance (Multiplication x x x) => Multiplication (Quaternion x) x (Quaternion x) where
+instance
+  (Multiplication x x x) =>
+  Multiplication (Quaternion x) x (Quaternion x)
+  where
   (*.) :: Quaternion x -> x -> Quaternion x
   Quaternion z i j k *. x = Quaternion (z * x) (i * x) (j * x) (k * x)
 
@@ -486,31 +540,94 @@ instance (From y x) => From y (Scalar (Quaternion x)) where
   from :: y -> Scalar (Quaternion x)
   from n = ScalarQuaternion (from n)
 
-instance (Addition x x x) => Addition (Scalar (Quaternion x)) (Scalar (Quaternion x)) (Scalar (Quaternion x)) where
-  (+.) :: Scalar (Quaternion x) -> Scalar (Quaternion x) -> Scalar (Quaternion x)
+instance
+  (Addition x x x) =>
+  Addition
+    (Scalar (Quaternion x))
+    (Scalar (Quaternion x))
+    (Scalar (Quaternion x))
+  where
+  (+.) ::
+    Scalar (Quaternion x) ->
+    Scalar (Quaternion x) ->
+    Scalar (Quaternion x)
   ScalarQuaternion x +. ScalarQuaternion y = ScalarQuaternion (x + y)
-instance (Subtraction x x x) => Subtraction (Scalar (Quaternion x)) (Scalar (Quaternion x)) (Scalar (Quaternion x)) where
-  (-.) :: Scalar (Quaternion x) -> Scalar (Quaternion x) -> Scalar (Quaternion x)
+instance
+  (Subtraction x x x) =>
+  Subtraction
+    (Scalar (Quaternion x))
+    (Scalar (Quaternion x))
+    (Scalar (Quaternion x))
+  where
+  (-.) ::
+    Scalar (Quaternion x) ->
+    Scalar (Quaternion x) ->
+    Scalar (Quaternion x)
   ScalarQuaternion x -. ScalarQuaternion y = ScalarQuaternion (x - y)
-instance (Multiplication x x x) => Multiplication (Scalar (Quaternion x)) (Scalar (Quaternion x)) (Scalar (Quaternion x)) where
-  (*.) :: Scalar (Quaternion x) -> Scalar (Quaternion x) -> Scalar (Quaternion x)
+instance
+  (Multiplication x x x) =>
+  Multiplication
+    (Scalar (Quaternion x))
+    (Scalar (Quaternion x))
+    (Scalar (Quaternion x))
+  where
+  (*.) ::
+    Scalar (Quaternion x) ->
+    Scalar (Quaternion x) ->
+    Scalar (Quaternion x)
   ScalarQuaternion x *. ScalarQuaternion y = ScalarQuaternion (x * y)
-instance (Division x x x) => Division (Scalar (Quaternion x)) (Scalar (Quaternion x)) (Scalar (Quaternion x)) where
-  (/.) :: Scalar (Quaternion x) -> Scalar (Quaternion x) -> Scalar (Quaternion x)
+instance
+  (Division x x x) =>
+  Division
+    (Scalar (Quaternion x))
+    (Scalar (Quaternion x))
+    (Scalar (Quaternion x))
+  where
+  (/.) ::
+    Scalar (Quaternion x) ->
+    Scalar (Quaternion x) ->
+    Scalar (Quaternion x)
   ScalarQuaternion x /. ScalarQuaternion y = ScalarQuaternion (x / y)
-instance (Multiplication x x x) => Multiplication (Scalar (Quaternion x)) (Quaternion x) (Quaternion x) where
-  (*.) :: Scalar (Quaternion x) -> Quaternion x -> Quaternion x
+instance
+  (Multiplication x x x) =>
+  Multiplication
+    (Scalar (Quaternion x))
+    (Quaternion x)
+    (Quaternion x)
+  where
+  (*.) ::
+    Scalar (Quaternion x) ->
+    Quaternion x ->
+    Quaternion x
   ScalarQuaternion x *. e = x *. e
-instance (Multiplication x x x) => Multiplication (Quaternion x) (Scalar (Quaternion x)) (Quaternion x) where
-  (*.) :: Quaternion x -> Scalar (Quaternion x) -> Quaternion x
+instance
+  (Multiplication x x x) =>
+  Multiplication
+    (Quaternion x)
+    (Scalar (Quaternion x))
+    (Quaternion x)
+  where
+  (*.) ::
+    Quaternion x ->
+    Scalar (Quaternion x) ->
+    Quaternion x
   e *. ScalarQuaternion x = e *. x
-instance (Power x r x) => Power (Scalar (Quaternion x)) r (Scalar (Quaternion x)) where
+instance
+  (Power x r x) =>
+  Power (Scalar (Quaternion x)) r (Scalar (Quaternion x))
+  where
   (^) :: Scalar (Quaternion x) -> r -> Scalar (Quaternion x)
   ScalarQuaternion x ^ r = ScalarQuaternion (x ^ r)
-instance (Absolute x x) => Absolute (Scalar (Quaternion x)) x where
+instance
+  (Absolute x x) =>
+  Absolute (Scalar (Quaternion x)) x
+  where
   absolute :: Scalar (Quaternion x) -> x
   absolute (ScalarQuaternion k) = absolute k
-instance (Absolute x x) => Absolute (Scalar (Quaternion x)) (Scalar (Quaternion x)) where
+instance
+  (Absolute x x) =>
+  Absolute (Scalar (Quaternion x)) (Scalar (Quaternion x))
+  where
   absolute :: Scalar (Quaternion x) -> Scalar (Quaternion x)
   absolute (ScalarQuaternion k) = ScalarQuaternion (absolute k)
 
@@ -562,22 +679,40 @@ instance (From y x) => From y (Scalar (List1 x)) where
   from :: y -> Scalar (List1 x)
   from n = ScalarList1 (from n)
 
-instance (Addition x x x) => Addition (Scalar (List1 x)) (Scalar (List1 x)) (Scalar (List1 x)) where
+instance
+  (Addition x x x) =>
+  Addition (Scalar (List1 x)) (Scalar (List1 x)) (Scalar (List1 x))
+  where
   (+.) :: Scalar (List1 x) -> Scalar (List1 x) -> Scalar (List1 x)
   ScalarList1 x +. ScalarList1 y = ScalarList1 (x + y)
-instance (Subtraction x x x) => Subtraction (Scalar (List1 x)) (Scalar (List1 x)) (Scalar (List1 x)) where
+instance
+  (Subtraction x x x) =>
+  Subtraction (Scalar (List1 x)) (Scalar (List1 x)) (Scalar (List1 x))
+  where
   (-.) :: Scalar (List1 x) -> Scalar (List1 x) -> Scalar (List1 x)
   ScalarList1 x -. ScalarList1 y = ScalarList1 (x - y)
-instance (Multiplication x x x) => Multiplication (Scalar (List1 x)) (Scalar (List1 x)) (Scalar (List1 x)) where
+instance
+  (Multiplication x x x) =>
+  Multiplication (Scalar (List1 x)) (Scalar (List1 x)) (Scalar (List1 x))
+  where
   (*.) :: Scalar (List1 x) -> Scalar (List1 x) -> Scalar (List1 x)
   ScalarList1 x *. ScalarList1 y = ScalarList1 (x * y)
-instance (Division x x x) => Division (Scalar (List1 x)) (Scalar (List1 x)) (Scalar (List1 x)) where
+instance
+  (Division x x x) =>
+  Division (Scalar (List1 x)) (Scalar (List1 x)) (Scalar (List1 x))
+  where
   (/.) :: Scalar (List1 x) -> Scalar (List1 x) -> Scalar (List1 x)
   ScalarList1 x /. ScalarList1 y = ScalarList1 (x / y)
-instance (Eq x, Additive x, Multiplicative x) => Multiplication (Scalar (List1 x)) (List1 x) (List1 x) where
+instance
+  (Eq x, Additive x, Multiplicative x) =>
+  Multiplication (Scalar (List1 x)) (List1 x) (List1 x)
+  where
   (*.) :: Scalar (List1 x) -> List1 x -> List1 x
   ScalarList1 k *. x = k *. x
-instance (Eq x, Additive x, Multiplicative x) => Multiplication (List1 x) (Scalar (List1 x)) (List1 x) where
+instance
+  (Eq x, Additive x, Multiplicative x) =>
+  Multiplication (List1 x) (Scalar (List1 x)) (List1 x)
+  where
   (*.) :: List1 x -> Scalar (List1 x) -> List1 x
   x *. ScalarList1 k = x *. k
 instance (Power x r x) => Power (Scalar (List1 x)) r (Scalar (List1 x)) where

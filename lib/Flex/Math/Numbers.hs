@@ -93,6 +93,7 @@ import Data.Complex (Complex ((:+)))
 import Data.Either
 import Data.Enum (Enum (..))
 import Data.Eq (Eq (..))
+import Data.Finite (Finite, getFinite, modulo)
 import Data.Fixed
 import Data.Function (flip, on)
 import Data.Int
@@ -151,7 +152,8 @@ toDataRational (Ratio n d) = n Num.:% d
 
 {-# SPECIALIZE reduce :: Integer -> Integer -> Rational #-}
 {-# SPECIALIZE reduce :: Natural -> Natural -> Ration #-}
-reduce :: (Eq x, From Integer x, Signed x, Absolute x x, Euclidean x) => x -> x -> Ratio x
+reduce ::
+  (Eq x, From Integer x, Signed x, Absolute x x, Euclidean x) => x -> x -> Ratio x
 reduce n d
   | d == zero = Num.ratioZeroDenominatorError
   | otherwise =
@@ -417,7 +419,7 @@ instance From Natural Ration where
 instance From Natural Rational where
   from :: Natural -> Rational
   from n = Ratio (from n) one
-  
+
 instance From Integer Natural where
   from :: Integer -> Natural
   from = Num.fromIntegral
@@ -578,6 +580,25 @@ instance (From Integer x) => From Integer (Suspension x) where
 instance (From Rational x) => From Rational (Suspension x) where
   from :: Rational -> Suspension x
   from = Meridian . from
+
+instance (KnownNat n) => From (Finite n) Natural where
+  from :: Finite n -> Natural
+  from = from . getFinite
+instance (KnownNat n) => From (Finite n) Integer where
+  from :: Finite n -> Integer
+  from = getFinite
+instance (KnownNat n) => From (Finite n) Int where
+  from :: Finite n -> Int
+  from = from . getFinite
+instance (KnownNat n) => From Natural (Finite n) where
+  from :: Natural -> Finite n
+  from n = modulo (from n)
+instance (KnownNat n) => From Integer (Finite n) where
+  from :: Integer -> Finite n
+  from = modulo
+instance (KnownNat n) => From Int (Finite n) where
+  from :: Int -> Finite n
+  from i = modulo (from i)
 
 -- Absolute
 
@@ -1668,7 +1689,10 @@ instance Multiplication Integer NominalDiffTime NominalDiffTime where
   (*.) :: Integer -> NominalDiffTime -> NominalDiffTime
   n *. Nominal p = Nominal (n *. p)
 
-instance (Multiplication x x x, Multiplication y y y) => Multiplication (x, y) (x, y) (x, y) where
+instance
+  (Multiplication x x x, Multiplication y y y) =>
+  Multiplication (x, y) (x, y) (x, y)
+  where
   (*.) :: (x, y) -> (x, y) -> (x, y)
   (x0, y0) *. (x1, y1) = (x0 * x1, y0 * y1)
 
@@ -1805,7 +1829,9 @@ instance
   MultiplicativeAbelian (List1 x)
 instance (MultiplicativeAbelian x) => MultiplicativeAbelian (Product x)
 
-instance (MultiplicativeAbelian x, MultiplicativeAbelian y) => MultiplicativeAbelian (x, y)
+instance
+  (MultiplicativeAbelian x, MultiplicativeAbelian y) =>
+  MultiplicativeAbelian (x, y)
 
 -- Division
 
@@ -1989,7 +2015,7 @@ instance
   reciprocal :: (x, y) -> (x, y)
   reciprocal (x, y) = (reciprocal x, reciprocal y)
 
-type MultiplicativeAbelianGroup = C2 MultiplicativeAbelian MultiplicativeGroup  
+type MultiplicativeAbelianGroup = C2 MultiplicativeAbelian MultiplicativeGroup
 
 -- Power
 
@@ -2101,12 +2127,12 @@ instance (KnownNat n) => Power (Modulo n) Natural (Modulo n) where
   a ^ n = from (powmod' 1 (from a) n (natVal (Proxy @n)))
    where
     powmod' :: Natural -> Natural -> Natural -> Natural -> Natural
-    powmod' result x b modulo
-      | b == 0 = result `remainder` modulo
-      | odd b = powmod' (result * x) x (pred b) modulo `remainder` modulo
+    powmod' result x b ø
+      | b == 0 = result `remainder` ø
+      | odd b = powmod' (result * x) x (pred b) ø `remainder` ø
       | otherwise =
-          powmod' result ((x * x) `remainder` modulo) (b `quotient` 2) modulo
-            `remainder` modulo
+          powmod' result ((x * x) `remainder` ø) (b `quotient` 2) ø
+            `remainder` ø
 
 instance (Power x r x, Power y r y) => Power (x, y) r (x, y) where
   (^) :: (Power x r x, Power y r y) => (x, y) -> r -> (x, y)

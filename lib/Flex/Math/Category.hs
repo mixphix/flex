@@ -169,7 +169,7 @@ module Flex.Math.Category
   , icompose
   , (<.>)
   , Procompose (Procompose)
-    --
+  --
   , StateT (StateT, runStateT)
   , State
   , state
@@ -698,7 +698,8 @@ foldl y_x_y y0 fx =
     id
     fx
     y0
-foldlM :: forall m f x y. (Foldable f, Monad m) => (y -> x -> m y) -> y -> f x -> m y
+foldlM ::
+  forall m f x y. (Foldable f, Monad m) => (y -> x -> m y) -> y -> f x -> m y
 foldlM y_x_my y0 fx = foldr c pure fx y0
  where
   c :: x -> (y -> m y) -> y -> m y
@@ -856,8 +857,9 @@ ifoldr :: (IxFoldable i f) => (i -> x -> y -> y) -> y -> f x -> y
 ifoldr i_x_y_y y fx =
   ifoldWith (\i -> Endo . i_x_y_y i) fx `appEndo` y
 
-ifoldWithA :: (IxFoldable i t, Applicative f, Monoid m) => (i -> x -> f m) -> t x -> f m
-ifoldWithA i_x_fm = ifoldl (\ i !fm x -> liftA2 (<>) fm (i_x_fm i x)) (pure mempty)
+ifoldWithA ::
+  (IxFoldable i t, Applicative f, Monoid m) => (i -> x -> f m) -> t x -> f m
+ifoldWithA i_x_fm = ifoldl (\i !fm x -> liftA2 (<>) fm (i_x_fm i x)) (pure mempty)
 
 itraverse_ :: (IxFoldable i f, Applicative g) => (i -> x -> g y) -> f x -> g ()
 itraverse_ i_x_gy = ifoldr f (pure ())
@@ -2818,7 +2820,8 @@ wither = witherK . Kleisli . (Compose .)
 
 filterA :: (Witherable f, Applicative g) => (x -> g Bool) -> f x -> g (f x)
 filterA p =
-  witherK (Kleisli \x -> Compose (morphism (\b -> if b then pure x else nil) (p x)))
+  witherK
+    (Kleisli \x -> Compose (morphism (\b -> if b then pure x else nil) (p x)))
 
 instance Witherable Maybe where
   witherK ::
@@ -2914,18 +2917,20 @@ instance (Traversable f, Witherable g) => Witherable (f :.: g) where
   witherK (Kleisli x_hmy) (Comp1 fgx) =
     morphism Comp1 (traverse (witherK (Kleisli x_hmy)) fgx)
 
-traverseMaybeWithKeyMap :: (Applicative f) => (k -> x -> f (Maybe y)) -> Map k x -> f (Map k y)
+traverseMaybeWithKeyMap ::
+  (Applicative f) => (k -> x -> f (Maybe y)) -> Map k x -> f (Map k y)
 traverseMaybeWithKeyMap = go
  where
   go _ Map.Tip = pure Map.Tip
   go f (Map.Bin _ kx x Map.Tip Map.Tip) = morphism (maybe Map.Tip (\ !x' -> Map.Bin 1 kx x' Map.Tip Map.Tip)) (f kx x)
   go f (Map.Bin _ kx x l r) = liftA3 combine (go f l) (f kx x) (go f r)
-    where
-      combine !l' mx !r' = case mx of
-        Nothing -> Map.link2 l' r'
-        Just !x' -> Map.link kx x' l' r'
+   where
+    combine !l' mx !r' = case mx of
+      Nothing -> Map.link2 l' r'
+      Just !x' -> Map.link kx x' l' r'
 
-traverseMaybeWithKeyIntMap :: (Applicative f) => (Int -> x -> f (Maybe y)) -> IntMap x -> f (IntMap y)
+traverseMaybeWithKeyIntMap ::
+  (Applicative f) => (Int -> x -> f (Maybe y)) -> IntMap x -> f (IntMap y)
 traverseMaybeWithKeyIntMap f = go
  where
   go IntMap.Nil = pure IntMap.Nil
@@ -2935,10 +2940,12 @@ traverseMaybeWithKeyIntMap f = go
     | otherwise = liftA2 (IntMap.bin p) (go l) (go r)
 
 instance Witherable (Map k) where
-  witherK :: (Applicative g) => Kleisli (Compose g Maybe) x y -> Map k x -> g (Map k y)
+  witherK ::
+    (Applicative g) => Kleisli (Compose g Maybe) x y -> Map k x -> g (Map k y)
   witherK (Kleisli x_gmy) = traverseMaybeWithKeyMap (const (getCompose . x_gmy))
 instance Witherable IntMap where
-  witherK :: Applicative g => Kleisli (Compose g Maybe) x y -> IntMap x -> g (IntMap y)
+  witherK ::
+    (Applicative g) => Kleisli (Compose g Maybe) x y -> IntMap x -> g (IntMap y)
   witherK (Kleisli x_gmy) = traverseMaybeWithKeyIntMap (const (getCompose . x_gmy))
 
 class (IxFilterable i f, Witherable f) => IxWitherable i f where

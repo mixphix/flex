@@ -1,5 +1,5 @@
-{-# LANGUAGE ViewPatterns #-}
 {-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE ViewPatterns #-}
 
 module Flex.Math.Distribution where
 
@@ -24,10 +24,10 @@ import Data.Semigroup
 import Data.String (String)
 import Data.Tuple
 import GHC.Float (Double)
+import GHC.Generics (Generic)
 import Numeric.Natural (Natural)
 import Text.Printf (printf)
 import Text.Show (Show, show)
-import GHC.Generics (Generic)
 
 newtype Probability = Probability {runProbability :: Ration}
   deriving newtype
@@ -140,8 +140,8 @@ uniform :: (Ord x) => [x] -> Distribution x
 uniform = Distribution . normalize . shrink . foldWith \x -> [(x, one)]
 
 fairness :: Probability -> x -> x -> Distribution x
-fairness (Probability (Ratio p q)) heads tails =
-  Distribution [(heads, Probability (reduce p q)), (tails, Probability (reduce (q - p) q))]
+fairness (Probability (Ratio p q)) heads tails = Distribution do
+  [(heads, Probability (reduce p q)), (tails, Probability (reduce (q - p) q))]
 
 coin :: Probability -> Distribution Bool
 coin p = fairness p True False

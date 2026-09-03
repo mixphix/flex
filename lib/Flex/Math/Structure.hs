@@ -1,5 +1,5 @@
-{-# OPTIONS_GHC -Wno-duplicate-exports #-}
 {-# LANGUAGE QuantifiedConstraints #-}
+{-# OPTIONS_GHC -Wno-duplicate-exports #-}
 
 module Flex.Math.Structure
   ( Structure (Requirements, Signature, Term, operations, Laws, lawful)
@@ -42,7 +42,7 @@ instance Structure Eq where
   operations :: (Eq x) => Signature Eq x -> Term Eq x
   operations = \case {}
   type Requirements Eq = C0
-  data Laws Eq x 
+  data Laws Eq x
     = EqReflexive x
     | EqSymmetric x x
     | EqTransitive x x x
@@ -140,9 +140,10 @@ instance Structure Rack where
     deriving (Show, Generic)
   newtype Term Rack x = TermRack x
   operations :: (Rack x) => Signature Rack x -> Term Rack x
-  operations = TermRack . \case
-    Lack x y -> x <| y
-    Rack x y -> x |> y
+  operations =
+    TermRack . \case
+      Lack x y -> x <| y
+      Rack x y -> x |> y
   type Requirements Rack = Eq
   data Laws Rack x
     = LackSelfDistributive x x x
@@ -190,9 +191,10 @@ instance Structure Additive where
     deriving (Show, Generic)
   newtype Term Additive x = TermAdditive x
   operations :: (Additive x) => Signature Additive x -> Term Additive x
-  operations = TermAdditive . \case
-    AdditiveZero -> zero
-    AdditiveAdd x y -> x + y
+  operations =
+    TermAdditive . \case
+      AdditiveZero -> zero
+      AdditiveAdd x y -> x + y
   type Requirements Additive = Eq
   data Laws Additive x
     = AdditiveZeroLeft x
@@ -407,7 +409,8 @@ instance Structure MultiplicativeAbelianGroup where
       TermMultiplicativeGroup term -> TermMultiplicativeAbelianGroup term
   type Requirements MultiplicativeAbelianGroup = C2 Eq Additive
   data Laws MultiplicativeAbelianGroup x
-    = LawsMultiplicativeAbelianGroupMultiplicativeAbelian (Laws MultiplicativeAbelian x)
+    = LawsMultiplicativeAbelianGroupMultiplicativeAbelian
+        (Laws MultiplicativeAbelian x)
     | LawsMultiplicativeAbelianGroupMultiplicativeGroup (Laws MultiplicativeGroup x)
     deriving (Show, Generic)
   lawful ::
@@ -899,10 +902,11 @@ instance Structure Logarithmic where
     (Logarithmic x) =>
     Signature Logarithmic x ->
     Term Logarithmic x
-  operations = TermLogarithmic . \case
-    LogarithmicExp x -> exp x
-    LogarithmicLog x -> log x
-    LogarithmicLogBase b x -> logBase b x
+  operations =
+    TermLogarithmic . \case
+      LogarithmicExp x -> exp x
+      LogarithmicLog x -> log x
+      LogarithmicLogBase b x -> logBase b x
   type Requirements Logarithmic = C2 Ord (C2 Additive Multiplicative)
   data Laws Logarithmic x
     = LogarithmicExpLogIdentity x
@@ -934,13 +938,14 @@ instance Structure Trigonometric where
     (Trigonometric x) =>
     Signature Trigonometric x ->
     Term Trigonometric x
-  operations = TermTrigonometric . \case
-    TrigonometricSin x -> sin x
-    TrigonometricCos x -> cos x
-    TrigonometricTan x -> tan x
-    TrigonometricArcsin x -> arcsin x
-    TrigonometricArccos x -> arccos x
-    TrigonometricArctan x -> arctan x
+  operations =
+    TermTrigonometric . \case
+      TrigonometricSin x -> sin x
+      TrigonometricCos x -> cos x
+      TrigonometricTan x -> tan x
+      TrigonometricArcsin x -> arcsin x
+      TrigonometricArccos x -> arccos x
+      TrigonometricArctan x -> arctan x
   type Requirements Trigonometric = C2 Eq Field
   data Laws Trigonometric x
     = TrigonometricPythagoras x
@@ -1057,7 +1062,9 @@ instance Variety1 (Traversals1 (->) (->))
 
 instance Structure Category where
   data Signature Category cat where
-    CategoryId :: forall k (cat :: k -> k -> Type) (x :: k). (Objects cat x) => Proxy x -> Signature Category cat
+    CategoryId ::
+      forall k (cat :: k -> k -> Type) (x :: k).
+      (Objects cat x) => Proxy x -> Signature Category cat
     CategoryCompose ::
       forall k (cat :: k -> k -> Type) (x :: k) (y :: k) (z :: k).
       (Objects cat x, Objects cat y, Objects cat z) =>
@@ -1075,17 +1082,17 @@ instance Structure Category where
   type Requirements Category = C0
   data Laws Category cat
     = forall x y.
-        ( Eq (cat x y) -- works in theory - good luck!
-        , Objects cat x
-        , Objects cat y
-        ) =>
-        CategoryComposeIdLeft (cat x y)
+      ( Eq (cat x y) -- works in theory - good luck!
+      , Objects cat x
+      , Objects cat y
+      ) =>
+      CategoryComposeIdLeft (cat x y)
     | forall x y.
-        ( Eq (cat x y) -- works in theory - good luck!
-        , Objects cat x
-        , Objects cat y
-        ) =>
-        CategoryComposeIdRight (cat x y)
+      ( Eq (cat x y) -- works in theory - good luck!
+      , Objects cat x
+      , Objects cat y
+      ) =>
+      CategoryComposeIdRight (cat x y)
   lawful ::
     (Category cat, Requirements Category cat) =>
     Laws Category cat -> Bool
@@ -1110,23 +1117,23 @@ instance Structure Groupoid where
   type Requirements Groupoid = C0
   data Laws Groupoid cat
     = forall x y.
-        ( Eq (cat x y)
-        , Objects cat x
-        , Objects cat y
-        ) =>
-        GroupoidInvertInvolution (cat x y)
+      ( Eq (cat x y)
+      , Objects cat x
+      , Objects cat y
+      ) =>
+      GroupoidInvertInvolution (cat x y)
     | forall x y.
-        ( Eq (cat y y)
-        , Objects cat x
-        , Objects cat y
-        ) =>
-        GroupoidComposeInvertIdentityLeft (cat x y)
+      ( Eq (cat y y)
+      , Objects cat x
+      , Objects cat y
+      ) =>
+      GroupoidComposeInvertIdentityLeft (cat x y)
     | forall x y.
-        ( Eq (cat x x)
-        , Objects cat x
-        , Objects cat y
-        ) =>
-        GroupoidComposeInvertIdentityRight (cat x y)
+      ( Eq (cat x x)
+      , Objects cat x
+      , Objects cat y
+      ) =>
+      GroupoidComposeInvertIdentityRight (cat x y)
   lawful ::
     (Groupoid cat, Requirements Groupoid cat) =>
     Laws Groupoid cat -> Bool

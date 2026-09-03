@@ -7,18 +7,18 @@ module Flex.Math.Perplex
   , undiagonal
   , Scalar (..)
   )
-  where
+where
 
 import Flex.Math.Algebra
 import Flex.Math.Category
-import Flex.Math.Numbers
 import Flex.Math.Module
+import Flex.Math.Numbers
 
 import Data.Either
 import Data.Eq (Eq (..))
-import Data.Functor qualified as Data
 import Data.Foldable qualified as Data
 import Data.Foldable1 qualified as Data
+import Data.Functor qualified as Data
 import Data.Monoid
 import Data.Ord (Ord (..))
 import Data.Semigroup
@@ -28,8 +28,16 @@ import Text.Read (Read)
 import Text.Show (Show)
 
 infixl 4 :!
-data Perplex x = !x :! !x 
-  deriving (Eq, Ord, Show, Read, Data.Functor, Data.Foldable, Data.Traversable)
+data Perplex x = !x :! !x
+  deriving
+    ( Eq
+    , Ord
+    , Show
+    , Read
+    , Data.Functor
+    , Data.Foldable
+    , Data.Traversable
+    )
 
 data PerplexBasis
   = Simple
@@ -44,7 +52,8 @@ perplex (_ :! x) = x
 diagonal :: (Additive x, Subtraction x x x) => Perplex x -> (x, x)
 diagonal (x :! y) = (x - y, x + y)
 
-undiagonal :: (Additive x, Subtraction x x x, MultiplicativeGroup x) => (x, x) -> Perplex x
+undiagonal ::
+  (Additive x, Subtraction x x x, MultiplicativeGroup x) => (x, x) -> Perplex x
 undiagonal (i, j) = (i + j) / (one + one) :! (j - i) / (one + one)
 
 instance Morphisms (->) (->) Perplex where
@@ -70,13 +79,15 @@ instance Folds (Ix (Either () ())) (->) Perplex where
   foldWith :: (Monoid z) => Ix (Either () ()) x z -> Perplex x -> z
   foldWith (Ix e_x_z) (xp :! xt) = e_x_z (Left ()) xp <> e_x_z (Right ()) xt
 instance Traversals (Ix (Either () ())) (->) Perplex where
-  traverse :: (Applicative g) => Ix (Either () ()) x (g y) -> Perplex x -> g (Perplex y)
+  traverse ::
+    (Applicative g) => Ix (Either () ()) x (g y) -> Perplex x -> g (Perplex y)
   traverse (Ix e_x_gy) (xp :! xt) = liftA2 (:!) (e_x_gy (Left ()) xp) (e_x_gy (Right ()) xt)
 instance Folds1 (Ix (Either () ())) (->) Perplex where
   foldWith1 :: (Semigroup z) => Ix (Either () ()) x z -> Perplex x -> z
   foldWith1 (Ix e_x_z) (xp :! xt) = e_x_z (Left ()) xp <> e_x_z (Right ()) xt
 instance Traversals1 (Ix (Either () ())) (->) Perplex where
-  traverse1 :: (Apply g) => Ix (Either () ()) x (g y) -> Perplex x -> g (Perplex y)
+  traverse1 ::
+    (Apply g) => Ix (Either () ()) x (g y) -> Perplex x -> g (Perplex y)
   traverse1 (Ix e_x_gy) (xp :! xt) = liftA2 (:!) (e_x_gy (Left ()) xp) (e_x_gy (Right ()) xt)
 instance Apply Perplex where
   (<*>) :: Perplex (x -> y) -> Perplex x -> Perplex y
@@ -143,22 +154,40 @@ instance (From y x) => From y (Scalar (Perplex x)) where
   from :: y -> Scalar (Perplex x)
   from n = ScalarPerplex (from n)
 
-instance (Addition x x x) => Addition (Scalar (Perplex x)) (Scalar (Perplex x)) (Scalar (Perplex x)) where
+instance
+  (Addition x x x) =>
+  Addition (Scalar (Perplex x)) (Scalar (Perplex x)) (Scalar (Perplex x))
+  where
   (+.) :: Scalar (Perplex x) -> Scalar (Perplex x) -> Scalar (Perplex x)
   ScalarPerplex x +. ScalarPerplex y = ScalarPerplex (x + y)
-instance (Subtraction x x x) => Subtraction (Scalar (Perplex x)) (Scalar (Perplex x)) (Scalar (Perplex x)) where
+instance
+  (Subtraction x x x) =>
+  Subtraction (Scalar (Perplex x)) (Scalar (Perplex x)) (Scalar (Perplex x))
+  where
   (-.) :: Scalar (Perplex x) -> Scalar (Perplex x) -> Scalar (Perplex x)
   ScalarPerplex x -. ScalarPerplex y = ScalarPerplex (x - y)
-instance (Multiplication x x x) => Multiplication (Scalar (Perplex x)) (Scalar (Perplex x)) (Scalar (Perplex x)) where
+instance
+  (Multiplication x x x) =>
+  Multiplication (Scalar (Perplex x)) (Scalar (Perplex x)) (Scalar (Perplex x))
+  where
   (*.) :: Scalar (Perplex x) -> Scalar (Perplex x) -> Scalar (Perplex x)
   ScalarPerplex x *. ScalarPerplex y = ScalarPerplex (x * y)
-instance (Division x x x) => Division (Scalar (Perplex x)) (Scalar (Perplex x)) (Scalar (Perplex x)) where
+instance
+  (Division x x x) =>
+  Division (Scalar (Perplex x)) (Scalar (Perplex x)) (Scalar (Perplex x))
+  where
   (/.) :: Scalar (Perplex x) -> Scalar (Perplex x) -> Scalar (Perplex x)
   ScalarPerplex x /. ScalarPerplex y = ScalarPerplex (x / y)
-instance (Multiplication x x x) => Multiplication (Scalar (Perplex x)) (Perplex x) (Perplex x) where
+instance
+  (Multiplication x x x) =>
+  Multiplication (Scalar (Perplex x)) (Perplex x) (Perplex x)
+  where
   (*.) :: Scalar (Perplex x) -> Perplex x -> Perplex x
   ScalarPerplex k *. (x :! x') = k * x :! k * x'
-instance (Multiplication x x x) => Multiplication (Perplex x) (Scalar (Perplex x)) (Perplex x) where
+instance
+  (Multiplication x x x) =>
+  Multiplication (Perplex x) (Scalar (Perplex x)) (Perplex x)
+  where
   (*.) :: Perplex x -> Scalar (Perplex x) -> Perplex x
   (x :! x') *. ScalarPerplex k = x * k :! x' * k
 instance (Division x x x) => Division (Perplex x) (Scalar (Perplex x)) (Perplex x) where

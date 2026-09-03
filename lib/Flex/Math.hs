@@ -119,6 +119,7 @@ module Flex.Math
   , Matrix (transpose)
   , adjoint
   , Square (trace, determinant)
+  , S (s)
 
     -- ** Lattices
   , Meet ((/\))
@@ -152,6 +153,7 @@ module Flex.Math
   , Laws (..)
 
     -- * Other functions
+  , Action ((@))
   , loop
   , loopM
   , while
@@ -187,6 +189,7 @@ module Flex.Math
   , Basis (basis)
   ) where
 
+import Flex.Math.Action
 import Flex.Math.Algebra
 import Flex.Math.Base
 import Flex.Math.Basis
@@ -200,11 +203,12 @@ import Flex.Math.Matrix
 import Flex.Math.Minkowski
 import Flex.Math.Module
 import Flex.Math.Numbers
+import Flex.Math.Permutation
 import Flex.Math.Perplex
 import Flex.Math.Projective
 import Flex.Math.Rack
-import Flex.Math.Suspension
 import Flex.Math.Structure
+import Flex.Math.Suspension
 
 import Data.Eq (Eq)
 import Data.Int (Int)
@@ -218,5 +222,6 @@ default Num (Natural, Integer, Int, Rational, Double)
 default Num.Integral (Natural, Integer, Int)
 default Num.Fractional (Rational, Double)
 
-eval :: forall v. (Eq v, Ring (Scalar v), Algebra v) => List1 (Scalar v) -> v -> v
+eval ::
+  forall v. (Eq v, Ring (Scalar v), Algebra v) => List1 (Scalar v) -> v -> v
 eval ps x = foldr (\a p -> (a *. one @v) + x *. p) zero ps

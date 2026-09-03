@@ -33,9 +33,9 @@ import Flex.Math.Numbers
 
 import Data.Bool (Bool (..))
 import Data.Function (const)
+import Data.Ord (Ord)
 import Data.Semigroup
 import Numeric.Natural (Natural)
-import Data.Ord (Ord)
 
 length :: (Foldable f) => f x -> Natural
 length = count (const True)
