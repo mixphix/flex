@@ -20,12 +20,10 @@ import Data.List.NonEmpty qualified as List1 (groupAllWith)
 import Data.List1 qualified as List1
 import Data.Maybe
 import Data.Ord
-import Data.Semigroup
 import Data.String (String)
 import Data.Tuple
 import GHC.Float (Double)
 import GHC.Generics (Generic)
-import Numeric.Natural (Natural)
 import Text.Printf (printf)
 import Text.Show (Show, show)
 

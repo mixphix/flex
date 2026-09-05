@@ -26,7 +26,6 @@ import Data.Functor.Const (Const (..))
 import Data.Functor.Contravariant (Op (..))
 import Data.Functor.Identity (Identity (Identity, runIdentity))
 import Data.Graph qualified as Data
-import Data.Int (Int)
 import Data.IntMap (IntMap)
 import Data.IntMap qualified as IntMap
 import Data.Kind (Type)
@@ -36,7 +35,6 @@ import Data.List1 (List1)
 import Data.Map (Map)
 import Data.Map qualified as Map
 import Data.Maybe
-import Data.Monoid (Monoid (mempty))
 import Data.Ord (Ord, (<))
 import Data.Semigroup
   ( All (..)
@@ -44,7 +42,6 @@ import Data.Semigroup
   , Dual (..)
   , Endo (..)
   , First (..)
-  , Semigroup ((<>))
   )
 import Data.Sequence (Seq)
 import Data.Sequence qualified as Seq
@@ -57,7 +54,6 @@ import Data.Vector qualified as Vector
 import GHC.Arr qualified as Array
 import GHC.Base (($!))
 import GHC.Err (error)
-import Numeric.Natural (Natural)
 
 -- | @
 -- type Optical p q f xs ys x y = p x (f y) -> q xs (f ys)

@@ -178,6 +178,9 @@ module Flex.Math.Category
   , gets
   , put
   , modify
+  --
+  , Semigroup ((<>))
+  , Monoid (mempty)
   ) where
 
 import Control.Applicative qualified as Control

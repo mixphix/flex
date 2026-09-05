@@ -35,9 +35,7 @@ import Data.Foldable qualified as Data
 import Data.Functor qualified as Data
 import Data.Kind (Type)
 import Data.List1
-import Data.Monoid (Monoid)
 import Data.Ord (Ord (..))
-import Data.Semigroup (Semigroup ((<>)))
 import Data.Traversable qualified as Data
 import GHC.Generics (Generic)
 import GHC.Show (Show)

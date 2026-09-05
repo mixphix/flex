@@ -100,7 +100,6 @@ import Data.Functor qualified as Data
 import Data.List qualified as List
 import Data.List1 (List1, pattern Sole, pattern (:||))
 import Data.Maybe
-import Data.Monoid
 import Data.Ord (Ord (..), Ordering (..))
 import Data.Proxy
 import Data.Traversable qualified as Data

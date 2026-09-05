@@ -11,7 +11,6 @@ import Data.Data (Data)
 import Data.Eq (Eq)
 import Data.Foldable qualified as Data
 import Data.Functor qualified as Data
-import Data.Monoid (Monoid (mempty))
 import Data.Ord (Ord)
 import Data.Traversable qualified as Data
 import GHC.Generics (Generic)

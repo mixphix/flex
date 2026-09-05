@@ -80,6 +80,20 @@ module Flex.Math.Numbers
     -- * Trigonometric and Hyperbolic
   , Trigonometric (pi, sin, cos, tan, arcsin, arccos, arctan)
   , Hyperbolic (sinh, cosh, tanh, arcsinh, arccosh, arctanh)
+  
+  -- ** Re-exports
+  , Natural
+  , Integer
+  , Int
+  , Word
+  , Int8
+  , Word8
+  , Int16
+  , Word16
+  , Word32
+  , Int32
+  , Word64
+  , Int64
   ) where
 
 import Flex.Math.Category

@@ -19,9 +19,7 @@ import Data.Eq (Eq (..))
 import Data.Foldable qualified as Data
 import Data.Foldable1 qualified as Data
 import Data.Functor qualified as Data
-import Data.Monoid
 import Data.Ord (Ord (..))
-import Data.Semigroup
 import Data.Traversable qualified as Data
 import GHC.Generics (Generic)
 import Text.Read (Read)

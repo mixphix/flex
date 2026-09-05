@@ -14,12 +14,9 @@ import Data.Enum (Enum (..))
 import Data.Eq (Eq ((==)))
 import Data.List qualified as List
 import Data.Maybe
-import Data.Monoid (Monoid (mempty))
 import Data.Ord (Ord)
-import Data.Semigroup
 import Data.Tuple
 import Data.Vector qualified as Vector
-import Numeric.Natural (Natural)
 import Text.Show (Show)
 
 newtype S n = S {s :: V n (Finite n)}

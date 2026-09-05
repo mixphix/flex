@@ -22,10 +22,22 @@ module Flex.Math
   , Signed (sign)
 
     -- * Algebraic structures
+  , Semigroup ((<>))
+  , Monoid (mempty)
 
     -- ** Numbers
   , Natural
   , Integer
+  , Int
+  , Word
+  , Int8
+  , Word8
+  , Int16
+  , Word16
+  , Int32
+  , Word32
+  , Int64
+  , Word64
   , Ratio (Ratio)
   , Rational
   , Ration
@@ -211,12 +223,10 @@ import Flex.Math.Structure
 import Flex.Math.Suspension
 
 import Data.Eq (Eq)
-import Data.Int (Int)
 import Data.List1 (List1)
 import GHC.Base (Double)
-import GHC.Num (Integer, Num)
+import GHC.Num (Num)
 import GHC.Real qualified as Num
-import Numeric.Natural (Natural)
 
 default Num (Natural, Integer, Int, Rational, Double)
 default Num.Integral (Natural, Integer, Int)

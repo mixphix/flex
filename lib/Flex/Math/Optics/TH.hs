@@ -12,7 +12,6 @@ import Data.List (replicate)
 import Data.Maybe
 import Data.Semigroup ((<>))
 import Language.Haskell.TH
-import Numeric.Natural (Natural)
 import Text.Show (show)
 
 fieldN :: Natural -> Q Dec

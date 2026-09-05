@@ -22,7 +22,7 @@ import GHC.Read (Read)
 import GHC.Real (Integral (quotRem))
 import GHC.Real qualified as Num
 import GHC.Show (Show)
-import GHC.TypeNats (KnownNat, Nat, Natural, natVal)
+import GHC.TypeNats (KnownNat, Nat, natVal)
 
 newtype Base (n :: Nat) = Base {getBase :: NonEmpty Natural}
   deriving newtype (Eq, Ord, Show, Read)

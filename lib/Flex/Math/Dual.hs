@@ -23,14 +23,10 @@ import Data.Eq (Eq (..))
 import Data.Foldable qualified as Data
 import Data.Foldable1 qualified as Data
 import Data.Functor qualified as Data
-import Data.Int
-import Data.Monoid (Monoid)
 import Data.Ord (Ord)
-import Data.Semigroup (Semigroup ((<>)))
 import Data.Traversable qualified as Data
 import Data.Tuple
 import GHC.Generics (Generic)
-import Numeric.Natural (Natural)
 import Text.Read (Read)
 import Text.Show (Show)
 
