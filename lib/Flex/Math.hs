@@ -169,6 +169,32 @@ module Flex.Math
   , loop
   , loopM
   , while
+  , Pure (pure)
+  , Apply ((<*>), liftA2)
+  , Applicative
+  , liftA3
+  , Bind ((>>=))
+  , Monad
+  , when
+  , unless
+  , Nil (nil)
+  , Alt ((<|>))
+  , guard
+  , asum1
+  , asum
+  , Option (Option, getOption)
+  , Filterable
+  , justs
+  , filter
+  , IxFilterable
+  , ijusts
+  , ifilter
+  , Witherable (witherK)
+  , wither
+  , filterA
+  , IxWitherable (iwitherK)
+  , iwither
+  , ifilterA
 
     -- ** Folds
   , length
