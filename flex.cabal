@@ -64,6 +64,7 @@ library
     Flex.Math.Rack
     Flex.Math.Structure
     Flex.Math.Suspension
+    Flex.Math.Transformer
 
   other-modules:
     Flex.Math.Optics.TH

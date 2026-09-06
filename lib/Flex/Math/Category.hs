@@ -174,10 +174,6 @@ module Flex.Math.Category
   , State
   , state
   , runState
-  , get
-  , gets
-  , put
-  , modify
   --
   , Semigroup ((<>))
   , Monoid (mempty)
@@ -1598,18 +1594,6 @@ state f = StateT (Identity . f)
 runState :: State s x -> s -> (s, x)
 runState (StateT x) s = runIdentity (x s)
 
-get :: (Pure f) => StateT s f s
-get = StateT \s -> pure (s, s)
-
-gets :: (Pure f) => (s -> x) -> StateT s f x
-gets s_x = StateT \s -> pure (s, s_x s)
-
-put :: (Pure f) => s -> StateT s f ()
-put s = StateT \_ -> pure (s, ())
-
-modify :: (Pure f) => (s -> s) -> StateT s f ()
-modify s_s = StateT \s -> pure (s_s s, ())
-
 instance (Along f) => Morphisms (->) (->) (StateT s f) where
   morphism :: forall x y. (x -> y) -> StateT s f x -> StateT s f y
   morphism x_y (StateT s_fsx) =
@@ -2249,7 +2233,7 @@ join :: (Bind f) => f (f x) -> f x
 join ffx = ffx >>= id
 
 type Monad :: (Type -> Type) -> Constraint
-type Monad f = (Pure f, Bind f)
+type Monad = C2 Pure Bind
 
 (=<<) :: (Bind f) => (x -> f y) -> f x -> f y
 (=<<) = flip (>>=)
@@ -2516,7 +2500,7 @@ instance (Alt f, Alt g) => Alt (f :*: g) where
 asum1 :: (Alt f, Foldable1 t) => t (f x) -> f x
 asum1 = foldr1 (<|>)
 
-type Alternative f = (Nil f, Alt f)
+type Alternative = C2 Nil Alt
 
 asum :: (Alternative f, Foldable t) => t (f x) -> f x
 asum = foldr (<|>) nil
@@ -3629,7 +3613,7 @@ class (Fletched p, Along f) => Sieve p f | p -> f where
 instance Sieve (->) Identity where
   sieve :: (x -> y) -> x -> Identity y
   sieve = (Identity .)
-instance (Monad f) => Sieve (Kleisli f) f where
+instance (Along f, Monad f) => Sieve (Kleisli f) f where
   sieve :: Kleisli f x y -> x -> f y
   sieve = runKleisli
 instance Sieve (Forget z) (Const z) where
