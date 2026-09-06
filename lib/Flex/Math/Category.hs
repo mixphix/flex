@@ -1,7 +1,9 @@
 {-# LANGUAGE DefaultSignatures #-}
 {-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE ImpredicativeTypes #-}
+{-# LANGUAGE MagicHash #-}
 {-# LANGUAGE QuantifiedConstraints #-}
+{-# LANGUAGE UnboxedTuples #-}
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE UndecidableSuperClasses #-}
 
@@ -145,7 +147,7 @@ module Flex.Math.Category
   , Coadjunction (unitCo, counitCo, leftCo, rightCo)
   , phormism
   , Fletched
-  , (#.)
+  , ( #. )
   , (.#)
   , fletch
   , Forget (Forget, runForget)
@@ -236,6 +238,7 @@ import GHC.Num.Integer (Integer)
 import GHC.Real (fromIntegral)
 import Numeric.Natural (Natural)
 import System.IO (IO)
+import GHC.ST
 
 -- Categories and Functors
 
@@ -385,6 +388,9 @@ instance Morphisms (->) (->) ((,,,,,,,) a b c d e f g) where
   morphism x_y (a, b, c, d, e, f, g, x) = (a, b, c, d, e, f, g, x_y x)
 instance Morphisms (->) (->) IO where
   morphism :: (x -> y) -> IO x -> IO y
+  morphism = Data.fmap
+instance Morphisms (->) (->) (ST s) where
+  morphism :: (x -> y) -> ST s x -> ST s y
   morphism = Data.fmap
 
 instance Morphisms (->) (->) V1 where
@@ -1489,6 +1495,9 @@ instance (Apply f, Apply g) => Apply (Compose f g) where
 instance Apply IO where
   (<*>) :: IO (x -> y) -> IO x -> IO y
   (<*>) = Control.ap
+instance Apply (ST s) where
+  (<*>) :: ST s (x -> y) -> ST s x -> ST s y
+  (<*>) = Control.ap
 
 instance Apply U1 where
   (<*>) :: U1 (x -> y) -> U1 x -> U1 y
@@ -1555,6 +1564,9 @@ instance (Pure f) => Pure (Kleisli f z) where
 instance Pure IO where
   pure :: x -> IO x
   pure = returnIO
+instance Pure (ST s) where
+  pure :: x -> ST s x
+  pure x = ST \s -> (# s, x #)
 
 instance Pure Seq where
   pure :: x -> Seq x
@@ -1612,20 +1624,19 @@ instance (Monad f) => Bind (StateT s f) where
   (>>=) :: StateT s f x -> (x -> StateT s f y) -> StateT s f y
   StateT s_x >>= x_Ssfy =
     StateT \s -> s_x s >>= \(s', x) -> (x_Ssfy x).runStateT s'
-instance (Control.Monad f) => Control.Applicative (StateT s f) where
+instance (Monad f, Control.Monad f) => Control.Applicative (StateT s f) where
   pure :: x -> StateT s f x
-  pure x = StateT \s -> Control.pure (s, x)
+  pure = pure
   (<*>) :: StateT s f (x -> y) -> StateT s f x -> StateT s f y
   StateT s_x_y <*> StateT s_x =
     StateT \s ->
       s_x s Control.>>= \(s', x) ->
         s_x_y s' Control.>>= \(s'', x_y) ->
           Control.pure (s'', x_y x)
-instance (Control.Monad f) => Control.Monad (StateT s f) where
+instance (Monad f, Control.Monad f) => Control.Monad (StateT s f) where
   (>>=) :: StateT s f x -> (x -> StateT s f y) -> StateT s f y
   StateT s_x >>= x_Ssfy =
-    StateT \s ->
-      s_x s Control.>>= \(s', x) -> (x_Ssfy x).runStateT s'
+    StateT \s -> s_x s >>= \(s', x) -> (x_Ssfy x).runStateT s'
 
 class (Morphisms c d f, Folds c d f) => Traversals c d f where
   traverse :: (Applicative g) => c x (g y) -> d (f x) (g (f y))
@@ -2300,6 +2311,9 @@ instance Bind List where
 instance Bind IO where
   (>>=) :: IO x -> (x -> IO y) -> IO y
   (>>=) = bindIO
+instance Bind (ST s) where
+  (>>=) :: ST s x -> (x -> ST s y) -> ST s y
+  (>>=) = (Control.>>=)
 
 instance Bind U1 where
   (>>=) :: U1 x -> (x -> U1 y) -> U1 y
@@ -3431,10 +3445,10 @@ phormism a_x = transform (morphism (Op a_x) :: p x --> p a)
 type Fletched :: (Type -> Type -> Type) -> Constraint
 type Fletched p = (forall z. Along (p z), Morphisms Op (-->) p)
 
-(#.) ::
+( #. ) ::
   (Fletched p, Coercible y y') =>
   q y y' -> p x y -> p x y'
-(#.) _ !p = morphism coerce p
+( #. ) _ !p = morphism coerce p
 (.#) ::
   (Fletched p, Coercible x x') =>
   p x' y -> q x x' -> p x y

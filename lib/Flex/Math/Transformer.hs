@@ -8,8 +8,11 @@ module Flex.Math.Transformer where
 import Flex.Math.Category
 import Flex.Math.Category qualified as Flex
 
+import Control.Applicative qualified as Control
+import Control.Monad qualified as Control
 import Data.Either
 import Data.Function (($))
+import Data.Functor qualified as Data
 import Data.Functor.Identity
 import Data.Maybe
 
@@ -21,6 +24,7 @@ instance MonadTrans (StateT s) where
   lift mx = StateT \s -> mx >>= \x -> pure (s, x)
 
 class (Monad m) => MonadState s m | m -> s where
+  state :: (s -> (s, x)) -> m x
   gets :: (s -> x) -> m x
   put :: s -> m ()
   modify :: (s -> s) -> m ()
@@ -29,6 +33,8 @@ get :: (MonadState s m) => m s
 get = gets id
 
 instance (Monad m) => MonadState s (StateT s m) where
+  state :: (s -> (s, x)) -> StateT s m x
+  state s_sx = StateT \s -> pure (s_sx s)
   gets :: (s -> x) -> StateT s m x
   gets s_x = StateT \s -> pure (s, s_x s)
   put :: s -> StateT s m ()
@@ -37,6 +43,7 @@ instance (Monad m) => MonadState s (StateT s m) where
   modify s_s = StateT \s -> pure (s_s s, ())
 
 newtype EitherT e m x = EitherT {runEitherT :: m (Either e x)}
+  deriving (Data.Functor)
 instance (Monad m) => Morphisms (->) (->) (EitherT e m) where
   morphism :: forall x y. (x -> y) -> EitherT e m x -> EitherT e m y
   morphism x_y (EitherT meex) = EitherT Flex.do
@@ -50,6 +57,11 @@ instance (Monad m) => Apply (EitherT e m) where
     x_y <- mxy
     x <- mx
     pure (x_y <*> x)
+instance (Monad m, Control.Monad m) => Control.Applicative (EitherT e m) where
+  pure :: x -> EitherT e m x
+  pure = pure
+  (<*>) :: EitherT e m (x -> y) -> EitherT e m x -> EitherT e m y
+  (<*>) = (<*>)
 instance (Monad m) => Bind (EitherT e m) where
   (>>=) :: EitherT e m x -> (x -> EitherT e m y) -> EitherT e m y
   EitherT meex >>= f = EitherT Flex.do
@@ -57,6 +69,9 @@ instance (Monad m) => Bind (EitherT e m) where
     case eex of
       Left e -> pure (Left e)
       Right x -> (f x).runEitherT
+instance (Monad m, Control.Monad m) => Control.Monad (EitherT e m) where
+  (>>=) :: EitherT e m x -> (x -> EitherT e m y) -> EitherT e m y
+  (>>=) = (>>=)
 instance MonadTrans (EitherT e) where
   lift :: (Monad m) => m x -> EitherT e m x
   lift = EitherT . morphism Right
@@ -77,6 +92,7 @@ instance (Monad m) => MonadEither e (EitherT e m) where
 
 newtype EitherStateT e s m x = EitherStateT
   {runEitherStateT :: s -> m (s, Either e x)}
+  deriving (Data.Functor)
 type EitherState e s x = EitherStateT e s Identity x
 runEitherState :: EitherState e s x -> s -> (s, Either e x)
 runEitherState = (runIdentity .) . runEitherStateT
@@ -100,6 +116,12 @@ instance (Monad m) => Apply (EitherStateT e s m) where
       Right x_y -> Flex.do
         (s'', eex) <- mx s'
         pure (s'', morphism x_y eex)
+instance (Monad m, Control.Monad m) => Control.Applicative (EitherStateT e s m) where
+  pure :: x -> EitherStateT e s m x
+  pure = pure
+  (<*>) ::
+    EitherStateT e s m (x -> y) -> EitherStateT e s m x -> EitherStateT e s m y
+  (<*>) = (<*>)
 instance (Monad m) => Bind (EitherStateT e s m) where
   (>>=) ::
     EitherStateT e s m x -> (x -> EitherStateT e s m y) -> EitherStateT e s m y
@@ -108,6 +130,10 @@ instance (Monad m) => Bind (EitherStateT e s m) where
     case eex of
       Left e -> pure (s', Left e)
       Right x -> (f x).runEitherStateT s'
+instance (Monad m, Control.Monad m) => Control.Monad (EitherStateT e s m) where
+  (>>=) ::
+    EitherStateT e s m x -> (x -> EitherStateT e s m y) -> EitherStateT e s m y
+  (>>=) = (>>=)
 instance MonadTrans (EitherStateT e s) where
   lift :: (Monad m) => m x -> EitherStateT e s m x
   lift mx = EitherStateT \s -> mx >>= \x -> pure (s, Right x)
@@ -124,6 +150,8 @@ instance (Monad m) => MonadEither e (EitherStateT e s m) where
       Left e -> (e_mx e).runEitherStateT s'
       Right x -> pure (s', Right x)
 instance (Monad m) => MonadState s (EitherStateT e s m) where
+  state :: (s -> (s, x)) -> EitherStateT e s m x
+  state s_sx = EitherStateT \s -> pure (morphism Right (s_sx s))
   gets :: (s -> x) -> EitherStateT e s m x
   gets s_x = EitherStateT \s -> pure (s, Right (s_x s))
   put :: s -> EitherStateT e s m ()
@@ -131,7 +159,7 @@ instance (Monad m) => MonadState s (EitherStateT e s m) where
   modify :: (s -> s) -> EitherStateT e s m ()
   modify s_s = EitherStateT \s -> pure (s_s s, Right ())
 
-newtype MaybeT m x = MaybeT {runMaybeT :: m (Maybe x)}
+newtype MaybeT m x = MaybeT {runMaybeT :: m (Maybe x)} deriving (Data.Functor)
 hoistMaybe :: (Monad m) => Maybe x -> MaybeT m x
 hoistMaybe mx = MaybeT (pure mx)
 
@@ -160,6 +188,14 @@ instance (Monad m) => Bind (MaybeT m) where
     mmx >>= \case
       Nothing -> pure Nothing
       Just x -> (f x).runMaybeT
+instance (Monad m, Control.Monad m) => Control.Applicative (MaybeT m) where
+  pure :: x -> MaybeT m x
+  pure x = MaybeT (pure (Just x))
+  (<*>) :: MaybeT m (x -> y) -> MaybeT m x -> MaybeT m y
+  (<*>) = (<*>)
+instance (Monad m, Control.Monad m) => Control.Monad (MaybeT m) where
+  (>>=) :: MaybeT m x -> (x -> MaybeT m y) -> MaybeT m y
+  (>>=) = (>>=)
 instance MonadTrans MaybeT where
   lift :: (Monad m) => m x -> MaybeT m x
   lift mx = MaybeT (morphism Just mx)
