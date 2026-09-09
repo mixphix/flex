@@ -58,10 +58,12 @@ deriving instance (Show v, Show (Scalar v)) => Show (Laws LieBracket v)
 instance {-# OVERLAPPABLE #-} (Module v, Multiplication v v v) => LieBracket v where
   (><) :: v -> v -> v
   a >< b = (a * b) - (b * a)
+  {-# INLINE (><) #-}
 
 instance {-# OVERLAPPING #-} (Eq x, Ring x) => LieBracket (V 3 x) where
   (><) :: V 3 x -> V 3 x -> V 3 x
-  a >< b = vn 3 \case
-    0 -> (a ! 1 * b ! 2) - (a ! 2 * b ! 1)
-    1 -> (a ! 2 * b ! 0) - (a ! 0 * b ! 2)
-    _ -> (a ! 0 * b ! 1) - (a ! 1 * b ! 0)
+  a >< b = v3
+    do (a ! 1 * b ! 2) - (a ! 2 * b ! 1)
+    do (a ! 2 * b ! 0) - (a ! 0 * b ! 2)
+    do (a ! 0 * b ! 1) - (a ! 1 * b ! 0)
+  {-# INLINE (><) #-}

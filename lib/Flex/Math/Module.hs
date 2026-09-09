@@ -44,16 +44,20 @@ import GHC.Show (Show)
 
 eye :: (Additive x, Multiplicative x) => Complex x
 eye = zero :+ one
+{-# INLINE eye #-}
 
 real :: Complex x -> x
 real (r :+ _) = r
+{-# INLINE real #-}
 
 imag :: Complex x -> x
 imag (_ :+ i) = i
+{-# INLINE imag #-}
 
 instance (From y x) => From y (Scalar (Complex x)) where
   from :: y -> Scalar (Complex x)
   from n = ScalarComplex (from n)
+  {-# INLINE from #-}
 
 instance
   (Addition x x x) =>
@@ -64,6 +68,7 @@ instance
   where
   (+.) :: Scalar (Complex x) -> Scalar (Complex x) -> Scalar (Complex x)
   ScalarComplex x +. ScalarComplex y = ScalarComplex (x + y)
+  {-# INLINE (+.) #-}
 instance
   (Subtraction x x x) =>
   Subtraction
@@ -73,6 +78,7 @@ instance
   where
   (-.) :: Scalar (Complex x) -> Scalar (Complex x) -> Scalar (Complex x)
   ScalarComplex x -. ScalarComplex y = ScalarComplex (x - y)
+  {-# INLINE (-.) #-}
 instance
   (Multiplication x x x) =>
   Multiplication
@@ -82,6 +88,7 @@ instance
   where
   (*.) :: Scalar (Complex x) -> Scalar (Complex x) -> Scalar (Complex x)
   ScalarComplex x *. ScalarComplex y = ScalarComplex (x * y)
+  {-# INLINE (*.) #-}
 instance
   (Division x x x) =>
   Division
@@ -91,6 +98,7 @@ instance
   where
   (/.) :: Scalar (Complex x) -> Scalar (Complex x) -> Scalar (Complex x)
   ScalarComplex x /. ScalarComplex y = ScalarComplex (x / y)
+  {-# INLINE (/.) #-}
 instance
   (Multiplication x x x) =>
   Multiplication
@@ -100,6 +108,7 @@ instance
   where
   (*.) :: Scalar (Complex x) -> Complex x -> Complex x
   ScalarComplex k *. x = k *. x
+  {-# INLINE (*.) #-}
 instance
   (Multiplication x x x) =>
   Multiplication
@@ -109,9 +118,21 @@ instance
   where
   (*.) :: Complex x -> Scalar (Complex x) -> Complex x
   x *. ScalarComplex k = x *. k
+  {-# INLINE (*.) #-}
+instance
+  (Division x x x) =>
+  Division
+    (Complex x)
+    (Scalar (Complex x))
+    (Complex x)
+  where
+  (/.) :: Complex x -> Scalar (Complex x) -> Complex x
+  x /. ScalarComplex k = x /. k
+  {-# INLINE (/.) #-}
 instance (Power x r x) => Power (Scalar (Complex x)) r (Scalar (Complex x)) where
   (^) :: Scalar (Complex x) -> r -> Scalar (Complex x)
   ScalarComplex x ^ r = ScalarComplex (x ^ r)
+  {-# INLINE (^) #-}
 
 instance (Semiring x) => Semiring (Scalar (Complex x))
 instance (Ring x) => Ring (Scalar (Complex x))
@@ -213,9 +234,11 @@ instance (Ring x) => Module (Complex x) where
 instance (Absolute x x) => Absolute (Scalar (Complex x)) x where
   absolute :: Scalar (Complex x) -> x
   absolute (ScalarComplex k) = absolute k
+  {-# INLINE absolute #-}
 instance (Absolute x x) => Absolute (Scalar (Complex x)) (Scalar (Complex x)) where
   absolute :: Scalar (Complex x) -> Scalar (Complex x)
   absolute (ScalarComplex k) = ScalarComplex (absolute k)
+  {-# INLINE absolute #-}
 
 -- Vector
 
@@ -254,6 +277,7 @@ class (Module v) => Bilinear v where
 
 qd :: (Bilinear v) => v -> Scalar v
 qd = join (•)
+{-# INLINE qd #-}
 
 instance Structure Bilinear where
   data Signature Bilinear v
@@ -301,13 +325,16 @@ class (Module v, Conjugate (Scalar v)) => Sesquilinear v where
 
 quadrance :: (Sesquilinear v) => v -> Scalar v
 quadrance v = v <•> v
+{-# INLINE quadrance #-}
 
 quadrature :: (Sesquilinear v) => v -> v -> Scalar v
 quadrature u v = quadrance (u - v)
+{-# INLINE quadrature #-}
 
 normalized ::
   (Sesquilinear v, Root (Scalar v), Division v (Scalar v) v) => v -> v
 normalized u = u /. (2 √ quadrance u)
+{-# INLINE normalized #-}
 
 instance Structure Sesquilinear where
   data Signature Sesquilinear v
@@ -359,6 +386,7 @@ deriving instance (Show v, Show (Scalar v)) => Show (Laws Sesquilinear v)
 instance (Ring x, Conjugate x) => Sesquilinear (Complex x) where
   (<•>) :: Complex x -> Complex x -> Scalar (Complex x)
   r1 :+ i1 <•> r2 :+ i2 = ScalarComplex ((r1 * r2) + (i1 * i2))
+  {-# INLINE (<•>) #-}
 
 -- InnerProduct
 
@@ -411,13 +439,16 @@ data Quaternion x = Quaternion {e :: !x, i :: !x, j :: !x, k :: !x}
 instance Morphisms (->) (->) Quaternion where
   morphism :: (x -> y) -> Quaternion x -> Quaternion y
   morphism = Data.fmap
+  {-# INLINE morphism #-}
 instance Folds (->) (->) Quaternion where
   foldWith :: (Monoid z) => (x -> z) -> Quaternion x -> z
   foldWith x_z (Quaternion e i j k) = x_z e <> x_z i <> x_z j <> x_z k
+  {-# INLINE foldWith #-}
 instance Traversals (->) (->) Quaternion where
   traverse :: (Applicative g) => (x -> g y) -> Quaternion x -> g (Quaternion y)
   traverse x_gy (Quaternion e i j k) =
     liftA3 Quaternion (x_gy e) (x_gy i) (x_gy j) <*> (x_gy k)
+  {-# INLINE traverse #-}
 instance Collectable Quaternion where
   distribute :: (Along f) => f (Quaternion x) -> Quaternion (f x)
   distribute f = Quaternion
@@ -425,6 +456,7 @@ instance Collectable Quaternion where
     do morphism (.i) f
     do morphism (.j) f
     do morphism (.k) f
+  {-# INLINE distribute #-}
 
 data QuaternionBasis
   = E
@@ -435,12 +467,14 @@ instance Tabulation Quaternion where
   type Table Quaternion = QuaternionBasis
   fromTable :: (Table Quaternion -> x) -> Quaternion x
   fromTable f = Quaternion (f E) (f I) (f J) (f K)
+  {-# INLINE fromTable #-}
   toTable :: Quaternion x -> Table Quaternion -> x
   toTable (Quaternion e i j k) = \case
     E -> e
     I -> i
     J -> j
     K -> k
+  {-# INLINE toTable #-}
 
 instance (Additive y, From y x) => From y (Quaternion x) where
   from :: y -> Quaternion x
@@ -450,6 +484,7 @@ instance (Additive y, From y x) => From y (Quaternion x) where
       (from @y zero)
       (from @y zero)
       (from @y zero)
+  {-# INLINE from #-}
 
 instance
   (Addition x x x) =>
@@ -458,9 +493,11 @@ instance
   (+.) :: Quaternion x -> Quaternion x -> Quaternion x
   Quaternion z1 i1 j1 k1 +. Quaternion z2 i2 j2 k2 =
     Quaternion (z1 + z2) (i1 + i2) (j1 + j2) (k1 + k2)
+  {-# INLINE (+.) #-}
 instance (Additive x) => Additive (Quaternion x) where
   zero :: Quaternion x
   zero = Quaternion zero zero zero zero
+  {-# INLINE zero #-}
 instance (AdditiveAbelian x) => AdditiveAbelian (Quaternion x)
 
 instance
@@ -470,10 +507,12 @@ instance
   (-.) :: Quaternion x -> Quaternion x -> Quaternion x
   Quaternion z1 i1 j1 k1 -. Quaternion z2 i2 j2 k2 =
     Quaternion (z1 - z2) (i1 - i2) (j1 - j2) (k1 - k2)
+  {-# INLINE (-.) #-}
 instance (AdditiveGroup x) => AdditiveGroup (Quaternion x) where
   negative :: Quaternion x -> Quaternion x
   negative (Quaternion z i j k) =
     Quaternion (negative z) (negative i) (negative j) (negative k)
+  {-# INLINE negative #-}
 
 instance
   (Addition x x x, Subtraction x x x, Multiplication x x x) =>
@@ -486,12 +525,14 @@ instance
       do (a1 * b2) + (b1 * a2) + (c1 * d2) - (d1 * c2)
       do (a1 * c2) - (b1 * d2) + (c1 * a2) + (d1 * b2)
       do (a1 * d2) + (b1 * c2) - (c1 * b2) + (d1 * a2)
+  {-# INLINE (*.) #-}
 instance
   (Additive x, Subtraction x x x, Multiplicative x) =>
   Multiplicative (Quaternion x)
   where
   one :: Quaternion x
   one = Quaternion one zero zero zero
+  {-# INLINE one #-}
 
 instance
   (AdditiveGroup x, MultiplicativeGroup x, Conjugate x) =>
@@ -501,6 +542,7 @@ instance
   a /. b@(Quaternion bz bi bj bk) =
     reciprocal ((bz * bz) + (bi * bi) + (bj * bj) + (bk * bk))
       *. (a * conjugate b)
+  {-# INLINE (/.) #-}
 
 instance
   (AdditiveGroup x, MultiplicativeGroup x, Conjugate x) =>
@@ -510,6 +552,7 @@ instance
   reciprocal b@(Quaternion bz bi bj bk) =
     reciprocal ((bz * bz) + (bi * bi) + (bj * bj) + (bk * bk))
       *. conjugate b
+  {-# INLINE reciprocal #-}
 
 instance
   (Multiplication x x x) =>
@@ -517,12 +560,21 @@ instance
   where
   (*.) :: x -> Quaternion x -> Quaternion x
   x *. Quaternion z i j k = Quaternion (x * z) (x * i) (x * j) (x * k)
+  {-# INLINE (*.) #-}
 instance
   (Multiplication x x x) =>
   Multiplication (Quaternion x) x (Quaternion x)
   where
   (*.) :: Quaternion x -> x -> Quaternion x
   Quaternion z i j k *. x = Quaternion (z * x) (i * x) (j * x) (k * x)
+  {-# INLINE (*.) #-}
+instance
+  (Division x x x) =>
+  Division (Quaternion x) x (Quaternion x)
+  where
+  (/.) :: Quaternion x -> x -> Quaternion x
+  Quaternion z i j k /. x = Quaternion (z / x) (i / x) (j / x) (k / x)
+  {-# INLINE (/.) #-}
 
 instance
   (Additive x, Subtraction x x x, Multiplicative x) =>
@@ -537,6 +589,7 @@ instance
 instance (From y x) => From y (Scalar (Quaternion x)) where
   from :: y -> Scalar (Quaternion x)
   from n = ScalarQuaternion (from n)
+  {-# INLINE from #-}
 
 instance
   (Addition x x x) =>
@@ -550,6 +603,7 @@ instance
     Scalar (Quaternion x) ->
     Scalar (Quaternion x)
   ScalarQuaternion x +. ScalarQuaternion y = ScalarQuaternion (x + y)
+  {-# INLINE (+.) #-}
 instance
   (Subtraction x x x) =>
   Subtraction
@@ -562,6 +616,7 @@ instance
     Scalar (Quaternion x) ->
     Scalar (Quaternion x)
   ScalarQuaternion x -. ScalarQuaternion y = ScalarQuaternion (x - y)
+  {-# INLINE (-.) #-}
 instance
   (Multiplication x x x) =>
   Multiplication
@@ -574,6 +629,7 @@ instance
     Scalar (Quaternion x) ->
     Scalar (Quaternion x)
   ScalarQuaternion x *. ScalarQuaternion y = ScalarQuaternion (x * y)
+  {-# INLINE (*.) #-}
 instance
   (Division x x x) =>
   Division
@@ -586,6 +642,7 @@ instance
     Scalar (Quaternion x) ->
     Scalar (Quaternion x)
   ScalarQuaternion x /. ScalarQuaternion y = ScalarQuaternion (x / y)
+  {-# INLINE (/.) #-}
 instance
   (Multiplication x x x) =>
   Multiplication
@@ -598,6 +655,7 @@ instance
     Quaternion x ->
     Quaternion x
   ScalarQuaternion x *. e = x *. e
+  {-# INLINE (*.) #-}
 instance
   (Multiplication x x x) =>
   Multiplication
@@ -610,24 +668,41 @@ instance
     Scalar (Quaternion x) ->
     Quaternion x
   e *. ScalarQuaternion x = e *. x
+  {-# INLINE (*.) #-}
+instance
+  (Division x x x) =>
+  Division
+    (Quaternion x)
+    (Scalar (Quaternion x))
+    (Quaternion x)
+  where
+  (/.) ::
+    Quaternion x ->
+    Scalar (Quaternion x) ->
+    Quaternion x
+  e /. ScalarQuaternion x = e /. x
+  {-# INLINE (/.) #-}
 instance
   (Power x r x) =>
   Power (Scalar (Quaternion x)) r (Scalar (Quaternion x))
   where
   (^) :: Scalar (Quaternion x) -> r -> Scalar (Quaternion x)
   ScalarQuaternion x ^ r = ScalarQuaternion (x ^ r)
+  {-# INLINE (^) #-}
 instance
   (Absolute x x) =>
   Absolute (Scalar (Quaternion x)) x
   where
   absolute :: Scalar (Quaternion x) -> x
   absolute (ScalarQuaternion k) = absolute k
+  {-# INLINE absolute #-}
 instance
   (Absolute x x) =>
   Absolute (Scalar (Quaternion x)) (Scalar (Quaternion x))
   where
   absolute :: Scalar (Quaternion x) -> Scalar (Quaternion x)
   absolute (ScalarQuaternion k) = ScalarQuaternion (absolute k)
+  {-# INLINE absolute #-}
 
 instance
   (Additive x, Subtraction x x x, Multiplicative x) =>
@@ -662,20 +737,24 @@ instance (Ring x, Conjugate x) => Sesquilinear (Quaternion x) where
   (<•>) :: Quaternion x -> Quaternion x -> Scalar (Quaternion x)
   Quaternion z1 i1 j1 k1 <•> Quaternion z2 i2 j2 k2 =
     ScalarQuaternion ((z1 * z2) + (i1 * i2) + (j1 * j2) + (k1 * k2))
+  {-# INLINE (<•>) #-}
 instance (Ring x, Conjugate x) => InnerProduct (Quaternion x)
 
 instance (AdditiveGroup x) => Conjugate (Quaternion x) where
   conjugate :: Quaternion x -> Quaternion x
   conjugate (Quaternion z i j k) = Quaternion z (negative i) (negative j) (negative k)
+  {-# INLINE conjugate #-}
 
 -- Polynomials
 
 variable :: (Additive x, Multiplicative x) => List1 x
 variable = zero :|| Sole one
+{-# INLINE variable #-}
 
 instance (From y x) => From y (Scalar (List1 x)) where
   from :: y -> Scalar (List1 x)
   from n = ScalarList1 (from n)
+  {-# INLINE from #-}
 
 instance
   (Addition x x x) =>
@@ -683,45 +762,61 @@ instance
   where
   (+.) :: Scalar (List1 x) -> Scalar (List1 x) -> Scalar (List1 x)
   ScalarList1 x +. ScalarList1 y = ScalarList1 (x + y)
+  {-# INLINE (+.) #-}
 instance
   (Subtraction x x x) =>
   Subtraction (Scalar (List1 x)) (Scalar (List1 x)) (Scalar (List1 x))
   where
   (-.) :: Scalar (List1 x) -> Scalar (List1 x) -> Scalar (List1 x)
   ScalarList1 x -. ScalarList1 y = ScalarList1 (x - y)
+  {-# INLINE (-.) #-}
 instance
   (Multiplication x x x) =>
   Multiplication (Scalar (List1 x)) (Scalar (List1 x)) (Scalar (List1 x))
   where
   (*.) :: Scalar (List1 x) -> Scalar (List1 x) -> Scalar (List1 x)
   ScalarList1 x *. ScalarList1 y = ScalarList1 (x * y)
+  {-# INLINE (*.) #-}
 instance
   (Division x x x) =>
   Division (Scalar (List1 x)) (Scalar (List1 x)) (Scalar (List1 x))
   where
   (/.) :: Scalar (List1 x) -> Scalar (List1 x) -> Scalar (List1 x)
   ScalarList1 x /. ScalarList1 y = ScalarList1 (x / y)
+  {-# INLINE (/.) #-}
 instance
   (Eq x, Additive x, Multiplicative x) =>
   Multiplication (Scalar (List1 x)) (List1 x) (List1 x)
   where
   (*.) :: Scalar (List1 x) -> List1 x -> List1 x
   ScalarList1 k *. x = k *. x
+  {-# INLINE (*.) #-}
 instance
   (Eq x, Additive x, Multiplicative x) =>
   Multiplication (List1 x) (Scalar (List1 x)) (List1 x)
   where
   (*.) :: List1 x -> Scalar (List1 x) -> List1 x
   x *. ScalarList1 k = x *. k
+  {-# INLINE (*.) #-}
+instance
+  (Eq x, Additive x, Division x x x) =>
+  Division (List1 x) (Scalar (List1 x)) (List1 x)
+  where
+  (/.) :: List1 x -> Scalar (List1 x) -> List1 x
+  x /. ScalarList1 k = x /. k
+  {-# INLINE (/.) #-}
 instance (Power x r x) => Power (Scalar (List1 x)) r (Scalar (List1 x)) where
   (^) :: Scalar (List1 x) -> r -> Scalar (List1 x)
   ScalarList1 x ^ r = ScalarList1 (x ^ r)
+  {-# INLINE (^) #-}
 instance (Absolute x x) => Absolute (Scalar (List1 x)) x where
   absolute :: Scalar (List1 x) -> x
   absolute (ScalarList1 k) = absolute k
+  {-# INLINE absolute #-}
 instance (Absolute x x) => Absolute (Scalar (List1 x)) (Scalar (List1 x)) where
   absolute :: Scalar (List1 x) -> Scalar (List1 x)
   absolute (ScalarList1 k) = ScalarList1 (absolute k)
+  {-# INLINE absolute #-}
 
 instance
   (Additive x, Subtraction x x x, Multiplicative x) =>
@@ -756,6 +851,8 @@ instance (Eq x, Field x) => Vector (List1 x)
 instance (Additive x) => Additive (Quaternion (Complex x)) where
   zero :: Quaternion (Complex x)
   zero = Quaternion zero zero zero zero
+  {-# INLINE zero #-}
 instance (AdditiveGroup x, Multiplicative x) => Multiplicative (Quaternion (Complex x)) where
   one :: Quaternion (Complex x)
   one = Quaternion one zero zero zero
+  {-# INLINE one #-}

@@ -21,6 +21,7 @@ class (Ord x) => Meet x where
 instance (Meet x, Meet y) => Meet (x, y) where
   (/\) :: (x, y) -> (x, y) -> (x, y)
   (x, y) /\ (x', y') = (x /\ x', y /\ y')
+  {-# INLINE (/\) #-}
 
 class (Meet x) => Lowest x where
   lowest :: x
@@ -28,6 +29,7 @@ class (Meet x) => Lowest x where
 instance (Lowest x, Lowest y) => Lowest (x, y) where
   lowest :: (x, y)
   lowest = (lowest, lowest)
+  {-# INLINE lowest #-}
 
 class (Ord x) => Join x where
   (\/) :: x -> x -> x
@@ -35,6 +37,7 @@ class (Ord x) => Join x where
 instance (Join x, Join y) => Join (x, y) where
   (\/) :: (x, y) -> (x, y) -> (x, y)
   (x, y) \/ (x', y') = (x \/ x', y \/ y')
+  {-# INLINE (\/) #-}
 
 class (Join x) => Highest x where
   highest :: x
@@ -42,6 +45,7 @@ class (Join x) => Highest x where
 instance (Highest x, Highest y) => Highest (x, y) where
   highest :: (x, y)
   highest = (highest, highest)
+  {-# INLINE highest #-}
 
 class (Meet x, Join x) => Lattice x
 instance (Lattice x, Lattice y) => Lattice (x, y)
@@ -60,6 +64,7 @@ class (Extrema x) => Heyting x where
 instance (Heyting x, Heyting y) => Heyting (x, y) where
   (-->) :: (x, y) -> (x, y) -> (x, y)
   (x, y) --> (x', y') = (x --> x', y --> y')
+  {-# INLINE (-->) #-}
 
 class (Heyting x) => Boolean x
 instance (Boolean x, Boolean y) => Boolean (x, y)
@@ -71,28 +76,35 @@ class (Boolean x) => Median x where
 instance Meet Bool where
   (/\) :: Bool -> Bool -> Bool
   (/\) = (&&)
+  {-# INLINE (/\) #-}
 instance Lowest Bool where
   lowest :: Bool
   lowest = False
+  {-# INLINE lowest #-}
 instance Join Bool where
   (\/) :: Bool -> Bool -> Bool
   (\/) = (||)
+  {-# INLINE (\/) #-}
 instance Highest Bool where
   highest :: Bool
   highest = True
+  {-# INLINE highest #-}
 instance Lattice Bool
 instance Extrema Bool
 instance Heyting Bool where
   (-->) :: Bool -> Bool -> Bool
   x --> y = not x || y
+  {-# INLINE (-->) #-}
   complement :: Bool -> Bool
   complement = not
+  {-# INLINE complement #-}
   xor :: Bool -> Bool -> Bool
   xor = \cases
     False False -> False
     True False -> True
     False True -> True
     True True -> False
+  {-# INLINE xor #-}
 instance Boolean Bool
 instance Median Bool
 
@@ -103,6 +115,7 @@ instance (Meet x) => Meet (Suspension x) where
   North /\ x = x
   x /\ North = x
   Meridian x /\ Meridian y = Meridian (x /\ y)
+  {-# INLINE (/\) #-}
 
 instance (Join x) => Join (Suspension x) where
   (\/) :: Suspension x -> Suspension x -> Suspension x
@@ -111,14 +124,17 @@ instance (Join x) => Join (Suspension x) where
   North \/ _ = North
   _ \/ North = North
   Meridian x \/ Meridian y = Meridian (x \/ y)
+  {-# INLINE (\/) #-}
 
 instance (Meet x) => Lowest (Suspension x) where
   lowest :: Suspension x
   lowest = South
+  {-# INLINE lowest #-}
 
 instance (Join x) => Highest (Suspension x) where
   highest :: Suspension x
   highest = North
+  {-# INLINE highest #-}
 
 instance (Lattice x) => Lattice (Suspension x)
 

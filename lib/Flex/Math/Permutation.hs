@@ -1,5 +1,5 @@
 module Flex.Math.Permutation
-  ( S (s)
+  ( S (S, s)
   , permute
   , transposition
   ) where

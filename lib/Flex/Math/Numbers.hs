@@ -1681,6 +1681,16 @@ instance
         Nothing -> []
         Just ys -> toList (ys *. k)
 instance
+  (Eq x, Additive x, Division x x x) =>
+  Division (List1 x) x (List1 x)
+  where
+  (/.) :: List1 x -> x -> List1 x
+  (x :| xs) /. k = poly do
+    x / k
+      :| case list1 xs of
+        Nothing -> []
+        Just ys -> toList (ys /. k)
+instance
   (Eq x, Additive x, MultiplicativeAbelian x) =>
   Multiplication (List1 x) (List1 x) (List1 x)
   where
@@ -1913,6 +1923,12 @@ instance
   (u :+ v) /. (x :+ y) =
     ((u * x) + (v * y)) / ((x * x) + (y * y))
       :+ ((v * x) - (u * y)) / ((x * x) + (y * y))
+instance
+  (Division x x x) =>
+  Division (Complex x) x (Complex x)
+  where
+  (/.) :: Complex x -> x -> Complex x
+  (u :+ v) /. k = u / k :+ v / k
 
 instance
   (Signed x, AdditiveGroup x, Multiplicative x, Division x x x) =>

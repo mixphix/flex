@@ -98,18 +98,23 @@ instance Data.Foldable1 Dual where
 
 epsilon :: (Additive x, Multiplicative x) => Dual x
 epsilon = zero :& one
+{-# INLINE epsilon #-}
 
 apply :: (Multiplicative x) => (Dual x -> y) -> x -> y
 apply f = f . (:& one)
+{-# INLINE apply #-}
 
 primal :: Dual x -> x
 primal (x :& _) = x
+{-# INLINE primal #-}
 
 tangent :: Dual x -> x
 tangent (_ :& x) = x
+{-# INLINE tangent #-}
 
 derivative :: (Multiplicative x) => (Dual x -> Dual x) -> x -> x
 derivative f x = tangent (apply f x)
+{-# INLINE derivative #-}
 
 applied ::
   (Additive x, Multiplicative x, Data.Traversable xt) =>
@@ -118,24 +123,30 @@ applied f xs = snd (Data.mapAccumL outer (zero @Int) xs)
  where
   outer !i _ = (succ i, f (snd (Data.mapAccumL (innr i) (zero @Int) xs)))
   innr !i !j x = (succ j, if i == j then x :& one else x :& zero)
+{-# INLINE applied #-}
 
 instance (Additive y, From y x) => From y (Dual x) where
   from :: y -> Dual x
   from y = from y :& from @y zero
+  {-# INLINE from #-}
 
 instance (Addition x x x) => Addition (Dual x) (Dual x) (Dual x) where
   (+.) :: Dual x -> Dual x -> Dual x
   (x :& x') +. (y :& y') = (x + y) :& (x' + y')
+  {-# INLINE (+.) #-}
 instance (Additive x) => Additive (Dual x) where
   zero :: Dual x
   zero = zero :& zero
+  {-# INLINE zero #-}
 instance (AdditiveAbelian x) => AdditiveAbelian (Dual x)
 instance (Subtraction x x x) => Subtraction (Dual x) (Dual x) (Dual x) where
   (-.) :: Dual x -> Dual x -> Dual x
   (x :& x') -. (y :& y') = (x - y) :& (x' - y')
+  {-# INLINE (-.) #-}
 instance (AdditiveGroup x) => AdditiveGroup (Dual x) where
   negative :: (AdditiveGroup x) => Dual x -> Dual x
   negative (x :& x') = negative x :& negative x'
+  {-# INLINE negative #-}
 
 instance
   (Addition x x x, Multiplication x x x) =>
@@ -143,9 +154,11 @@ instance
   where
   (*.) :: Dual x -> Dual x -> Dual x
   (x :& x') *. (y :& y') = (x * y) :& (x * y' + x' * y)
+  {-# INLINE (*.) #-}
 instance (Additive x, Multiplicative x) => Multiplicative (Dual x) where
   one :: Dual x
   one = one :& zero
+  {-# INLINE one #-}
 instance (Additive x, MultiplicativeAbelian x) => MultiplicativeAbelian (Dual x)
 instance
   (Addition x x x, Multiplication x x x, Division x x x) =>
@@ -153,23 +166,29 @@ instance
   where
   (/.) :: Dual x -> Dual x -> Dual x
   (x :& x') /. (y :& y') = (x / y) :& ((x' / y) + ((x * y') / (y * y)))
+  {-# INLINE (/.) #-}
 instance (AdditiveGroup x, MultiplicativeGroup x) => MultiplicativeGroup (Dual x) where
   reciprocal :: Dual x -> Dual x
   reciprocal (x :& x') = reciprocal x :& negative x' * reciprocal (x * x)
+  {-# INLINE reciprocal #-}
 
 instance (Multiplication x x x) => Multiplication x (Dual x) (Dual x) where
   (*.) :: x -> Dual x -> Dual x
   k *. (x :& x') = k * x :& k * x'
+  {-# INLINE (*.) #-}
 instance (Multiplication x x x) => Multiplication (Dual x) x (Dual x) where
   (*.) :: Dual x -> x -> Dual x
   (x :& x') *. k = x * k :& x' * k
+  {-# INLINE (*.) #-}
 instance (Division x x x) => Division (Dual x) x (Dual x) where
   (/.) :: Dual x -> x -> Dual x
   (x :& x') /. k = x / k :& x' / k
+  {-# INLINE (/.) #-}
 
 instance (From y x) => From y (Scalar (Dual x)) where
   from :: y -> Scalar (Dual x)
   from n = ScalarDual (from n)
+  {-# INLINE from #-}
 
 instance
   (Addition x x x) =>
@@ -177,42 +196,52 @@ instance
   where
   (+.) :: Scalar (Dual x) -> Scalar (Dual x) -> Scalar (Dual x)
   ScalarDual x +. ScalarDual y = ScalarDual (x + y)
+  {-# INLINE (+.) #-}
 instance
   (Subtraction x x x) =>
   Subtraction (Scalar (Dual x)) (Scalar (Dual x)) (Scalar (Dual x))
   where
   (-.) :: Scalar (Dual x) -> Scalar (Dual x) -> Scalar (Dual x)
   ScalarDual x -. ScalarDual y = ScalarDual (x - y)
+  {-# INLINE (-.) #-}
 instance
   (Multiplication x x x) =>
   Multiplication (Scalar (Dual x)) (Scalar (Dual x)) (Scalar (Dual x))
   where
   (*.) :: Scalar (Dual x) -> Scalar (Dual x) -> Scalar (Dual x)
   ScalarDual x *. ScalarDual y = ScalarDual (x * y)
+  {-# INLINE (*.) #-}
 instance
   (Division x x x) =>
   Division (Scalar (Dual x)) (Scalar (Dual x)) (Scalar (Dual x))
   where
   (/.) :: Scalar (Dual x) -> Scalar (Dual x) -> Scalar (Dual x)
   ScalarDual x /. ScalarDual y = ScalarDual (x / y)
+  {-# INLINE (/.) #-}
 instance (Multiplication x x x) => Multiplication (Scalar (Dual x)) (Dual x) (Dual x) where
   (*.) :: Scalar (Dual x) -> Dual x -> Dual x
   ScalarDual k *. (x :& x') = k * x :& k * x'
+  {-# INLINE (*.) #-}
 instance (Multiplication x x x) => Multiplication (Dual x) (Scalar (Dual x)) (Dual x) where
   (*.) :: Dual x -> Scalar (Dual x) -> Dual x
   (x :& x') *. ScalarDual k = x * k :& x' * k
+  {-# INLINE (*.) #-}
 instance (Division x x x) => Division (Dual x) (Scalar (Dual x)) (Dual x) where
   (/.) :: Dual x -> Scalar (Dual x) -> Dual x
   (x :& x') /. ScalarDual k = x / k :& x' / k
+  {-# INLINE (/.) #-}
 instance (Power x r x) => Power (Scalar (Dual x)) r (Scalar (Dual x)) where
   (^) :: Scalar (Dual x) -> r -> Scalar (Dual x)
   ScalarDual x ^ r = ScalarDual (x ^ r)
+  {-# INLINE (^) #-}
 instance (Absolute x x) => Absolute (Scalar (Dual x)) x where
   absolute :: Scalar (Dual x) -> x
   absolute (ScalarDual k) = absolute k
+  {-# INLINE absolute #-}
 instance (Absolute x x) => Absolute (Scalar (Dual x)) (Scalar (Dual x)) where
   absolute :: Scalar (Dual x) -> Scalar (Dual x)
   absolute (ScalarDual k) = ScalarDual (absolute k)
+  {-# INLINE absolute #-}
 
 instance (Semiring x) => Semiring (Scalar (Dual x))
 instance (Ring x) => Ring (Scalar (Dual x))
@@ -261,6 +290,7 @@ instance
   (x :& x') ^ k
     | k == zero = one :& zero
     | otherwise = x ^ k :& x' * from k * (x ^ pred k)
+  {-# INLINE (^) #-}
 
 instance (AdditiveGroup x, Absolute x x, Signed x) => Absolute (Dual x) (Dual x) where
   absolute :: Dual x -> Dual x
@@ -269,34 +299,47 @@ instance (AdditiveGroup x, Absolute x x, Signed x) => Absolute (Dual x) (Dual x)
       Negative -> negative x'
       Unsigned -> zero
       Positive -> x'
+  {-# INLINE absolute #-}
 
 instance (MultiplicativeGroup x, Logarithmic x) => Logarithmic (Dual x) where
   exp :: Dual x -> Dual x
   exp (x :& x') = exp x :& x' * exp x
+  {-# INLINE exp #-}
   log :: Dual x -> Dual x
   log (x :& x') = log x :& x' / x
+  {-# INLINE log #-}
   logBase :: Dual x -> Dual x -> Dual x
   logBase (b :& _) (x :& x') = logBase b x :& x' / (x * log b)
+  {-# INLINE logBase #-}
 
 instance (Root x, Trigonometric x) => Trigonometric (Dual x) where
   pi :: Dual x
   pi = pi :& zero
+  {-# INLINE pi #-}
   sin :: Dual x -> Dual x
   sin (x :& x') = sin x :& x' * cos x
+  {-# INLINE sin #-}
   cos :: Dual x -> Dual x
   cos (x :& x') = cos x :& negative x' * sin x
+  {-# INLINE cos #-}
   tan :: Dual x -> Dual x
   tan (x :& x') = tan x :& x' / (cos x * cos x)
+  {-# INLINE tan #-}
   arcsin :: Dual x -> Dual x
   arcsin (x :& x') = arcsin x :& x' / (2 √ (one - (x * x)))
+  {-# INLINE arcsin #-}
   arccos :: Dual x -> Dual x
   arccos (x :& x') = arccos x :& negative x' / (2 √ (one - (x * x)))
+  {-# INLINE arccos #-}
   arctan :: Dual x -> Dual x
   arctan (x :& x') = arctan x :& x' / (one + x * x)
+  {-# INLINE arctan #-}
 
 instance (Additive x) => Additive (Quaternion (Dual x)) where
   zero :: Quaternion (Dual x)
   zero = Quaternion zero zero zero zero
+  {-# INLINE zero #-}
 instance (AdditiveGroup x, Multiplicative x) => Multiplicative (Quaternion (Dual x)) where
   one :: Quaternion (Dual x)
   one = Quaternion one zero zero zero
+  {-# INLINE one #-}

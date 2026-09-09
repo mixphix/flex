@@ -35,22 +35,27 @@ base n = Base case natVal (Proxy @n) of
     let (q, r) = n `quotRem` b
         Base ds = base @n q
      in Num.fromIntegral r NonEmpty.<| ds
+{-# INLINE base #-}
 
 unbase :: forall n. (KnownNat n, n > 0) => Base n -> Natural
 unbase (Base (d :| ds)) =
   let b = natVal (Proxy @n)
    in d + (b * case ds of [] -> 0; c : cs -> unbase (Base @n (c :| cs)))
+{-# INLINE unbase #-}
 
 rebase ::
   forall m n.
   (KnownNat m, KnownNat n, m > 0, n > 0) => Base m -> Base n
 rebase = base @n . unbase @m
+{-# INLINE rebase #-}
 
 digits :: Natural -> NonEmpty Natural
 digits = getBase . base @10
+{-# INLINE digits #-}
 
 undigits :: NonEmpty Natural -> Natural
 undigits = unbase @10 . Base
+{-# INLINE undigits #-}
 
 instance
   ( KnownNat m
@@ -64,6 +69,7 @@ instance
   where
   (+.) :: Base m -> Base n -> Base k
   m +. n = base @k (unbase @m m + unbase @n n)
+  {-# INLINE (+.) #-}
 
 instance
   ( KnownNat m
@@ -77,6 +83,7 @@ instance
   where
   (-.) :: Base m -> Base n -> Base k
   m -. n = base @k (unbase @m m - unbase @n n)
+  {-# INLINE (-.) #-}
 
 instance
   ( KnownNat m
@@ -90,3 +97,4 @@ instance
   where
   (*.) :: Base m -> Base n -> Base k
   m *. n = base @k (unbase @m m * unbase @n n)
+  {-# INLINE (*.) #-}

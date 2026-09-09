@@ -17,9 +17,11 @@ class Action g x where
 instance Action (x -> x) x where
   (@) :: (x -> x) -> x -> x
   (@) = id
+  {-# INLINE (@) #-}
 instance Action (Endo x) x where
   (@) :: Endo x -> x -> x
   (@) = appEndo
+  {-# INLINE (@) #-}
 instance
   ( KnownNat n
   , AdditiveAbelian x
@@ -29,6 +31,8 @@ instance
   where
   (@) :: M n n x -> V n x -> V n x
   (@) = (*.)
+  {-# INLINE (@) #-}
 instance (KnownNat n) => Action (S n) (V n x) where
   (@) :: S n -> V n x -> V n x
   (@) = permute
+  {-# INLINE (@) #-}

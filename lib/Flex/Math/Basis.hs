@@ -19,8 +19,9 @@ class (Module (v x), Tabulation v) => Basis v x where
 
 instance (KnownNat n, Ring x) => Basis (V n) x where
   basis :: Finite n -> V n x
-  basis (from . getFinite -> j) =
-    vn (natVal (Proxy @n)) \i -> if i == j then one else zero
+  basis j' =
+    let j = from (getFinite j')
+     in vn (natVal (Proxy @n)) \i -> if i == j then one else zero
 
 instance (Ring x) => Basis Complex x where
   basis :: ComplexBasis -> Complex x

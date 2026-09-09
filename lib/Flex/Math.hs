@@ -131,7 +131,7 @@ module Flex.Math
   , Matrix (transpose)
   , adjoint
   , Square (trace, determinant)
-  , S (s)
+  , S (S, s)
 
     -- ** Lattices
   , Meet ((/\))

@@ -33,20 +33,25 @@ data Minkowski x = Minkowski {t :: !x, x :: !x, y :: !x, z :: !x}
 instance Morphisms (->) (->) Minkowski where
   morphism :: (x -> y) -> Minkowski x -> Minkowski y
   morphism = Data.fmap
+  {-# INLINE morphism #-}
 instance Folds (->) (->) Minkowski where
   foldWith :: (Monoid z) => (x -> z) -> Minkowski x -> z
   foldWith f (Minkowski t x y z) = f t <> f x <> f y <> f z
+  {-# INLINE foldWith #-}
 instance Traversals (->) (->) Minkowski where
   traverse :: (Applicative g) => (x -> g y) -> Minkowski x -> g (Minkowski y)
   traverse f (Minkowski t x y z) =
     pure Minkowski <*> f t <*> f x <*> f y <*> f z
+  {-# INLINE traverse #-}
 instance Pure Minkowski where
   pure :: x -> Minkowski x
   pure x = Minkowski x x x x
+  {-# INLINE pure #-}
 instance Apply Minkowski where
   liftA2 :: (x -> y -> z) -> Minkowski x -> Minkowski y -> Minkowski z
   liftA2 f (Minkowski t0 x0 y0 z0) (Minkowski t1 x1 y1 z1) =
     Minkowski (f t0 t1) (f x0 x1) (f y0 y1) (f z0 z1)
+  {-# INLINE liftA2 #-}
 
 data MinkowskiBasis
   = T
@@ -62,9 +67,11 @@ instance
   (+.) :: Minkowski x -> Minkowski x -> Minkowski x
   Minkowski t0 x0 y0 z0 +. Minkowski t1 x1 y1 z1 =
     Minkowski (t0 + t1) (x0 + x1) (y0 + y1) (z0 + z1)
+  {-# INLINE (+.) #-}
 instance (Additive x) => Additive (Minkowski x) where
   zero :: Minkowski x
   zero = Minkowski zero zero zero zero
+  {-# INLINE zero #-}
 instance (AdditiveAbelian x) => AdditiveAbelian (Minkowski x)
 instance
   (Subtraction x x x) =>
@@ -73,9 +80,11 @@ instance
   (-.) :: Minkowski x -> Minkowski x -> Minkowski x
   Minkowski t0 x0 y0 z0 -. Minkowski t1 x1 y1 z1 =
     Minkowski (t0 - t1) (x0 - x1) (y0 - y1) (z0 - z1)
+  {-# INLINE (-.) #-}
 instance (AdditiveGroup x) => AdditiveGroup (Minkowski x) where
   negative :: Minkowski x -> Minkowski x
   negative (Minkowski t x y z) = Minkowski (negative t) (negative x) (negative y) (negative z)
+  {-# INLINE negative #-}
 
 instance
   (Multiplication x x x) =>
@@ -83,18 +92,21 @@ instance
   where
   (*.) :: x -> Minkowski x -> Minkowski x
   k *. Minkowski t x y z = Minkowski (k * t) (k * x) (k * y) (k * z)
+  {-# INLINE (*.) #-}
 instance
   (Multiplication x x x) =>
   Multiplication (Minkowski x) x (Minkowski x)
   where
   (*.) :: Minkowski x -> x -> Minkowski x
   Minkowski t x y z *. k = Minkowski (t * k) (x * k) (y * k) (z * k)
+  {-# INLINE (*.) #-}
 instance
   (Division x x x) =>
   Division (Minkowski x) x (Minkowski x)
   where
   (/.) :: Minkowski x -> x -> Minkowski x
   Minkowski t x y z /. k = Minkowski (t /. k) (x /. k) (y /. k) (z /. k)
+  {-# INLINE (/.) #-}
 
 instance Collectable Minkowski where
   distribute :: (Along f) => f (Minkowski x) -> Minkowski (f x)
@@ -104,16 +116,19 @@ instance Collectable Minkowski where
       (morphism (.x) fm)
       (morphism (.y) fm)
       (morphism (.z) fm)
+  {-# INLINE distribute #-}
 instance Tabulation Minkowski where
   type Table Minkowski = MinkowskiBasis
   fromTable :: (Table Minkowski -> x) -> Minkowski x
   fromTable f = Minkowski (f T) (f X) (f Y) (f Z)
+  {-# INLINE fromTable #-}
   toTable :: Minkowski x -> Table Minkowski -> x
   toTable (Minkowski t x y z) = \case
     T -> t
     X -> x
     Y -> y
     Z -> z
+  {-# INLINE toTable #-}
 
 instance
   (Addition x x x) =>
@@ -124,6 +139,7 @@ instance
   where
   (+.) :: Scalar (Minkowski x) -> Scalar (Minkowski x) -> Scalar (Minkowski x)
   ScalarMinkowski x +. ScalarMinkowski y = ScalarMinkowski (x + y)
+  {-# INLINE (+.) #-}
 instance
   (Subtraction x x x) =>
   Subtraction
@@ -133,6 +149,7 @@ instance
   where
   (-.) :: Scalar (Minkowski x) -> Scalar (Minkowski x) -> Scalar (Minkowski x)
   ScalarMinkowski x -. ScalarMinkowski y = ScalarMinkowski (x - y)
+  {-# INLINE (-.) #-}
 instance
   (Multiplication x x x) =>
   Multiplication
@@ -142,6 +159,7 @@ instance
   where
   (*.) :: Scalar (Minkowski x) -> Scalar (Minkowski x) -> Scalar (Minkowski x)
   ScalarMinkowski x *. ScalarMinkowski y = ScalarMinkowski (x * y)
+  {-# INLINE (*.) #-}
 instance
   (Division x x x) =>
   Division
@@ -151,6 +169,7 @@ instance
   where
   (/.) :: Scalar (Minkowski x) -> Scalar (Minkowski x) -> Scalar (Minkowski x)
   ScalarMinkowski x /. ScalarMinkowski y = ScalarMinkowski (x / y)
+  {-# INLINE (/.) #-}
 instance
   (Multiplication x x x) =>
   Multiplication
@@ -160,6 +179,7 @@ instance
   where
   (*.) :: Scalar (Minkowski x) -> Minkowski x -> Minkowski x
   ScalarMinkowski k *. m = k *. m
+  {-# INLINE (*.) #-}
 instance
   (Multiplication x x x) =>
   Multiplication
@@ -169,6 +189,7 @@ instance
   where
   (*.) :: Minkowski x -> Scalar (Minkowski x) -> Minkowski x
   m *. ScalarMinkowski k = m *. k
+  {-# INLINE (*.) #-}
 instance
   (Division x x x) =>
   Division
@@ -178,24 +199,28 @@ instance
   where
   (/.) :: Minkowski x -> Scalar (Minkowski x) -> Minkowski x
   m /. ScalarMinkowski k = m /. k
+  {-# INLINE (/.) #-}
 instance
   (Power x r x) =>
   Power (Scalar (Minkowski x)) r (Scalar (Minkowski x))
   where
   (^) :: Scalar (Minkowski x) -> r -> Scalar (Minkowski x)
   ScalarMinkowski x ^ r = ScalarMinkowski (x ^ r)
+  {-# INLINE (^) #-}
 instance
   (Absolute x x) =>
   Absolute (Scalar (Minkowski x)) x
   where
   absolute :: Scalar (Minkowski x) -> x
   absolute (ScalarMinkowski k) = absolute k
+  {-# INLINE absolute #-}
 instance
   (Absolute x x) =>
   Absolute (Scalar (Minkowski x)) (Scalar (Minkowski x))
   where
   absolute :: Scalar (Minkowski x) -> Scalar (Minkowski x)
   absolute (ScalarMinkowski k) = ScalarMinkowski (absolute k)
+  {-# INLINE absolute #-}
 
 instance (Semiring x) => Semiring (Scalar (Minkowski x))
 instance (Ring x) => Ring (Scalar (Minkowski x))
@@ -227,3 +252,4 @@ instance (Ring x) => Bilinear (Minkowski x) where
   (•) :: Minkowski x -> Minkowski x -> Scalar (Minkowski x)
   Minkowski t0 x0 y0 z0 • Minkowski t1 x1 y1 z1 = ScalarMinkowski do
     (t0 * t1) - (x0 * x1) - (y0 * y1) - (z0 * z1)
+  {-# INLINE (•) #-}

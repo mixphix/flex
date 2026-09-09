@@ -126,7 +126,7 @@ instance Bind Distribution where
   (>>=) = (Control.>>=)
 
 foldD :: (Ord x) => (x -> x -> x) -> NonEmpty (Distribution x) -> Distribution x
-foldD f = foldl1' \(Distribution d) -> liftA2 f (Distribution (shrink d))
+foldD f = foldl1 \(Distribution d) -> liftA2 f (Distribution (shrink d))
 
 likelihood :: (x -> Bool) -> Distribution x -> Probability
 likelihood predicate (Distribution d) = sumOn snd (List.filter (predicate . fst) d)
