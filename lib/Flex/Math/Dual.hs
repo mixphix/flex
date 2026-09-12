@@ -17,7 +17,6 @@ import Flex.Math.Numbers
 
 import Data.Bool
 import Data.Bounded (Bounded)
-import Data.Either
 import Data.Enum (Enum (..))
 import Data.Eq (Eq (..))
 import Data.Foldable qualified as Data

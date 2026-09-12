@@ -44,42 +44,53 @@ newtype Probability = Probability {runProbability :: Ration}
 instance From Natural Probability where
   from :: Natural -> Probability
   from n = Probability (from n)
+  {-# INLINE from #-}
 instance From Rational Probability where
   from :: Rational -> Probability
   from (Ratio p q) = Probability (absolute p `reduce` absolute q)
+  {-# INLINE from #-}
 instance From Probability Rational where
   from :: Probability -> Rational
   from (Probability (Ratio p q)) = from p `reduce` from q
+  {-# INLINE from #-}
 instance From Probability Double where
   from :: Probability -> Double
   from (Probability r) = from r
+  {-# INLINE from #-}
 
 instance Addition Probability Probability Probability where
   (+.) :: Probability -> Probability -> Probability
   Probability (Ratio m n) +. Probability (Ratio p q) = Probability (reduce (m * q + n * p) (n * q))
+  {-# INLINE (+.) #-}
 instance Multiplication Probability Probability Probability where
   (*.) :: Probability -> Probability -> Probability
   Probability (Ratio m n) *. Probability (Ratio p q) = Probability (reduce (m * p) (n * q))
+  {-# INLINE (*.) #-}
 instance Division Probability Probability Probability where
   (/.) :: Probability -> Probability -> Probability
   Probability (Ratio m n) /. Probability (Ratio p q) = Probability (reduce (m * q) (n * p))
+  {-# INLINE (/.) #-}
 instance Multiplication Rational Probability Rational where
   (*.) :: Rational -> Probability -> Rational
   r *. p = r * from p
+  {-# INLINE (*.) #-}
 instance Multiplication Double Probability Double where
   (*.) :: Double -> Probability -> Double
   d *. p = d * from p
+  {-# INLINE (*.) #-}
 
 normalize :: [(x, Probability)] -> [(x, Probability)]
 normalize ps =
   let !tot = sumOn snd ps
    in morphism (\(x, p) -> (x, p / tot)) ps
+{-# INLINE normalize #-}
 
 shrink :: (Ord x) => [(x, Probability)] -> [(x, Probability)]
 shrink ps = normalize do
   morphism
     (\xps@((x, _) :| _) -> (x, sumOn snd xps))
     (List1.groupAllWith fst ps)
+{-# INLINE shrink #-}
 
 newtype Distribution x = Distribution
   {distribution :: [(x, Probability)]}
@@ -87,13 +98,16 @@ newtype Distribution x = Distribution
 instance Control.Applicative Distribution where
   pure :: x -> Distribution x
   pure x = Distribution [(x, one)]
+  {-# INLINE pure #-}
   liftA2 :: (x -> y -> z) -> Distribution x -> Distribution y -> Distribution z
   liftA2 (•) (Distribution d0) (Distribution d1) = Distribution do
     normalize [(_0 • _1, p0 * p1) | (_0, p0) <- d0, (_1, p1) <- d1]
+  {-# INLINE liftA2 #-}
 instance Control.Monad Distribution where
   (>>=) :: Distribution x -> (x -> Distribution y) -> Distribution y
   Distribution d >>= f = Distribution do
     normalize [(y, px * py) | (x, px) <- d, (y, py) <- distribution (f x)]
+  {-# INLINE (>>=) #-}
 instance (Ord x, Show x) => Show (Distribution x) where
   show :: (Ord x, Show x) => Distribution x -> String
   show (Distribution (normalize . shrink -> d)) = List.unlines do
@@ -110,53 +124,67 @@ instance (Ord x, Show x) => Show (Distribution x) where
     paddedWith n c x =
       let nx = from n - length x
        in List.replicate (from nx) c <> x
+  {-# INLINE show #-}
 
 instance Morphisms (->) (->) Distribution where
   morphism :: (x -> y) -> Distribution x -> Distribution y
   morphism = Data.fmap
+  {-# INLINE morphism #-}
 instance Pure Distribution where
   pure :: x -> Distribution x
   pure x = Distribution [(x, one)]
+  {-# INLINE pure #-}
 instance Apply Distribution where
   liftA2 :: (x -> y -> z) -> Distribution x -> Distribution y -> Distribution z
   liftA2 (•) (Distribution d0) (Distribution d1) = Distribution do
     normalize [(_0 • _1, p0 * p1) | (_0, p0) <- d0, (_1, p1) <- d1]
+  {-# INLINE liftA2 #-}
 instance Bind Distribution where
   (>>=) :: Distribution x -> (x -> Distribution y) -> Distribution y
   (>>=) = (Control.>>=)
+  {-# INLINE (>>=) #-}
 
 foldD :: (Ord x) => (x -> x -> x) -> NonEmpty (Distribution x) -> Distribution x
 foldD f = foldl1 \(Distribution d) -> liftA2 f (Distribution (shrink d))
+{-# INLINE foldD #-}
 
 likelihood :: (x -> Bool) -> Distribution x -> Probability
 likelihood predicate (Distribution d) = sumOn snd (List.filter (predicate . fst) d)
+{-# INLINE likelihood #-}
 
 conditional :: (x -> Bool) -> Distribution x -> Distribution x
 conditional predicate (Distribution d) = Distribution (normalize (List.filter (predicate . fst) d))
+{-# INLINE conditional #-}
 
 uniform :: (Ord x) => [x] -> Distribution x
 uniform = Distribution . normalize . shrink . foldWith \x -> [(x, one)]
+{-# INLINE uniform #-}
 
 fairness :: Probability -> x -> x -> Distribution x
 fairness (Probability (Ratio p q)) heads tails = Distribution do
   [(heads, Probability (reduce p q)), (tails, Probability (reduce (q - p) q))]
+{-# INLINE fairness #-}
 
 coin :: Probability -> Distribution Bool
 coin p = fairness p True False
+{-# INLINE coin #-}
 
 binomial :: Natural -> Probability -> Distribution Natural
 binomial n p =
   let ds = List1.replicate (from n) (fairness p one zero)
       Distribution d = foldD (+) ds
    in Distribution (shrink d)
+{-# INLINE binomial #-}
 
 die :: Natural -> Distribution Natural
 die n = uniform [one .. n]
+{-# INLINE die #-}
 
 expectation ::
   (Ord x, AdditiveAbelian x, Multiplication x Probability x) =>
   Distribution x -> x
 expectation (Distribution d) = sumOn (uncurry (*.)) (shrink d)
+{-# INLINE expectation #-}
 
 variance ::
   ( Ord x
@@ -170,11 +198,13 @@ variance (Distribution d) = expectation d2 - (e * e)
  where
   d2 = Distribution (shrink (morphism (\(x, p) -> (x * x, p)) d))
   e = expectation (Distribution d)
+{-# INLINE variance #-}
 
 deviation ::
   (Ord x, Root x, Multiplication x Probability x) =>
   Distribution x -> x
 deviation d = 2 √ variance d
+{-# INLINE deviation #-}
 
 quantile :: (Ord x) => Probability -> Distribution x -> Maybe x
 quantile p (Distribution d) =
@@ -185,3 +215,4 @@ quantile p (Distribution d) =
    in case List.dropWhile ((< r) . snd) cumul of
         [] -> Nothing
         (x, _) : _ -> Just x
+{-# INLINE quantile #-}

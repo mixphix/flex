@@ -931,7 +931,7 @@ ifindOf ::
   Maybe x
 ifindOf ig i_x_b =
   ifoldrOf ig (\i x fmx -> if i_x_b i x then Just x else fmx) Nothing
-{-# INLINE ifindOf_ #-}
+{-# INLINE ifindOf #-}
 
 ifindMOf ::
   (Monad f) =>
@@ -944,7 +944,7 @@ ifindMOf ig i_x_fb =
     ig
     (\i x fmx -> i_x_fb i x >>= \b -> if b then pure (Just x) else fmx)
     (pure Nothing)
-{-# INLINE ifindMOf_ #-}
+{-# INLINE ifindMOf #-}
 
 (^@?) :: xs -> IxGetting i (Endo (Maybe (i, x))) xs x -> Maybe (i, x)
 xs ^@? ig = ifoldrOf ig (\i x _ -> Just (i, x)) Nothing xs
