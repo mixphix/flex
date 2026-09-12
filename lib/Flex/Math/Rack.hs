@@ -10,8 +10,10 @@ class Rack x where
 instance (Rack x, Rack y) => Rack (x, y) where
   (<|) :: (x, y) -> (x, y) -> (x, y)
   (x, y) <| (x', y') = (x <| x', y <| y')
+  {-# INLINE (<|) #-}
   (|>) :: (x, y) -> (x, y) -> (x, y)
   (x, y) |> (x', y') = (x |> x', y |> y')
+  {-# INLINE (|>) #-}
 
 class (Rack x) => Quandle x
 instance (Quandle x, Quandle y) => Quandle (x, y)

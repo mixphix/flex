@@ -14,7 +14,9 @@ import Flex.Math.Category
 import Flex.Math.Module
 import Flex.Math.Numbers
 
+import Data.Bounded (Bounded)
 import Data.Either
+import Data.Enum (Enum)
 import Data.Eq (Eq (..))
 import Data.Foldable qualified as Data
 import Data.Foldable1 qualified as Data
@@ -40,6 +42,7 @@ data Perplex x = !x :! !x
 data PerplexBasis
   = Simple
   | Perplex
+  deriving (Eq, Ord, Enum, Bounded)
 
 simple :: Perplex x -> x
 simple (x :! _) = x

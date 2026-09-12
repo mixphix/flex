@@ -19,7 +19,7 @@ import GHC.Show (Show)
 
 data Suspension x
   = South
-  | Meridian x
+  | Meridian !x
   | North
   deriving
     ( Eq
@@ -36,9 +36,11 @@ data Suspension x
 instance Morphisms (->) (->) Suspension where
   morphism :: (x -> y) -> Suspension x -> Suspension y
   morphism = Data.fmap
+  {-# INLINE morphism #-}
 instance Pure Suspension where
   pure :: x -> Suspension x
   pure = Meridian
+  {-# INLINE pure #-}
 instance Apply Suspension where
   (<*>) :: Suspension (x -> y) -> Suspension x -> Suspension y
   (<*>) = \cases
@@ -47,34 +49,40 @@ instance Apply Suspension where
     (Meridian f) (Meridian x) -> Meridian (f x)
     (Meridian _) North -> North
     North _ -> North
+  {-# INLINE (<*>) #-}
 instance Bind Suspension where
   (>>=) :: Suspension x -> (x -> Suspension y) -> Suspension y
   (>>=) = \cases
     South _ -> South
     (Meridian x) f -> f x
     North _ -> North
+  {-# INLINE (>>=) #-}
 instance Folds (->) (->) Suspension where
   foldWith :: (Monoid z) => (x -> z) -> Suspension x -> z
   foldWith x_z = \case
     South -> mempty
     Meridian x -> x_z x
     North -> mempty
+  {-# INLINE foldWith #-}
 instance Traversals (->) (->) Suspension where
   traverse :: (Applicative g) => (x -> g y) -> Suspension x -> g (Suspension y)
   traverse x_gy = \case
     South -> pure South
     Meridian x -> morphism Meridian (x_gy x)
     North -> pure North
+  {-# INLINE traverse #-}
 
 suspension :: y -> (x -> y) -> y -> Suspension x -> y
 suspension south meridian north = \case
   South -> south
   Meridian x -> meridian x
   North -> north
+{-# INLINE suspension #-}
 
 instance Control.Applicative Suspension where
   pure :: x -> Suspension x
   pure = Meridian
+  {-# INLINE pure #-}
   (<*>) :: Suspension (x -> y) -> Suspension x -> Suspension y
   (<*>) = \cases
     South _ -> South
@@ -82,9 +90,11 @@ instance Control.Applicative Suspension where
     (Meridian f) (Meridian x) -> Meridian (f x)
     (Meridian _) North -> North
     North _ -> North
+  {-# INLINE (<*>) #-}
 instance Control.Monad Suspension where
   (>>=) :: Suspension x -> (x -> Suspension y) -> Suspension y
   (>>=) = \cases
     South _ -> South
     (Meridian x) f -> f x
     North _ -> North
+  {-# INLINE (>>=) #-}

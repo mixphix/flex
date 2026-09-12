@@ -20,7 +20,7 @@ import GHC.Read (Read)
 import GHC.Show (Show)
 
 data Projective x
-  = Projective x
+  = Projective !x
   | Infinity
   deriving
     ( Eq
@@ -37,46 +37,56 @@ data Projective x
 instance Morphisms (->) (->) Projective where
   morphism :: (x -> y) -> Projective x -> Projective y
   morphism = Data.fmap
+  {-# INLINE morphism #-}
 instance Pure Projective where
   pure :: x -> Projective x
   pure = Projective
+  {-# INLINE pure #-}
 instance Apply Projective where
   liftA2 :: (x -> y -> z) -> Projective x -> Projective y -> Projective z
   liftA2 xyz = \cases
     (Projective x) (Projective y) -> Projective (xyz x y)
     _ _ -> Infinity
+  {-# INLINE liftA2 #-}
 instance Bind Projective where
   (>>=) :: Projective x -> (x -> Projective y) -> Projective y
   (>>=) = \cases
     Infinity _ -> Infinity
     (Projective x) f -> f x
+  {-# INLINE (>>=) #-}
 instance Folds (->) (->) Projective where
   foldWith :: (Monoid z) => (x -> z) -> Projective x -> z
   foldWith x_z = \case
     Projective x -> x_z x
     Infinity -> mempty
+  {-# INLINE foldWith #-}
 instance Traversals (->) (->) Projective where
   traverse :: (Applicative g) => (x -> g y) -> Projective x -> g (Projective y)
   traverse x_fy = \case
     Projective x -> morphism Projective (x_fy x)
     Infinity -> pure Infinity
+  {-# INLINE traverse #-}
 instance Control.Applicative Projective where
   pure :: x -> Projective x
   pure = Projective
+  {-# INLINE pure #-}
   liftA2 :: (x -> y -> z) -> Projective x -> Projective y -> Projective z
   liftA2 xyz = \cases
     (Projective x) (Projective y) -> Projective (xyz x y)
     _ _ -> Infinity
+  {-# INLINE liftA2 #-}
 instance Control.Monad Projective where
   (>>=) :: Projective x -> (x -> Projective y) -> Projective y
   (>>=) = \cases
     Infinity _ -> Infinity
     (Projective x) f -> f x
+  {-# INLINE (>>=) #-}
 
 projective :: (x -> y) -> y -> Projective x -> y
 projective projective_ infinity = \case
   Projective x -> projective_ x
   Infinity -> infinity
+{-# INLINE projective #-}
 
 newtype Tropical x = TropicalProjective (Projective x)
   deriving
@@ -101,40 +111,50 @@ pattern Pole = TropicalProjective Infinity
 instance Morphisms (->) (->) Tropical where
   morphism :: (x -> y) -> Tropical x -> Tropical y
   morphism = Data.fmap
+  {-# INLINE morphism #-}
 instance Pure Tropical where
   pure :: x -> Tropical x
   pure = Tropical
+  {-# INLINE pure #-}
 instance Apply Tropical where
   liftA2 :: (x -> y -> z) -> Tropical x -> Tropical y -> Tropical z
   liftA2 x_y_z = \cases
     (Tropical x) (Tropical y) -> Tropical (x_y_z x y)
     _ _ -> Pole
+  {-# INLINE liftA2 #-}
 instance Bind Tropical where
   (>>=) :: Tropical x -> (x -> Tropical y) -> Tropical y
   (>>=) = \cases
     Pole _ -> Pole
     (Tropical x) f -> f x
+  {-# INLINE (>>=) #-}
 instance Folds (->) (->) Tropical where
   foldWith :: (Monoid z) => (x -> z) -> Tropical x -> z
   foldWith x_z = \case
     Tropical x -> x_z x
     Pole -> mempty
+  {-# INLINE foldWith #-}
 instance Traversals (->) (->) Tropical where
   traverse :: (Applicative g) => (x -> g y) -> Tropical x -> g (Tropical y)
   traverse x_fy = \case
     Tropical x -> morphism Tropical (x_fy x)
     Pole -> pure Pole
+  {-# INLINE traverse #-}
 instance Control.Applicative Tropical where
   pure :: x -> Tropical x
   pure = Tropical
+  {-# INLINE pure #-}
   liftA2 :: (x -> y -> z) -> Tropical x -> Tropical y -> Tropical z
   liftA2 = liftA2
+  {-# INLINE liftA2 #-}
 instance Control.Monad Tropical where
   (>>=) :: Tropical x -> (x -> Tropical y) -> Tropical y
   (>>=) = \cases
     Pole _ -> Pole
     (Tropical x) f -> f x
+  {-# INLINE (>>=) #-}
 
 tropical :: (x -> y) -> y -> Tropical x -> y
 tropical projective_ infinity = \case
   TropicalProjective p -> projective projective_ infinity p
+{-# INLINE tropical #-}

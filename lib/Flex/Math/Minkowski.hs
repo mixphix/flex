@@ -11,6 +11,8 @@ import Flex.Math.Category
 import Flex.Math.Module
 import Flex.Math.Numbers
 
+import Data.Bounded (Bounded)
+import Data.Enum (Enum)
 import Data.Eq (Eq)
 import Data.Foldable qualified as Data
 import Data.Functor qualified as Data
@@ -58,7 +60,7 @@ data MinkowskiBasis
   | X
   | Y
   | Z
-  deriving (Eq, Ord, Show, Generic)
+  deriving (Eq, Ord, Enum, Bounded)
 
 instance
   (Addition x x x) =>

@@ -22,12 +22,14 @@ instance (KnownNat n, Ring x) => Basis (V n) x where
   basis j' =
     let j = from (getFinite j')
      in vn (natVal (Proxy @n)) \i -> if i == j then one else zero
+  {-# INLINE basis #-}
 
 instance (Ring x) => Basis Complex x where
   basis :: ComplexBasis -> Complex x
   basis = \case
     Real -> one :+ zero
     Imaginary -> zero :+ one
+  {-# INLINE basis #-}
 
 instance (Ring x) => Basis Quaternion x where
   basis :: QuaternionBasis -> Quaternion x
@@ -36,18 +38,21 @@ instance (Ring x) => Basis Quaternion x where
     I -> Quaternion zero one zero zero
     J -> Quaternion zero zero one zero
     K -> Quaternion zero zero zero one
+  {-# INLINE basis #-}
 
 instance (Ring x) => Basis Dual x where
   basis :: DualBasis -> Dual x
   basis = \case
     Primal -> one :& zero
     Dual -> zero :& one
+  {-# INLINE basis #-}
 
 instance (Ring x) => Basis Perplex x where
   basis :: PerplexBasis -> Perplex x
   basis = \case
     Simple -> one :! zero
     Perplex -> zero :! one
+  {-# INLINE basis #-}
 
 instance (Ring x) => Basis Minkowski x where
   basis :: MinkowskiBasis -> Minkowski x
@@ -56,3 +61,4 @@ instance (Ring x) => Basis Minkowski x where
     X -> Minkowski zero one zero zero
     Y -> Minkowski zero zero one zero
     Z -> Minkowski zero zero zero one
+  {-# INLINE basis #-}

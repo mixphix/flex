@@ -29,7 +29,9 @@ import Flex.Math.Numbers
 import Flex.Math.Structure
 
 import Data.Bool (Bool, (||))
+import Data.Bounded (Bounded)
 import Data.Complex (Complex ((:+)))
+import Data.Enum (Enum)
 import Data.Eq (Eq (..))
 import Data.Foldable qualified as Data
 import Data.Functor qualified as Data
@@ -369,17 +371,11 @@ instance Structure Sesquilinear where
   lawful = \case
     SesquilinearConjugateSwap v w -> v <•> w == conjugate (w <•> v)
     SesquilinearLinearFirst a x b y z ->
-      (a *. x + b *. y)
-        <•> z
-        == a
-        * (x <•> z)
-        + b
-        * (y <•> z)
+      ((a *. x + b *. y) <•> z)
+        == (a * (x <•> z)) + (b * (y <•> z))
     SesquilinearConjugateLinearSecond x a y b z ->
-      x
-        <•> (a *. y + b *. z)
-        == (conjugate a * (x <•> y))
-        + (conjugate b * (x <•> z))
+      (x <•> (a *. y + b *. z))
+        == (conjugate a * (x <•> y)) + (conjugate b * (x <•> z))
 deriving instance (Show v, Show (Scalar v)) => Show (Signature Sesquilinear v)
 deriving instance (Show v, Show (Scalar v)) => Show (Laws Sesquilinear v)
 
@@ -463,6 +459,8 @@ data QuaternionBasis
   | I
   | J
   | K
+  deriving (Eq, Ord, Enum, Bounded)
+
 instance Tabulation Quaternion where
   type Table Quaternion = QuaternionBasis
   fromTable :: (Table Quaternion -> x) -> Quaternion x
