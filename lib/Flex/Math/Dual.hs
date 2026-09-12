@@ -31,7 +31,7 @@ import Text.Read (Read)
 import Text.Show (Show)
 
 infixl 4 :&
-data Dual x = x :& x
+data Dual x = !x :& !x
   deriving
     ( Eq
     , Ord
@@ -50,51 +50,65 @@ data DualBasis
 instance Morphisms (->) (->) Dual where
   morphism :: (x -> y) -> Dual x -> Dual y
   morphism = Data.fmap
+  {-# INLINE morphism #-}
 instance Folds (->) (->) Dual where
   foldWith :: (Monoid z) => (x -> z) -> Dual x -> z
   foldWith x_z (xp :& xt) = x_z xp <> x_z xt
+  {-# INLINE foldWith #-}
 instance Folds1 (->) (->) Dual where
   foldWith1 :: (Semigroup z) => (x -> z) -> Dual x -> z
   foldWith1 x_z (xp :& xt) = x_z xp <> x_z xt
+  {-# INLINE foldWith1 #-}
 instance Traversals (->) (->) Dual where
   traverse :: (Applicative g) => (x -> g y) -> Dual x -> g (Dual y)
   traverse x_gy (xp :& xt) = liftA2 (:&) (x_gy xp) (x_gy xt)
+  {-# INLINE traverse #-}
 instance Traversals1 (->) (->) Dual where
   traverse1 :: (Apply g) => (x -> g y) -> Dual x -> g (Dual y)
   traverse1 x_gy (xp :& xt) = liftA2 (:&) (x_gy xp) (x_gy xt)
-instance Morphisms (Ix (Either () ())) (->) Dual where
-  morphism :: Ix (Either () ()) x y -> Dual x -> Dual y
+  {-# INLINE traverse1 #-}
+instance Morphisms (Ix DualBasis) (->) Dual where
+  morphism :: Ix DualBasis x y -> Dual x -> Dual y
   morphism (Ix e_x_y) (xp :& xt) =
-    e_x_y (Left ()) xp :& e_x_y (Right ()) xt
-instance Folds (Ix (Either () ())) (->) Dual where
-  foldWith :: (Monoid z) => Ix (Either () ()) x z -> Dual x -> z
-  foldWith (Ix e_x_z) (xp :& xt) = e_x_z (Left ()) xp <> e_x_z (Right ()) xt
-instance Traversals (Ix (Either () ())) (->) Dual where
-  traverse :: (Applicative g) => Ix (Either () ()) x (g y) -> Dual x -> g (Dual y)
-  traverse (Ix e_x_gy) (xp :& xt) = liftA2 (:&) (e_x_gy (Left ()) xp) (e_x_gy (Right ()) xt)
-instance Folds1 (Ix (Either () ())) (->) Dual where
-  foldWith1 :: (Semigroup z) => Ix (Either () ()) x z -> Dual x -> z
-  foldWith1 (Ix e_x_z) (xp :& xt) = e_x_z (Left ()) xp <> e_x_z (Right ()) xt
-instance Traversals1 (Ix (Either () ())) (->) Dual where
-  traverse1 :: (Apply g) => Ix (Either () ()) x (g y) -> Dual x -> g (Dual y)
-  traverse1 (Ix e_x_gy) (xp :& xt) = liftA2 (:&) (e_x_gy (Left ()) xp) (e_x_gy (Right ()) xt)
+    e_x_y Primal xp :& e_x_y Dual xt
+  {-# INLINE morphism #-}
+instance Folds (Ix DualBasis) (->) Dual where
+  foldWith :: (Monoid z) => Ix DualBasis x z -> Dual x -> z
+  foldWith (Ix e_x_z) (xp :& xt) = e_x_z Primal xp <> e_x_z Dual xt
+  {-# INLINE foldWith #-}
+instance Traversals (Ix DualBasis) (->) Dual where
+  traverse :: (Applicative g) => Ix DualBasis x (g y) -> Dual x -> g (Dual y)
+  traverse (Ix e_x_gy) (xp :& xt) = liftA2 (:&) (e_x_gy Primal xp) (e_x_gy Dual xt)
+instance Folds1 (Ix DualBasis) (->) Dual where
+  foldWith1 :: (Semigroup z) => Ix DualBasis x z -> Dual x -> z
+  foldWith1 (Ix e_x_z) (xp :& xt) = e_x_z Primal xp <> e_x_z Dual xt
+  {-# INLINE foldWith1 #-}
+instance Traversals1 (Ix DualBasis) (->) Dual where
+  traverse1 :: (Apply g) => Ix DualBasis x (g y) -> Dual x -> g (Dual y)
+  traverse1 (Ix e_x_gy) (xp :& xt) = liftA2 (:&) (e_x_gy Primal xp) (e_x_gy Dual xt)
+  {-# INLINE traverse1 #-}
 instance Apply Dual where
   (<*>) :: Dual (x -> y) -> Dual x -> Dual y
   (py :& ty) <*> (xp :& xt) = py xp :& ty xt
+  {-# INLINE (<*>) #-}
 instance Collectable Dual where
   distribute :: (Along f) => f (Dual x) -> Dual (f x)
   distribute fd = morphism primal fd :& morphism tangent fd
+  {-# INLINE distribute #-}
 instance Tabulation Dual where
   type Table Dual = DualBasis
   fromTable :: (DualBasis -> a) -> Dual a
   fromTable f = f Primal :& f Dual
+  {-# INLINE fromTable #-}
   toTable :: Dual a -> DualBasis -> a
   toTable (r :& i) = \case
     Primal -> r
     Dual -> i
+  {-# INLINE toTable #-}
 instance Data.Foldable1 Dual where
   foldMap1 :: (Semigroup m) => (x -> m) -> Dual x -> m
   foldMap1 x_m (xp :& xt) = x_m xp <> x_m xt
+  {-# INLINE foldMap1 #-}
 
 epsilon :: (Additive x, Multiplicative x) => Dual x
 epsilon = zero :& one
