@@ -95,6 +95,7 @@ module Flex.Math
   , Minkowski (..)
   , List1
   , eval
+  , evalMatrix
 
     -- ** Modules, vector spaces, algebras
   , Module (type Scalar)
@@ -251,6 +252,9 @@ default Num (Natural, Integer, Int, Rational, Double)
 default Num.Integral (Natural, Integer, Int)
 default Num.Fractional (Rational, Double)
 
-eval ::
-  forall v. (Eq v, Ring (Scalar v), Algebra v) => List1 (Scalar v) -> v -> v
-eval ps x = foldr (\a p -> (a *. one @v) + x *. p) zero ps
+eval :: (Eq x, Ring x) => List1 x -> x -> x
+eval ps x = foldr (\a p -> a + x *. p) zero ps
+
+evalMatrix ::
+  forall n x. (KnownNat n, Eq x, Ring x) => List1 x -> M n n x -> M n n x
+evalMatrix ps x = foldr (\a p -> (a *. (one @(M n n x))) + x *. p) zero ps
