@@ -22,17 +22,17 @@ instance Action (Endo x) x where
   (@) :: Endo x -> x -> x
   (@) = appEndo
   {-# INLINE (@) #-}
-instance
-  ( KnownNat n
-  , AdditiveAbelian x
-  , Multiplication x x x
-  ) =>
-  Action (M n n x) (V n x)
-  where
-  (@) :: M n n x -> V n x -> V n x
-  (@) = (*.)
-  {-# INLINE (@) #-}
-instance (KnownNat n) => Action (S n) (V n x) where
-  (@) :: S n -> V n x -> V n x
-  (@) = permute
-  {-# INLINE (@) #-}
+-- instance
+--   ( KnownNat n
+--   , AdditiveAbelian x
+--   , Multiplication x x x
+--   ) =>
+--   Action (M n n x) (V n x)
+--   where
+--   (@) :: M n n x -> V n x -> V n x
+--   (@) = (*.)
+--   {-# INLINE (@) #-}
+-- instance (KnownNat n) => Action (S n) (V n x) where
+--   (@) :: S n -> V n x -> V n x
+--   (@) = permute
+--   {-# INLINE (@) #-}

@@ -101,9 +101,11 @@ module Flex.Math
   , Scalar (..)
   , Vector
   , Bilinear ((•))
+  , qd
   , Sesquilinear ((<•>))
   , InnerProduct
   , quadrance
+  , normalize
   , Algebra
   , Unital
   , AssociativeAlgebra
@@ -114,24 +116,15 @@ module Flex.Math
     -- *** Examples
   , Complex ((:+))
   , Quaternion (..)
-  , V (V, unV)
+  , V (VV, V1, V2, V3, V4, V5, V6, V7, V8)
   , dimensions
-  , M (M, unM)
+  , M (M, unM, M22, M23, M24, M32, M33, M34, M42, M43, M44)
   , row
   , column
-  , m22
-  , m23
-  , m24
-  , m32
-  , m33
-  , m34
-  , m42
-  , m43
-  , m44
   , Matrix (transpose)
   , adjoint
   , Square (trace, determinant)
-  , S (S, s)
+  -- , S (S, s)
 
     -- ** Lattices
   , Meet ((/\))

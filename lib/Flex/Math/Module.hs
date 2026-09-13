@@ -10,7 +10,7 @@ module Flex.Math.Module
   , Sesquilinear ((<•>))
   , quadrance
   , quadrature
-  , normalized
+  , normalize
   , InnerProduct
   , Complex ((:+))
   , eye
@@ -333,10 +333,10 @@ quadrature :: (Sesquilinear v) => v -> v -> Scalar v
 quadrature u v = quadrance (u - v)
 {-# INLINE quadrature #-}
 
-normalized ::
+normalize ::
   (Sesquilinear v, Root (Scalar v), Division v (Scalar v) v) => v -> v
-normalized u = u /. (2 √ quadrance u)
-{-# INLINE normalized #-}
+normalize u = u /. (2 √ quadrance u)
+{-# INLINE normalize #-}
 
 instance Structure Sesquilinear where
   data Signature Sesquilinear v

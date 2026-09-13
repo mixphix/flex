@@ -1,34 +1,33 @@
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE NoStarIsType #-}
+{-# OPTIONS_GHC -fplugin GHC.TypeLits.KnownNat.Solver #-}
 
 module Flex.Math.Matrix
   ( Matrix (transpose)
   , adjoint
   , Square (trace, determinant)
-  , V (V, unV)
+  , V (VV, V1, V2, V3, V4, V5, V6, V7, V8)
   , dimensions
+  , (++)
+  , vn
+  , vnM
   , (!)
-  , push
-  , pushBack
-  , pop
-  , popBack
+  , setV
   , toList
   , fromList
-  , zipWith
-  , zip
   , projection
   , householder
   , orthogonalize
   , orthonormalize
-  , M (M, unM)
+  , M (M, unM, M22, M23, M24, M32, M33, M34, M42, M43, M44)
   , rows
   , unrows
   , row
   , columns
   , uncolumns
   , column
-  , outer
+  , outerproduct
   , toLists
   , qr
   , lu
@@ -45,25 +44,6 @@ module Flex.Math.Matrix
   , lowerTriangular
   , symmetric
   , hermitian
-  , vn
-  , vnM
-  , v1
-  , withV1
-  , v2
-  , withV2
-  , v3
-  , withV3
-  , v4
-  , withV4
-  , m22
-  , m23
-  , m24
-  , m32
-  , m33
-  , m34
-  , m42
-  , m43
-  , m44
   , Scalar (..)
   , Signature (..)
   , Term (..)
@@ -84,7 +64,6 @@ import Flex.Math.Foldable
 import Flex.Math.Module
 import Flex.Math.Numbers
 import Flex.Math.Optics
-import Flex.Math.Optics.TH
 import Flex.Math.Structure
 
 import Control.Applicative qualified as Control
@@ -97,13 +76,17 @@ import Data.Finite (Finite, finite, getFinite)
 import Data.Foldable qualified as Data
 import Data.Function (const, flip, ($))
 import Data.Functor qualified as Data
+import Data.Functor.Const (Const (Const))
+import Data.Kind (Type)
 import Data.List qualified as List
-import Data.List1 (List1, pattern Sole, pattern (:||))
+import Data.List1 (List1)
 import Data.Maybe
 import Data.Ord (Ord (..), Ordering (..))
 import Data.Proxy
 import Data.Traversable qualified as Data
-import Data.Vector qualified as Vector
+import Data.Type.Equality (type (:~:) (Refl), type (~))
+import Data.Type.Ord
+import GHC.Err qualified as GHC
 import GHC.Generics (Generic)
 import GHC.Show
 import GHC.TypeNats
@@ -157,177 +140,604 @@ instance Structure (Square m) where
 deriving instance (Show (m x)) => Show (Signature (Square m) x)
 deriving instance (Show (m x), Show (Scalar (m x))) => Show (Laws (Square m) x)
 
-newtype V n x = V {unV :: Vector.Vector x} deriving (Data.Functor)
+type V :: Nat -> Type -> Type
+data V n x where
+  V1 :: !x -> V 1 x
+  V2 :: !x -> !x -> V 2 x
+  V3 :: !x -> !x -> !x -> V 3 x
+  V4 :: !x -> !x -> !x -> !x -> V 4 x
+  VV ::
+    (KnownNat m, KnownNat p, m + p ~ n, p <= 4) => !(V m x) -> !(V p x) -> V n x
+
+pattern V5 :: x -> x -> x -> x -> x -> V 5 x
+pattern V5 x0 x1 x2 x3 x4 = VV (V4 x0 x1 x2 x3) (V1 x4)
+
+pattern V6 :: x -> x -> x -> x -> x -> x -> V 6 x
+pattern V6 x0 x1 x2 x3 x4 x5 = VV (V4 x0 x1 x2 x3) (V2 x4 x5)
+
+pattern V7 :: x -> x -> x -> x -> x -> x -> x -> V 7 x
+pattern V7 x0 x1 x2 x3 x4 x5 x6 = VV (V4 x0 x1 x2 x3) (V3 x4 x5 x6)
+
+pattern V8 :: x -> x -> x -> x -> x -> x -> x -> x -> V 8 x
+pattern V8 x0 x1 x2 x3 x4 x5 x6 x7 = VV (V4 x0 x1 x2 x3) (V4 x4 x5 x6 x7)
+
+(++) :: forall m n x. (KnownNat m, KnownNat n) => V m x -> V n x -> V (m + n) x
+(++) = \cases
+  (V1 x) (V1 y) -> V2 x y
+  (V1 x) (V2 y0 y1) -> V3 x y0 y1
+  (V1 x) (V3 y0 y1 y2) -> V4 x y0 y1 y2
+  (V1 x) (V4 y0 y1 y2 y3) -> VV (V4 x y0 y1 y2) (V1 y3)
+  (V1 x) (VV (vm :: V m0 x) (vp :: V p0 x)) -> case (V1 x) ++ vm of
+    vm' -> case sameNat (Proxy @((1 + m0) + p0)) (Proxy @(1 + n)) of
+      Just Refl -> vm' ++ vp
+      Nothing -> GHC.error "Flex.Math.Matrix.++: fail"
+  (V2 x0 x1) (V1 y) -> V3 x0 x1 y
+  (V2 x0 x1) (V2 y0 y1) -> V4 x0 x1 y0 y1
+  (V2 x0 x1) (V3 y0 y1 y2) -> VV (V4 x0 x1 y0 y1) (V1 y2)
+  (V2 x0 x1) (V4 y0 y1 y2 y3) -> VV (V4 x0 x1 y0 y1) (V2 y2 y3)
+  (V2 x0 x1) (VV (vm :: V m0 x) (vp :: V p0 x)) -> case (V2 x0 x1) ++ vm of
+    vm' -> case sameNat (Proxy @((2 + m0) + p0)) (Proxy @(2 + n)) of
+      Just Refl -> vm' ++ vp
+      Nothing -> GHC.error "Flex.Math.Matrix.++: fail"
+  (V3 x0 x1 x2) (V1 y) -> V4 x0 x1 x2 y
+  (V3 x0 x1 x2) (V2 y0 y1) -> VV (V4 x0 x1 x2 y0) (V1 y1)
+  (V3 x0 x1 x2) (V3 y0 y1 y2) -> VV (V4 x0 x1 x2 y0) (V2 y1 y2)
+  (V3 x0 x1 x2) (V4 y0 y1 y2 y3) -> VV (V4 x0 x1 x2 y0) (V3 y1 y2 y3)
+  (V3 x0 x1 x2) (VV (vm :: V m0 x) (vp :: V p0 x)) -> case (V3 x0 x1 x2) ++ vm of
+    vm' -> case sameNat (Proxy @((3 + m0) + p0)) (Proxy @(3 + n)) of
+      Just Refl -> vm' ++ vp
+      Nothing -> GHC.error "Flex.Math.Matrix.++: fail"
+  (V4 x0 x1 x2 x3) (V1 y) -> VV (V4 x0 x1 x2 x3) (V1 y)
+  (V4 x0 x1 x2 x3) (V2 y0 y1) -> VV (V4 x0 x1 x2 x3) (V2 y0 y1)
+  (V4 x0 x1 x2 x3) (V3 y0 y1 y2) -> VV (V4 x0 x1 x2 x3) (V3 y0 y1 y2)
+  (V4 x0 x1 x2 x3) (V4 y0 y1 y2 y3) -> VV (V4 x0 x1 x2 x3) (V4 y0 y1 y2 y3)
+  (V4 x0 x1 x2 x3) (VV (vm :: V m0 x) (vp :: V p0 x)) ->
+    case sameNat (Proxy @((4 + m0) + p0)) (Proxy @(4 + n)) of
+      Just Refl -> VV (V4 x0 x1 x2 x3 ++ vm) vp
+      Nothing -> GHC.error "Flex.Math.Matrix.++: fail"
+  (VV (vm :: V m0 x) (vp :: V p0 x)) v ->
+    case sameNat (Proxy @(m0 + (p0 + n))) (Proxy @(m + n)) of
+      Just Refl -> vm ++ (vp ++ v)
+      Nothing -> GHC.error "Flex.Math.Matrix.++: fail"
+{-# INLINE (++) #-}
 
 instance (KnownNat n, Eq x) => Eq (V n x) where
   (==) :: V n x -> V n x -> Bool
-  V v == V w = v == w
+  (==) = \cases
+    (V1 x) (V1 y) -> x == y
+    (V2 x0 x1) (V2 y0 y1) -> x0 == y0 && x1 == y1
+    (V3 x0 x1 x2) (V3 y0 y1 y2) -> x0 == y0 && x1 == y1 && x2 == y2
+    (V4 x0 x1 x2 x3) (V4 y0 y1 y2 y3) -> x0 == y0 && x1 == y1 && x2 == y2 && x3 == y3
+    (VV (m0 :: V m0 x) p0) (VV (m1 :: V m1 x) p1) -> case sameNat (Proxy @m0) (Proxy @m1) of
+      Just Refl -> m0 == m1 && p0 == p1
+      Nothing -> (m0 ++ p0) == (m1 ++ p1)
+    _ _ -> False
   {-# INLINE (==) #-}
-
 instance (KnownNat n, Ord x) => Ord (V n x) where
-  compare :: V n x -> V n x -> Ordering
-  compare (V v) (V w) = fold (Vector.zipWith (\_v _w -> compare _v _w) v w)
+  compare :: (KnownNat n, Ord x) => V n x -> V n x -> Ordering
+  compare = \cases
+    (V1 x) (V1 y) -> compare x y
+    (V2 x0 x1) (V2 y0 y1) -> compare x0 y0 <> compare x1 y1
+    (V3 x0 x1 x2) (V3 y0 y1 y2) -> compare x0 y0 <> compare x1 y1 <> compare x2 y2
+    (V4 x0 x1 x2 x3) (V4 y0 y1 y2 y3) -> compare x0 y0 <> compare x1 y1 <> compare x2 y2 <> compare x3 y3
+    (VV (m0 :: V m0 x) (p0 :: V p0 x)) (VV (m1 :: V m1 x) (p1 :: V p1 x)) -> case sameNat (Proxy @m0) (Proxy @m1) of
+      Just Refl -> compare m0 m1 <> compare p0 p1
+      Nothing -> compare (m0 ++ p0) (m1 ++ p1)
+    v (VV m p) -> compare v (m ++ p)
+    (VV m p) v -> compare (m ++ p) v
   {-# INLINE compare #-}
 
 instance (KnownNat n, Show x) => Show (V n x) where
   show :: V n x -> [Char]
-  show v =
-    "V {"
-      <> foldWith (\i -> " " <> show (v ! i) <> " ") (dimensions (Proxy @n))
-      <> "}"
+  show v = "V { " <> inside v <> " }"
+   where
+    inside :: forall m. V m x -> [Char]
+    inside = \case
+      V1 x -> show x
+      V2 x0 x1 -> show x0 <> " " <> show x1
+      V3 x0 x1 x2 -> show x0 <> " " <> show x1 <> " " <> show x2
+      V4 x0 x1 x2 x3 -> show x0 <> " " <> show x1 <> " " <> show x2 <> " " <> show x3
+      VV vm vp -> inside vm <> " " <> inside vp
+    {-# INLINE inside #-}
   {-# INLINE show #-}
 
-dimensions :: forall n. (KnownNat n) => Proxy n -> [Natural]
-dimensions Proxy = case natVal (Proxy @n) of
-  0 -> []
-  n -> [zero .. n - one @Natural]
+vn :: forall n x. (KnownNat n) => (Natural -> x) -> V n x
+vn f = case cmpNat (Proxy @5) (Proxy @n) of
+  GTI -> case sameNat (Proxy @1) (Proxy @n) of
+    Just Refl -> V1 (f 0)
+    Nothing -> case sameNat (Proxy @2) (Proxy @n) of
+      Just Refl -> V2 (f 0) (f 1)
+      Nothing -> case sameNat (Proxy @3) (Proxy @n) of
+        Just Refl -> V3 (f 0) (f 1) (f 2)
+        Nothing -> case sameNat (Proxy @4) (Proxy @n) of
+          Just Refl -> V4 (f 0) (f 1) (f 2) (f 3)
+          Nothing -> GHC.error "Flex.Math.Matrix.vn: fail"
+  _ -> case sameNat (Proxy @n) (Proxy @((n - 4) + 4)) of
+    Just Refl -> case cmpNat (Proxy @4) (Proxy @n) of
+      LTI -> (vn f :: V (n - 4) x) ++ (vn (f . (+ natVal (Proxy @(n - 4)))) :: V 4 x)
+      GTI -> GHC.error "pure: fail"
+    _ -> GHC.error "pure: fail"
+{-# INLINE vn #-}
+
+vnM :: forall n x m. (KnownNat n, Apply m) => (Natural -> m x) -> m (V n x)
+vnM f = case cmpNat (Proxy @5) (Proxy @n) of
+  GTI -> case sameNat (Proxy @1) (Proxy @n) of
+    Just Refl -> morphism V1 (f 0)
+    Nothing -> case sameNat (Proxy @2) (Proxy @n) of
+      Just Refl -> liftA2 V2 (f 0) (f 1)
+      Nothing -> case sameNat (Proxy @3) (Proxy @n) of
+        Just Refl -> liftA3 V3 (f 0) (f 1) (f 2)
+        Nothing -> case sameNat (Proxy @4) (Proxy @n) of
+          Just Refl -> liftA3 V4 (f 0) (f 1) (f 2) <*> (f 3)
+          Nothing -> GHC.error "Flex.Math.Matrix.vnM: fail"
+  _ -> case sameNat (Proxy @n) (Proxy @((n - 4) + 4)) of
+    Just Refl -> case cmpNat (Proxy @4) (Proxy @n) of
+      LTI ->
+        liftA2
+          (++)
+          (vnM f :: m (V (n - 4) x))
+          (vnM (f . (+ natVal (Proxy @(n - 4)))) :: m (V 4 x))
+      GTI -> GHC.error "pure: fail"
+    _ -> GHC.error "pure: fail"
+{-# INLINE vnM #-}
+
+dimensions :: forall n. (KnownNat n) => Const [Natural] n
+dimensions = Const [0 .. natVal (Proxy @n) - 1]
 {-# INLINE dimensions #-}
 
 (!) :: V n x -> Natural -> x
-V f ! x = f Vector.! from x
+v ! n = case v of
+  V1 x -> x
+  V2 x0 x1 -> case n of
+    0 -> x0
+    _ -> x1
+  V3 x0 x1 x2 -> case n of
+    0 -> x0
+    1 -> x1
+    _ -> x2
+  V4 x0 x1 x2 x3 -> case n of
+    0 -> x0
+    1 -> x1
+    2 -> x2
+    _ -> x3
+  VV (m :: V m x) (p :: V p x) -> case compare (natVal (Proxy @m)) n of
+    GT -> m ! n
+    _ -> p ! (n - natVal (Proxy @m))
 {-# INLINE (!) #-}
 
-push :: x -> V n x -> V (n + 1) x
-push x (V v) = V (Vector.singleton x <> v)
-{-# INLINE push #-}
-
-pop :: V (n + 1) x -> (x, V n x)
-pop vv@(V v) = (vv ! 0, V (Vector.drop 1 v))
-{-# INLINE pop #-}
-
-pushBack :: forall n x. (KnownNat n) => x -> V n x -> V (n + 1) x
-pushBack x (V v) = V (v <> Vector.singleton x)
-{-# INLINE pushBack #-}
-
-popBack :: forall n x. (KnownNat n) => V (n + 1) x -> (x, V n x)
-popBack (V v) = (Vector.last v, V (Vector.take (Vector.length v - 1) v))
-{-# INLINE popBack #-}
-
 setV :: Natural -> x -> V n x -> V n x
-setV n x (V v) = V (v Vector.// [(from n, x)])
+setV n x v = case v of
+  V1 _ -> case n of
+    0 -> V1 x
+    _ -> v
+  V2 x0 x1 -> case n of
+    0 -> V2 x x1
+    1 -> V2 x0 x
+    _ -> v
+  V3 x0 x1 x2 -> case n of
+    0 -> V3 x x1 x2
+    1 -> V3 x0 x x2
+    2 -> V3 x0 x1 x
+    _ -> v
+  V4 x0 x1 x2 x3 -> case n of
+    0 -> V4 x x1 x2 x3
+    1 -> V4 x0 x x2 x3
+    2 -> V4 x0 x1 x x3
+    3 -> V4 x0 x1 x2 x
+    _ -> v
+  VV (m :: V m x) (p :: V p x) -> case compare (natVal (Proxy @m)) n of
+    GT -> VV (setV n x m) p
+    _ -> VV m (setV (n - natVal (Proxy @m)) x p)
 {-# INLINE setV #-}
 
-$(Data.traverse (instanceFieldV 0) [1 .. 4])
-$(Data.traverse (instanceFieldV 1) [2 .. 4])
-$(Data.traverse (instanceFieldV 2) [3 .. 4])
-$(Data.traverse (instanceFieldV 3) [4])
+instance (KnownNat n) => Field0 (V n x) (V n x) x x where
+  _0 :: Lens (V n x) (V n x) x x
+  _0 = lens (! 0) (flip (setV 0))
+  {-# INLINE _0 #-}
+instance (KnownNat n) => Field1 (V n x) (V n x) x x where
+  _1 :: Lens (V n x) (V n x) x x
+  _1 = lens (! 1) (flip (setV 1))
+  {-# INLINE _1 #-}
+instance (KnownNat n) => Field2 (V n x) (V n x) x x where
+  _2 :: Lens (V n x) (V n x) x x
+  _2 = lens (! 2) (flip (setV 2))
+  {-# INLINE _2 #-}
+instance (KnownNat n) => Field3 (V n x) (V n x) x x where
+  _3 :: Lens (V n x) (V n x) x x
+  _3 = lens (! 3) (flip (setV 3))
+  {-# INLINE _3 #-}
+instance (KnownNat n) => Field4 (V n x) (V n x) x x where
+  _4 :: Lens (V n x) (V n x) x x
+  _4 = lens (! 4) (flip (setV 4))
+  {-# INLINE _4 #-}
+instance (KnownNat n) => Field5 (V n x) (V n x) x x where
+  _5 :: Lens (V n x) (V n x) x x
+  _5 = lens (! 5) (flip (setV 5))
+  {-# INLINE _5 #-}
+instance (KnownNat n) => Field6 (V n x) (V n x) x x where
+  _6 :: Lens (V n x) (V n x) x x
+  _6 = lens (! 6) (flip (setV 6))
+  {-# INLINE _6 #-}
+instance (KnownNat n) => Field7 (V n x) (V n x) x x where
+  _7 :: Lens (V n x) (V n x) x x
+  _7 = lens (! 7) (flip (setV 7))
+  {-# INLINE _7 #-}
 
 instance Morphisms (->) (->) (V n) where
   morphism :: (x -> y) -> V n x -> V n y
-  morphism = Data.fmap
+  morphism x_y = \case
+    V1 x -> V1 (x_y x)
+    V2 x0 x1 -> V2 (x_y x0) (x_y x1)
+    V3 x0 x1 x2 -> V3 (x_y x0) (x_y x1) (x_y x2)
+    V4 x0 x1 x2 x3 -> V4 (x_y x0) (x_y x1) (x_y x2) (x_y x3)
+    VV m p -> VV (morphism x_y m) (morphism x_y p)
   {-# INLINE morphism #-}
-instance (KnownNat n) => Folds (->) (->) (V n) where
-  foldWith :: (Monoid m) => (x -> m) -> V n x -> m
-  foldWith f (V v) = foldWith f v
+instance Data.Functor (V n) where
+  fmap :: (a -> b) -> V n a -> V n b
+  fmap = morphism
+  {-# INLINE fmap #-}
+instance Folds (->) (->) (V n) where
+  foldWith :: (Monoid z) => (x -> z) -> V n x -> z
+  foldWith x_z = \case
+    V1 x -> x_z x
+    V2 x0 x1 -> x_z x0 <> x_z x1
+    V3 x0 x1 x2 -> x_z x0 <> x_z x1 <> x_z x2
+    V4 x0 x1 x2 x3 -> x_z x0 <> x_z x1 <> x_z x2 <> x_z x3
+    VV m p -> foldWith x_z m <> foldWith x_z p
   {-# INLINE foldWith #-}
-instance (KnownNat n) => Traversals (->) (->) (V n) where
-  traverse :: (Applicative f) => (a -> f b) -> V n a -> f (V n b)
-  traverse f (V v) = morphism V (traverse f v)
+instance Data.Foldable (V n) where
+  foldMap :: (Monoid m) => (a -> m) -> V n a -> m
+  foldMap = foldWith
+  {-# INLINE foldMap #-}
+instance Folds1 (->) (->) (V n) where
+  foldWith1 :: (Semigroup z) => (x -> z) -> V n x -> z
+  foldWith1 x_z = \case
+    V1 x -> x_z x
+    V2 x0 x1 -> x_z x0 <> x_z x1
+    V3 x0 x1 x2 -> x_z x0 <> x_z x1 <> x_z x2
+    V4 x0 x1 x2 x3 -> x_z x0 <> x_z x1 <> x_z x2 <> x_z x3
+    VV m p -> foldWith1 x_z m <> foldWith1 x_z p
+  {-# INLINE foldWith1 #-}
+instance Traversals (->) (->) (V n) where
+  traverse :: (Applicative g) => (x -> g y) -> V n x -> g (V n y)
+  traverse x_gy = \case
+    V1 x -> morphism V1 (x_gy x)
+    V2 x0 x1 -> liftA2 V2 (x_gy x0) (x_gy x1)
+    V3 x0 x1 x2 -> liftA3 V3 (x_gy x0) (x_gy x1) (x_gy x2)
+    V4 x0 x1 x2 x3 -> liftA3 V4 (x_gy x0) (x_gy x1) (x_gy x2) <*> (x_gy x3)
+    VV m p -> liftA2 VV (traverse x_gy m) (traverse x_gy p)
   {-# INLINE traverse #-}
+instance Data.Traversable (V n) where
+  traverse :: (Control.Applicative g) => (x -> g y) -> V n x -> g (V n y)
+  traverse x_gy = \case
+    V1 x -> Data.fmap V1 (x_gy x)
+    V2 x0 x1 -> Control.liftA2 V2 (x_gy x0) (x_gy x1)
+    V3 x0 x1 x2 -> Control.liftA3 V3 (x_gy x0) (x_gy x1) (x_gy x2)
+    V4 x0 x1 x2 x3 -> Control.liftA3 V4 (x_gy x0) (x_gy x1) (x_gy x2) Control.<*> (x_gy x3)
+    VV m p -> Control.liftA2 VV (Data.traverse x_gy m) (Data.traverse x_gy p)
+  {-# INLINE traverse #-}
+instance Traversals1 (->) (->) (V n) where
+  traverse1 :: (Apply g) => (x -> g y) -> V n x -> g (V n y)
+  traverse1 x_gy = \case
+    V1 x -> morphism V1 (x_gy x)
+    V2 x0 x1 -> liftA2 V2 (x_gy x0) (x_gy x1)
+    V3 x0 x1 x2 -> liftA3 V3 (x_gy x0) (x_gy x1) (x_gy x2)
+    V4 x0 x1 x2 x3 -> liftA3 V4 (x_gy x0) (x_gy x1) (x_gy x2) <*> (x_gy x3)
+    VV m p -> liftA2 VV (traverse1 x_gy m) (traverse1 x_gy p)
+  {-# INLINE traverse1 #-}
+
 instance Morphisms (Ix Natural) (->) (V n) where
   morphism :: Ix Natural x y -> V n x -> V n y
-  morphism (Ix i_x_y) (V v) = V (morphism (Ix i_x_y) v)
+  morphism (Ix i_x_y) = \case
+    V1 x -> V1 (i_x_y 0 x)
+    V2 x0 x1 -> V2 (i_x_y 0 x0) (i_x_y 1 x1)
+    V3 x0 x1 x2 -> V3 (i_x_y 0 x0) (i_x_y 1 x1) (i_x_y 2 x2)
+    V4 x0 x1 x2 x3 -> V4 (i_x_y 0 x0) (i_x_y 1 x1) (i_x_y 2 x2) (i_x_y 3 x3)
+    VV (m :: V m x) p ->
+      VV
+        (morphism (Ix i_x_y) m)
+        (morphism (Ix (i_x_y . (+ natVal (Proxy @m)))) p)
   {-# INLINE morphism #-}
-instance (KnownNat n) => Folds (Ix Natural) (->) (V n) where
+instance Morphisms (Ix Integer) (->) (V n) where
+  morphism :: Ix Integer x y -> V n x -> V n y
+  morphism (Ix i_x_y) = \case
+    V1 x -> V1 (i_x_y 0 x)
+    V2 x0 x1 -> V2 (i_x_y 0 x0) (i_x_y 1 x1)
+    V3 x0 x1 x2 -> V3 (i_x_y 0 x0) (i_x_y 1 x1) (i_x_y 2 x2)
+    V4 x0 x1 x2 x3 -> V4 (i_x_y 0 x0) (i_x_y 1 x1) (i_x_y 2 x2) (i_x_y 3 x3)
+    VV (m :: V m x) p ->
+      VV
+        (morphism (Ix i_x_y) m)
+        (morphism (Ix (i_x_y . (+ from (natVal (Proxy @m))))) p)
+  {-# INLINE morphism #-}
+instance Morphisms (Ix Int) (->) (V n) where
+  morphism :: Ix Int x y -> V n x -> V n y
+  morphism (Ix i_x_y) = \case
+    V1 x -> V1 (i_x_y 0 x)
+    V2 x0 x1 -> V2 (i_x_y 0 x0) (i_x_y 1 x1)
+    V3 x0 x1 x2 -> V3 (i_x_y 0 x0) (i_x_y 1 x1) (i_x_y 2 x2)
+    V4 x0 x1 x2 x3 -> V4 (i_x_y 0 x0) (i_x_y 1 x1) (i_x_y 2 x2) (i_x_y 3 x3)
+    VV (m :: V m x) p ->
+      VV
+        (morphism (Ix i_x_y) m)
+        (morphism (Ix (i_x_y . (+ from (natVal (Proxy @m))))) p)
+  {-# INLINE morphism #-}
+instance Folds (Ix Natural) (->) (V n) where
   foldWith :: (Monoid z) => Ix Natural x z -> V n x -> z
-  foldWith (Ix i_x_z) (V v) = foldWith (Ix i_x_z) v
+  foldWith (Ix i_x_z) = \case
+    V1 x -> i_x_z 0 x
+    V2 x0 x1 -> i_x_z 0 x0 <> i_x_z 1 x1
+    V3 x0 x1 x2 -> i_x_z 0 x0 <> i_x_z 1 x1 <> i_x_z 2 x2
+    V4 x0 x1 x2 x3 -> i_x_z 0 x0 <> i_x_z 1 x1 <> i_x_z 2 x2 <> i_x_z 3 x3
+    VV (m :: V m x) p ->
+      foldWith (Ix i_x_z) m
+        <> foldWith (Ix (i_x_z . (+ natVal (Proxy @m)))) p
   {-# INLINE foldWith #-}
-instance (KnownNat n) => Traversals (Ix Natural) (->) (V n) where
+instance Folds (Ix Integer) (->) (V n) where
+  foldWith :: (Monoid z) => Ix Integer x z -> V n x -> z
+  foldWith (Ix i_x_z) = \case
+    V1 x -> i_x_z 0 x
+    V2 x0 x1 -> i_x_z 0 x0 <> i_x_z 1 x1
+    V3 x0 x1 x2 -> i_x_z 0 x0 <> i_x_z 1 x1 <> i_x_z 2 x2
+    V4 x0 x1 x2 x3 -> i_x_z 0 x0 <> i_x_z 1 x1 <> i_x_z 2 x2 <> i_x_z 3 x3
+    VV (m :: V m x) p ->
+      foldWith (Ix i_x_z) m
+        <> foldWith (Ix (i_x_z . (+ from (natVal (Proxy @m))))) p
+  {-# INLINE foldWith #-}
+instance Folds (Ix Int) (->) (V n) where
+  foldWith :: (Monoid z) => Ix Int x z -> V n x -> z
+  foldWith (Ix i_x_z) = \case
+    V1 x -> i_x_z 0 x
+    V2 x0 x1 -> i_x_z 0 x0 <> i_x_z 1 x1
+    V3 x0 x1 x2 -> i_x_z 0 x0 <> i_x_z 1 x1 <> i_x_z 2 x2
+    V4 x0 x1 x2 x3 -> i_x_z 0 x0 <> i_x_z 1 x1 <> i_x_z 2 x2 <> i_x_z 3 x3
+    VV (m :: V m x) p ->
+      foldWith (Ix i_x_z) m
+        <> foldWith (Ix (i_x_z . (+ from (natVal (Proxy @m))))) p
+  {-# INLINE foldWith #-}
+instance Folds1 (Ix Natural) (->) (V n) where
+  foldWith1 :: (Semigroup z) => Ix Natural x z -> V n x -> z
+  foldWith1 (Ix i_x_z) = \case
+    V1 x -> i_x_z 0 x
+    V2 x0 x1 -> i_x_z 0 x0 <> i_x_z 1 x1
+    V3 x0 x1 x2 -> i_x_z 0 x0 <> i_x_z 1 x1 <> i_x_z 2 x2
+    V4 x0 x1 x2 x3 -> i_x_z 0 x0 <> i_x_z 1 x1 <> i_x_z 2 x2 <> i_x_z 3 x3
+    VV (m :: V m x) p ->
+      foldWith1 (Ix i_x_z) m
+        <> foldWith1 (Ix (i_x_z . (+ natVal (Proxy @m)))) p
+  {-# INLINE foldWith1 #-}
+instance Folds1 (Ix Integer) (->) (V n) where
+  foldWith1 :: (Semigroup z) => Ix Integer x z -> V n x -> z
+  foldWith1 (Ix i_x_z) = \case
+    V1 x -> i_x_z 0 x
+    V2 x0 x1 -> i_x_z 0 x0 <> i_x_z 1 x1
+    V3 x0 x1 x2 -> i_x_z 0 x0 <> i_x_z 1 x1 <> i_x_z 2 x2
+    V4 x0 x1 x2 x3 -> i_x_z 0 x0 <> i_x_z 1 x1 <> i_x_z 2 x2 <> i_x_z 3 x3
+    VV (m :: V m x) p ->
+      foldWith1 (Ix i_x_z) m
+        <> foldWith1 (Ix (i_x_z . (+ from (natVal (Proxy @m))))) p
+  {-# INLINE foldWith1 #-}
+instance Folds1 (Ix Int) (->) (V n) where
+  foldWith1 :: (Semigroup z) => Ix Int x z -> V n x -> z
+  foldWith1 (Ix i_x_z) = \case
+    V1 x -> i_x_z 0 x
+    V2 x0 x1 -> i_x_z 0 x0 <> i_x_z 1 x1
+    V3 x0 x1 x2 -> i_x_z 0 x0 <> i_x_z 1 x1 <> i_x_z 2 x2
+    V4 x0 x1 x2 x3 -> i_x_z 0 x0 <> i_x_z 1 x1 <> i_x_z 2 x2 <> i_x_z 3 x3
+    VV (m :: V m x) p ->
+      foldWith1 (Ix i_x_z) m
+        <> foldWith1 (Ix (i_x_z . (+ from (natVal (Proxy @m))))) p
+  {-# INLINE foldWith1 #-}
+instance Traversals (Ix Natural) (->) (V n) where
   traverse ::
-    (Applicative f) => Ix Natural a (f b) -> V n a -> f (V n b)
-  traverse (Ix f) (V v) = morphism V (traverse (Ix f) v)
+    (Applicative g) => Ix Natural x (g y) -> V n x -> g (V n y)
+  traverse (Ix i_x_gy) = \case
+    V1 x -> morphism V1 (i_x_gy 0 x)
+    V2 x0 x1 -> liftA2 V2 (i_x_gy 0 x0) (i_x_gy 1 x1)
+    V3 x0 x1 x2 -> liftA3 V3 (i_x_gy 0 x0) (i_x_gy 1 x1) (i_x_gy 2 x2)
+    V4 x0 x1 x2 x3 -> liftA3 V4 (i_x_gy 0 x0) (i_x_gy 1 x1) (i_x_gy 2 x2) <*> (i_x_gy 3 x3)
+    VV (m :: V m x) p ->
+      liftA2
+        VV
+        (traverse (Ix i_x_gy) m)
+        (traverse (Ix (i_x_gy . (+ natVal (Proxy @m)))) p)
   {-# INLINE traverse #-}
-instance (KnownNat n) => Data.Foldable (V n) where
-  foldMap :: (Monoid m) => (x -> m) -> V n x -> m
-  foldMap f (V v) = foldWith f v
-  {-# INLINE foldMap #-}
-instance (KnownNat n) => Data.Traversable (V n) where
-  traverse :: (Control.Applicative f) => (a -> f b) -> V n a -> f (V n b)
-  traverse f (V v) = V Data.<$> Data.traverse f v
+instance Traversals (Ix Integer) (->) (V n) where
+  traverse ::
+    (Applicative g) => Ix Integer x (g y) -> V n x -> g (V n y)
+  traverse (Ix i_x_gy) = \case
+    V1 x -> morphism V1 (i_x_gy 0 x)
+    V2 x0 x1 -> liftA2 V2 (i_x_gy 0 x0) (i_x_gy 1 x1)
+    V3 x0 x1 x2 -> liftA3 V3 (i_x_gy 0 x0) (i_x_gy 1 x1) (i_x_gy 2 x2)
+    V4 x0 x1 x2 x3 -> liftA3 V4 (i_x_gy 0 x0) (i_x_gy 1 x1) (i_x_gy 2 x2) <*> (i_x_gy 3 x3)
+    VV (m :: V m x) p ->
+      liftA2
+        VV
+        (traverse (Ix i_x_gy) m)
+        (traverse (Ix (i_x_gy . (+ from (natVal (Proxy @m))))) p)
   {-# INLINE traverse #-}
+instance Traversals (Ix Int) (->) (V n) where
+  traverse ::
+    (Applicative g) => Ix Int x (g y) -> V n x -> g (V n y)
+  traverse (Ix i_x_gy) = \case
+    V1 x -> morphism V1 (i_x_gy 0 x)
+    V2 x0 x1 -> liftA2 V2 (i_x_gy 0 x0) (i_x_gy 1 x1)
+    V3 x0 x1 x2 -> liftA3 V3 (i_x_gy 0 x0) (i_x_gy 1 x1) (i_x_gy 2 x2)
+    V4 x0 x1 x2 x3 -> liftA3 V4 (i_x_gy 0 x0) (i_x_gy 1 x1) (i_x_gy 2 x2) <*> (i_x_gy 3 x3)
+    VV (m :: V m x) p ->
+      liftA2
+        VV
+        (traverse (Ix i_x_gy) m)
+        (traverse (Ix (i_x_gy . (+ from (natVal (Proxy @m))))) p)
+  {-# INLINE traverse #-}
+instance Traversals1 (Ix Natural) (->) (V n) where
+  traverse1 ::
+    (Apply g) => Ix Natural x (g y) -> V n x -> g (V n y)
+  traverse1 (Ix i_x_gy) = \case
+    V1 x -> morphism V1 (i_x_gy 0 x)
+    V2 x0 x1 -> liftA2 V2 (i_x_gy 0 x0) (i_x_gy 1 x1)
+    V3 x0 x1 x2 -> liftA3 V3 (i_x_gy 0 x0) (i_x_gy 1 x1) (i_x_gy 2 x2)
+    V4 x0 x1 x2 x3 -> liftA3 V4 (i_x_gy 0 x0) (i_x_gy 1 x1) (i_x_gy 2 x2) <*> (i_x_gy 3 x3)
+    VV (m :: V m x) p ->
+      liftA2
+        VV
+        (traverse1 (Ix i_x_gy) m)
+        (traverse1 (Ix (i_x_gy . (+ natVal (Proxy @m)))) p)
+  {-# INLINE traverse1 #-}
+instance Traversals1 (Ix Integer) (->) (V n) where
+  traverse1 ::
+    (Apply g) => Ix Integer x (g y) -> V n x -> g (V n y)
+  traverse1 (Ix i_x_gy) = \case
+    V1 x -> morphism V1 (i_x_gy 0 x)
+    V2 x0 x1 -> liftA2 V2 (i_x_gy 0 x0) (i_x_gy 1 x1)
+    V3 x0 x1 x2 -> liftA3 V3 (i_x_gy 0 x0) (i_x_gy 1 x1) (i_x_gy 2 x2)
+    V4 x0 x1 x2 x3 -> liftA3 V4 (i_x_gy 0 x0) (i_x_gy 1 x1) (i_x_gy 2 x2) <*> (i_x_gy 3 x3)
+    VV (m :: V m x) p ->
+      liftA2
+        VV
+        (traverse1 (Ix i_x_gy) m)
+        (traverse1 (Ix (i_x_gy . (+ from (natVal (Proxy @m))))) p)
+  {-# INLINE traverse1 #-}
+instance Traversals1 (Ix Int) (->) (V n) where
+  traverse1 ::
+    (Apply g) => Ix Int x (g y) -> V n x -> g (V n y)
+  traverse1 (Ix i_x_gy) = \case
+    V1 x -> morphism V1 (i_x_gy 0 x)
+    V2 x0 x1 -> liftA2 V2 (i_x_gy 0 x0) (i_x_gy 1 x1)
+    V3 x0 x1 x2 -> liftA3 V3 (i_x_gy 0 x0) (i_x_gy 1 x1) (i_x_gy 2 x2)
+    V4 x0 x1 x2 x3 -> liftA3 V4 (i_x_gy 0 x0) (i_x_gy 1 x1) (i_x_gy 2 x2) <*> (i_x_gy 3 x3)
+    VV (m :: V m x) p ->
+      liftA2
+        VV
+        (traverse1 (Ix i_x_gy) m)
+        (traverse1 (Ix (i_x_gy . (+ from (natVal (Proxy @m))))) p)
+  {-# INLINE traverse1 #-}
 instance (KnownNat n) => Pure (V n) where
-  pure :: x -> V n x
-  pure x = V (Vector.replicate (from (natVal (Proxy @n))) x)
-  {-# INLINE pure #-}
-instance (KnownNat n) => Apply (V n) where
-  (<*>) :: V n (x -> y) -> V n x -> V n y
-  V f <*> V x = V (f <*> x)
-  {-# INLINE (<*>) #-}
+  pure :: forall x. x -> V n x
+  pure x = case cmpNat (Proxy @5) (Proxy @n) of
+    GTI -> case sameNat (Proxy @1) (Proxy @n) of
+      Just Refl -> V1 x
+      _ -> case sameNat (Proxy @2) (Proxy @n) of
+        Just Refl -> V2 x x
+        _ -> case sameNat (Proxy @3) (Proxy @n) of
+          Just Refl -> V3 x x x
+          _ -> case sameNat (Proxy @4) (Proxy @n) of
+            Just Refl -> V4 x x x x
+            _ -> GHC.error "pure: V 0"
+    _ -> case sameNat (Proxy @n) (Proxy @((n - 4) + 4)) of
+      Just Refl -> case cmpNat (Proxy @4) (Proxy @n) of
+        LTI -> (pure x :: V (n - 4) x) ++ (pure x :: V 4 x)
+        GTI -> GHC.error "pure: fail"
+      _ -> GHC.error "pure: fail"
+instance Apply (V n) where
+  liftA2 :: forall x y z. (x -> y -> z) -> V n x -> V n y -> V n z
+  liftA2 x_y_z = \cases
+    (V1 x) (V1 y) -> V1 (x_y_z x y)
+    (V2 x0 x1) (V2 y0 y1) -> V2 (x_y_z x0 y0) (x_y_z x1 y1)
+    (V3 x0 x1 x2) (V3 y0 y1 y2) -> V3 (x_y_z x0 y0) (x_y_z x1 y1) (x_y_z x2 y2)
+    (V4 x0 x1 x2 x3) (V4 y0 y1 y2 y3) -> V4 (x_y_z x0 y0) (x_y_z x1 y1) (x_y_z x2 y2) (x_y_z x3 y3)
+    (VV (m0 :: V m0 x) p0) (VV (m1 :: V m1 y) p1) ->
+      case sameNat (Proxy @m0) (Proxy @m1) of
+        Just Refl -> VV (liftA2 x_y_z m0 m1) (liftA2 x_y_z p0 p1)
+        Nothing -> liftA2 x_y_z (m0 ++ p0) (m1 ++ p1)
+    v (VV m p) -> liftA2 x_y_z v (m ++ p)
+    (VV m p) v -> liftA2 x_y_z (m ++ p) v
+  {-# INLINE liftA2 #-}
 instance (KnownNat n) => Control.Applicative (V n) where
   pure :: x -> V n x
-  pure x = V (Vector.replicate (from (natVal (Proxy @n))) x)
+  pure = pure
   {-# INLINE pure #-}
   (<*>) :: V n (x -> y) -> V n x -> V n y
-  V f <*> V x = V (f Control.<*> x)
+  (<*>) = liftA2 ($)
   {-# INLINE (<*>) #-}
+
+toList :: V n x -> [x]
+toList = \case
+  V1 x -> [x]
+  V2 x0 x1 -> [x0, x1]
+  V3 x0 x1 x2 -> [x0, x1, x2]
+  V4 x0 x1 x2 x3 -> [x0, x1, x2, x3]
+  VV m p -> toList m <> toList p
+{-# INLINE toList #-}
+
+fromList :: forall n x. (KnownNat n) => [x] -> Maybe (V n x)
+fromList xs = case sameNat (Proxy @1) (Proxy @n) of
+  Just Refl -> case xs of
+    [x] -> Just (V1 x)
+    _ -> Nothing
+  _ -> case sameNat (Proxy @2) (Proxy @n) of
+    Just Refl -> case xs of
+      [x0, x1] -> Just (V2 x0 x1)
+      _ -> Nothing
+    _ -> case sameNat (Proxy @3) (Proxy @n) of
+      Just Refl -> case xs of
+        [x0, x1, x2] -> Just (V3 x0 x1 x2)
+        _ -> Nothing
+      _ -> case sameNat (Proxy @4) (Proxy @n) of
+        Just Refl -> case xs of
+          [x0, x1, x2, x3] -> Just (V4 x0 x1 x2 x3)
+          _ -> Nothing
+        _ -> case cmpNat (Proxy @4) (Proxy @n) of
+          LTI ->
+            let (m, p) = List.splitAt (from (natVal (Proxy @n)) - 4) xs
+             in case (fromList @(n - 4) m, fromList @4 p) of
+                  (Just vm, Just vp) -> case sameNat (Proxy @((n - 4) + 4)) (Proxy @n) of
+                    Just Refl -> Just (VV vm vp)
+                    Nothing -> Nothing
+                  _ -> Nothing
+          _ -> Nothing
+{-# INLINE fromList #-}
+
+instance Each (V n x) (V n x) x x
+instance Indices (V n x) where
+  type Index (V n x) = Natural
+  type Value (V n x) = x
+  index :: Natural -> Traversal' (V n x) x
+  index i = lens (! i) (flip (setV i))
+  {-# INLINE index #-}
 
 instance (KnownNat n) => Collectable (V n) where
   distribute :: (Along f) => f (V n x) -> V n (f x)
-  distribute fv = vn (natVal (Proxy @n)) \i -> morphism (! i) fv
+  distribute fv = vn @n \i -> morphism (! i) fv
   {-# INLINE distribute #-}
 instance (KnownNat n) => Tabulation (V n) where
   type Table (V n) = Finite n
   fromTable :: (Table (V n) -> x) -> V n x
-  fromTable tx = vn (natVal (Proxy @n)) \i -> tx (finite (from i))
+  fromTable tx = vn @n \i -> tx (finite (from i))
   {-# INLINE fromTable #-}
   toTable :: V n x -> Table (V n) -> x
   toTable v i = v ! from (getFinite i)
   {-# INLINE toTable #-}
 
-instance (KnownNat n) => Each (V n x) (V n x) x x
-instance (KnownNat n) => Indices (V n x) where
-  type Index (V n x) = Natural
-  type Value (V n x) = x
-  index :: Natural -> Traversal' (V n x) x
-  index i x_fx' v@(V vs)
-    | from i < n = case v ! i of
-        x -> morphism (\x' -> V (vs Vector.// [(from i, x')])) (x_fx' x)
-    | otherwise = pure v
-   where
-    n = natVal (Proxy @n)
-  {-# INLINE index #-}
-
-toList :: forall n x. (KnownNat n) => V n x -> [x]
-toList (V v) = Vector.toList v
-{-# INLINE toList #-}
-
-fromList :: forall n x. (KnownNat n) => [x] -> Maybe (V n x)
-fromList xs = case List.compareLength xs (from (natVal (Proxy @n))) of
-  EQ -> Just (V (Vector.fromList xs))
-  _ -> Nothing
-{-# INLINE fromList #-}
-
 instance (Addition x x x) => Addition (V n x) (V n x) (V n x) where
   (+.) :: V n x -> V n x -> V n x
-  V f +. V g = V (Vector.zipWith (+.) f g)
+  u +. v = liftA2 (+) u v
   {-# INLINE (+.) #-}
 instance (KnownNat n, Additive x) => Additive (V n x) where
   zero :: V n x
   zero = pure zero
   {-# INLINE zero #-}
 instance (KnownNat n, AdditiveAbelian x) => AdditiveAbelian (V n x)
-
 instance (Subtraction x x x) => Subtraction (V n x) (V n x) (V n x) where
   (-.) :: V n x -> V n x -> V n x
-  V f -. V g = V (Vector.zipWith (-.) f g)
+  u -. v = liftA2 (-) u v
   {-# INLINE (-.) #-}
-
 instance (KnownNat n, AdditiveGroup x) => AdditiveGroup (V n x) where
   negative :: V n x -> V n x
-  negative (V v) = V (morphism negative v)
+  negative = morphism negative
   {-# INLINE negative #-}
 
 instance (Multiplication x x x) => Multiplication x (V n x) (V n x) where
   (*.) :: x -> V n x -> V n x
-  x *. V v = V (morphism (x *.) v)
+  x *. v = morphism (x *) v
   {-# INLINE (*.) #-}
 instance (Multiplication x x x) => Multiplication (V n x) x (V n x) where
   (*.) :: V n x -> x -> V n x
-  V v *. x = V (morphism (*. x) v)
+  v *. x = morphism (* x) v
   {-# INLINE (*.) #-}
 instance (Division x x x) => Division (V n x) x (V n x) where
   (/.) :: V n x -> x -> V n x
-  V v /. x = V (morphism (/. x) v)
+  v /. x = morphism (/. x) v
   {-# INLINE (/.) #-}
 
 instance (KnownNat n, From y x) => From y (Scalar (V n x)) where
@@ -424,24 +834,13 @@ instance (KnownNat n, Ring x) => Module (V n x) where
 instance (KnownNat n, Field x) => Vector (V n x)
 instance (KnownNat n, Ring x) => Bilinear (V n x) where
   (•) :: V n x -> V n x -> Scalar (V n x)
-  V f • V g = ScalarV do
-    sum (Vector.zipWith (*) f g)
+  u • v = ScalarV (sum (liftA2 (*) u v))
   {-# INLINE (•) #-}
 instance (KnownNat n, Ring x, Conjugate x) => Sesquilinear (V n x) where
   (<•>) :: V n x -> V n x -> Scalar (V n x)
-  V f <•> V g = ScalarV do
-    sum (Vector.zipWith (\_f _g -> _f * conjugate _g) f g)
+  u <•> v = ScalarV (sum (liftA2 (\_u _v -> _u * conjugate _v) u v))
   {-# INLINE (<•>) #-}
 instance (KnownNat n, Ring x, Conjugate x) => InnerProduct (V n x)
-
-zipWith ::
-  forall n x y z. (x -> y -> z) -> V n x -> V n y -> V n z
-zipWith f (V v) (V w) = V (Vector.zipWith f v w)
-{-# INLINE zipWith #-}
-
-zip :: V n x -> V n y -> V n (x, y)
-zip = zipWith (,)
-{-# INLINE zip #-}
 
 projection ::
   forall n x. (KnownNat n, Field x, Conjugate x) => V n x -> V n x -> V n x
@@ -468,7 +867,7 @@ orthogonalize (v0 : vs0) = gramSchmidt1 [v0] vs0
 orthonormalize ::
   (KnownNat n, Field x, Conjugate x, Root x) =>
   [V n x] -> [V n x]
-orthonormalize = morphism normalized . orthogonalize
+orthonormalize = morphism normalize . orthogonalize
 {-# INLINE orthonormalize #-}
 
 newtype M m n x = M {unM :: V m (V n x)} deriving (Data.Functor)
@@ -482,22 +881,34 @@ instance Morphisms (Ix (Natural, Natural)) (->) (M m n) where
     M (morphism (Ix \i -> morphism (Ix \j -> i_x_y (i, j))) a)
   {-# INLINE morphism #-}
 instance (KnownNat m, KnownNat n) => Folds (->) (->) (M m n) where
-  foldWith :: forall x s. (Monoid s) => (x -> s) -> M m n x -> s
-  foldWith f (M a) = foldWith (foldWith f :: V n x -> s) a
+  foldWith :: forall x z. (Monoid z) => (x -> z) -> M m n x -> z
+  foldWith x_z (M a) = foldWith (foldWith x_z :: V n x -> z) a
+  {-# INLINE foldWith #-}
+instance (KnownNat m, KnownNat n) => Folds (Ix (Natural, Natural)) (->) (M m n) where
+  foldWith :: (Monoid z) => Ix (Natural, Natural) x z -> M m n x -> z
+  foldWith (Ix ij_x_z) (M vs) =
+    foldWith (Ix \i -> foldWith (Ix \j -> ij_x_z (i, j))) vs
   {-# INLINE foldWith #-}
 instance (KnownNat m, KnownNat n) => Traversals (->) (->) (M m n) where
   traverse ::
     forall g x y. (Applicative g) => (x -> g y) -> M m n x -> g (M m n y)
   traverse x_gy (M a) = morphism M (traverse (traverse x_gy :: V n x -> g (V n y)) a)
   {-# INLINE traverse #-}
+instance (KnownNat m, KnownNat n) => Traversals (Ix (Natural, Natural)) (->) (M m n) where
+  traverse ::
+    (Applicative f) =>
+    Ix (Natural, Natural) x (f y) -> M m n x -> f (M m n y)
+  traverse (Ix ij_x_z) (M a) =
+    morphism M (traverse (Ix \i -> traverse (Ix \j -> ij_x_z (i, j))) a)
+  {-# INLINE traverse #-}
 instance (KnownNat m, KnownNat n) => Data.Foldable (M m n) where
-  foldMap :: forall x s. (Monoid s) => (x -> s) -> M m n x -> s
-  foldMap f (M a) = foldWith (foldWith f :: V n x -> s) a
+  foldMap :: forall x z. (Monoid z) => (x -> z) -> M m n x -> z
+  foldMap x_z (M a) = foldWith (foldWith x_z :: V n x -> z) a
   {-# INLINE foldMap #-}
 instance (KnownNat m, KnownNat n) => Data.Traversable (M m n) where
   traverse ::
     forall f x y. (Control.Applicative f) => (x -> f y) -> M m n x -> f (M m n y)
-  traverse f (M a) = M Data.<$> Data.traverse (Data.traverse f) a
+  traverse x_gy (M a) = M Data.<$> Data.traverse (Data.traverse x_gy) a
   {-# INLINE traverse #-}
 instance (KnownNat m, KnownNat n, Eq x) => Eq (M m n x) where
   (==) :: M m n x -> M m n x -> Bool
@@ -510,24 +921,35 @@ instance (KnownNat m, KnownNat n, Ord x) => Ord (M m n x) where
 
 instance (KnownNat m, KnownNat n, Show x) => Show (M m n x) where
   show :: M m n x -> [Char]
-  show (M a) = "M {" <> foldWith out (dimensions (Proxy @m)) <> "}"
+  show (M a) = "M " <> inside a
    where
-    out i = "{" <> foldWith (inn i) (dimensions (Proxy @n)) <> "}"
-    inn i j = " " <> show (a ! i ! j) <> " "
+    inside :: forall k p. (KnownNat k, KnownNat p, Show x) => V k (V p x) -> [Char]
+    inside = \case
+      V1 x -> "{" <> inside2 x <> "}"
+      V2 x0 x1 -> "{" <> inside2 x0 <> " " <> inside2 x1 <> "}"
+      V3 x0 x1 x2 -> "{" <> inside2 x0 <> " " <> inside2 x1 <> " " <> inside2 x2 <> "}"
+      V4 x0 x1 x2 x3 ->
+        "{"
+          <> inside2 x0
+          <> " "
+          <> inside2 x1
+          <> " "
+          <> inside2 x2
+          <> " "
+          <> inside2 x3
+          <> "}"
+      VV m p -> "{" <> inside m <> " " <> inside p <> "}"
+    {-# INLINE inside #-}
+    inside2 :: forall p. (KnownNat p, Show x) => V p x -> [Char]
+    inside2 = \case
+      V1 x -> "{ " <> show x <> " }"
+      V2 x0 x1 -> "{ " <> show x0 <> " " <> show x1 <> " }"
+      V3 x0 x1 x2 -> "{ " <> show x0 <> " " <> show x1 <> " " <> show x2 <> " }"
+      V4 x0 x1 x2 x3 ->
+        "{ " <> show x0 <> " " <> show x1 <> " " <> show x2 <> " " <> show x3 <> " }"
+      VV m p -> inside2 m <> " " <> inside2 p
+    {-# INLINE inside2 #-}
   {-# INLINE show #-}
-
-instance (KnownNat m, KnownNat n) => Folds (Ix (Natural, Natural)) (->) (M m n) where
-  foldWith :: (Monoid z) => Ix (Natural, Natural) x z -> M m n x -> z
-  foldWith (Ix ij_x_z) (M (V vs)) =
-    foldWith (Ix \i -> foldWith (Ix \j -> ij_x_z (i, j))) vs
-  {-# INLINE foldWith #-}
-instance (KnownNat m, KnownNat n) => Traversals (Ix (Natural, Natural)) (->) (M m n) where
-  traverse ::
-    (Applicative f) =>
-    Ix (Natural, Natural) x (f y) -> M m n x -> f (M m n y)
-  traverse (Ix ij_x_z) (M a) =
-    morphism M (traverse (Ix \i -> traverse (Ix \j -> ij_x_z (i, j))) a)
-  {-# INLINE traverse #-}
 
 instance
   (KnownNat m, KnownNat n, Addition x x x) =>
@@ -594,7 +1016,7 @@ instance
   Multiplication (M m n x) (V n x) (V m x)
   where
   (*.) :: M m n x -> V n x -> V m x
-  M a *. V v = vn (natVal (Proxy @m)) \i -> sum (zipWith (*.) (a ! i) (V v))
+  M a *. v = vn @m \i -> sum (liftA2 (*.) (a ! i) v)
   {-# INLINE (*.) #-}
 
 instance
@@ -608,12 +1030,12 @@ instance
   where
   (*.) :: M m n x -> M n p x -> M m p x
   M a *. M b = M do
-    vn (natVal (Proxy @m)) \i -> vn (natVal (Proxy @p)) \j ->
-      sumOn (\k -> a ! i ! k * b ! k ! j) (dimensions (Proxy @n))
+    vn @m \i -> vn @p \j ->
+      sumOn (\k -> a ! i ! k * b ! k ! j) [0 .. natVal (Proxy @n) - 1]
   {-# INLINE (*.) #-}
 
 hadamard :: (Multiplication x x x) => M m n x -> M m n x -> M m n x
-hadamard (M a) (M b) = M (zipWith (zipWith (*.)) a b)
+hadamard (M a) (M b) = M (liftA2 (liftA2 (*)) a b)
 {-# INLINE hadamard #-}
 
 kronecker ::
@@ -626,7 +1048,7 @@ kronecker ::
   ) =>
   M m n x -> M p q x -> M (m * p) (n * q) x
 kronecker (M a) (M b) = M do
-  vn (natVal (Proxy @(m * p))) \i -> vn (natVal (Proxy @(n * q))) \j ->
+  vn @(m * p) \i -> vn @(n * q) \j ->
     let p = natVal (Proxy @p)
         q = natVal (Proxy @q)
         (ia, ib) = euclidean i p
@@ -639,9 +1061,8 @@ instance
   Multiplicative (M n n x)
   where
   one :: M n n x
-  one = M $ vn n \i -> vn n \j -> if i == j then one else zero
-   where
-    n = natVal (Proxy @n)
+  one = M do
+    vn @n \i -> vn @n \j -> if i == j then one else zero
   {-# INLINE one #-}
 
 instance (KnownNat m, KnownNat n, From y x) => From y (Scalar (M m n x)) where
@@ -809,42 +1230,39 @@ instance (KnownNat m, KnownNat n) => Indices (M m n x) where
     n = natVal (Proxy @n)
   {-# INLINE index #-}
 
-outer ::
+outerproduct ::
   ( KnownNat m
   , KnownNat n
   , AdditiveAbelian x
   , Multiplication x x x
   ) =>
   V m x -> V n x -> M m n x
-outer u v = column u *. row v
-{-# INLINE outer #-}
+outerproduct u v = column u *. row v
+{-# INLINE outerproduct #-}
 
 instance (KnownNat m, KnownNat n) => Matrix (M m n) (M n m) x where
   transpose :: M m n x -> M n m x
-  transpose (M a) = M $ vn n \i -> vn m \j -> a ! j ! i
-   where
-    m = natVal (Proxy @m)
-    n = natVal (Proxy @n)
+  transpose (M a) = M $ vn @n \i -> vn @m \j -> a ! j ! i
   {-# INLINE transpose #-}
 instance (KnownNat n, Eq x, MultiplicativeAbelian x, Ring x) => Square (M n n) x where
   trace :: M n n x -> Scalar (M n n x)
   trace (M a) = ScalarM do
-    sumOn (\k -> a ! k ! k) (dimensions (Proxy @n))
+    sumOn (\k -> a ! k ! k) (dimensions @n).getConst
   {-# INLINE trace #-}
   determinant :: M n n x -> Scalar (M n n x)
   determinant (M a) = ScalarM do
     flip
       sumOn
-      (List.permutations (dimensions (Proxy @n)))
+      (List.permutations (dimensions @n).getConst)
       \p ->
         signature p
           * productOn
             (\x -> a ! x ! (p List.!! from x))
-            (dimensions (Proxy @n))
+            (dimensions @n).getConst
    where
     signature p = (\cnt -> if even cnt then one else negative one) $ count id do
-      x <- dimensions (Proxy @n)
-      y <- List.dropWhile (<= x) (dimensions (Proxy @n))
+      x <- (dimensions @n).getConst
+      y <- List.dropWhile (<= x) (dimensions @n).getConst
       pure $ (p List.!! from x) > (p List.!! from y)
   {-# INLINE determinant #-}
 
@@ -862,13 +1280,13 @@ rows ::
   forall m n x.
   (KnownNat m, KnownNat n) =>
   M m n x -> [V n x]
-rows (M a) = morphism (a !) (dimensions (Proxy @m))
+rows (M a) = morphism (a !) (dimensions @m).getConst
 {-# INLINE rows #-}
 
 unrows :: forall m n x. (KnownNat m, KnownNat n) => [V n x] -> Maybe (M m n x)
 unrows vs
-  | count (const True) vs == natVal (Proxy @m) =
-      Just . M $ V (Vector.fromList vs)
+  | count (const True) vs == natVal (Proxy @m) = Just do
+      M (vn @m \i -> vs List.!! from i)
   | otherwise = Nothing
 {-# INLINE unrows #-}
 
@@ -882,7 +1300,7 @@ columns ::
   M m n x -> [V m x]
 columns a =
   let M aT = transpose @(M m n) @(M n m) a
-   in morphism (aT !) (dimensions (Proxy @n))
+   in morphism (aT !) (dimensions @n).getConst
 {-# INLINE columns #-}
 
 uncolumns ::
@@ -891,7 +1309,7 @@ uncolumns ::
   [V m x] -> Maybe (M m n x)
 uncolumns vs
   | count (const True) vs == n = (Just . M) do
-      vn (natVal (Proxy @m)) \i -> vn n \j -> (vs List.!! from j) ! i
+      vn @m \i -> vn @n \j -> (vs List.!! from j) ! i
   | otherwise = Nothing
  where
   n = natVal (Proxy @n)
@@ -923,13 +1341,12 @@ lu ::
   M n n x -> (M n n x, M n n x)
 lu (M a) = build 0 zero one
  where
-  n = natVal (Proxy @n)
   buildLVal !i !j (M l) (M u) =
     let go !k !s
           | k == j = s
           | otherwise = go (succ k) (s + l ! i ! k * u ! k ! j)
         s' = go zero zero
-     in M $ vn n \i' -> vn n \j' ->
+     in M $ vn @n \i' -> vn @n \j' ->
           if i == i' && j == j' then a ! i' ! j' - s' else l ! i' ! j'
   buildL !i !j l u
     | i == natVal (Proxy @n) = l
@@ -939,7 +1356,7 @@ lu (M a) = build 0 zero one
           | k == j = s
           | otherwise = go (succ k) (s + l ! j ! k * u ! k ! i)
         s' = go zero zero
-     in M $ vn n \i' -> vn n \j' ->
+     in M $ vn @n \i' -> vn @n \j' ->
           if i == j' && j == i' then (a ! j ! i - s') / l ! j ! j else u ! i' ! j'
   buildU !i !j l u
     | i == natVal (Proxy @n) = u
@@ -966,7 +1383,7 @@ system a y = let (l, u) = lu a in backward u (forward l y)
           | otherwise =
               go
                 (succ i)
-                ( vn n \i' ->
+                ( vn @n \i' ->
                     if i == i'
                       then (x ! i - coeff i 0 zero z) / l ! i ! i
                       else z ! i'
@@ -981,7 +1398,7 @@ system a y = let (l, u) = lu a in backward u (forward l y)
           | otherwise =
               go
                 (pred i)
-                ( vn n \i' ->
+                ( vn @n \i' ->
                     if i == succ i'
                       then (x ! i' - coeff i' (succ i') zero z) / u ! i' ! i'
                       else z ! i'
@@ -994,7 +1411,7 @@ minor ::
   (KnownNat n, Eq x, MultiplicativeAbelian x, Ring x) =>
   Natural -> Natural -> M (n + 1) (n + 1) x -> Scalar (M n n x)
 minor i_ j_ (M a) = determinant @(M n n) $ M do
-  vn (natVal (Proxy @n)) \i -> vn (natVal (Proxy @n)) \j ->
+  vn @n \i -> vn @n \j ->
     a ! (if i < i_ then i else i + one) ! (if j < j_ then j else j + one)
 {-# INLINE minor #-}
 
@@ -1014,9 +1431,8 @@ cofactorMatrix ::
   , Power x Natural x
   ) =>
   M (n + 1) (n + 1) x -> M (n + 1) (n + 1) x
-cofactorMatrix a = M $ vn n \i -> vn n \j -> (cofactor i j a).unScalar
- where
-  n = natVal (Proxy @n)
+cofactorMatrix a = M do
+  vn @(n + 1) \i -> vn @(n + 1) \j -> (cofactor i j a).unScalar
 {-# INLINE cofactorMatrix #-}
 
 adjugate ::
@@ -1033,160 +1449,80 @@ adjugate = transpose . cofactorMatrix
 
 characteristicPolynomial ::
   forall n x.
-  (KnownNat n, Eq x, MultiplicativeAbelian x, Ring x) => M n n x -> List1 x
-characteristicPolynomial a = (determinant (tI - morphism pure a)).unScalar
+  (KnownNat n, Eq x, MultiplicativeAbelian x, Ring x) =>
+  M n n x -> List1 (Scalar (M n n x))
+characteristicPolynomial a = morphism ScalarM (determinant (tI - morphism pure a)).unScalar
  where
-  n = natVal (Proxy @n)
-  tI = M @n @n $ vn n \i -> vn n \j -> if i == j then zero :|| Sole one else Sole zero
+  tI = M $ vn @n \i -> vn @n \j -> if i == j then variable else zero
 {-# INLINE characteristicPolynomial #-}
 
 diagonal :: forall n x. (KnownNat n, Additive x, Eq x) => M n n x -> Bool
-diagonal (M a) = Data.all
+diagonal (M a) = all
   do \(i, j) -> i == j || a ! i ! j == zero
-  do Control.join (Control.liftM2 (,)) (dimensions (Proxy @n))
+  do join (liftM2 (,)) (dimensions @n).getConst
 {-# INLINE diagonal #-}
 
 upperTriangular ::
   forall n x. (KnownNat n, Additive x, Eq x) => M n n x -> Bool
 upperTriangular (M a) = Data.all
   do \(i, j) -> i <= j || a ! i ! j == zero
-  do Control.join (Control.liftM2 (,)) (dimensions (Proxy @n))
+  do join (liftM2 (,)) (dimensions @n).getConst
 {-# INLINE upperTriangular #-}
 
 lowerTriangular ::
   forall n x. (KnownNat n, Additive x, Eq x) => M n n x -> Bool
 lowerTriangular (M a) = Data.all
   do \(i, j) -> i >= j || a ! i ! j == zero
-  do Control.join (Control.liftM2 (,)) (dimensions (Proxy @n))
+  do join (liftM2 (,)) (dimensions @n).getConst
 {-# INLINE lowerTriangular #-}
 
 symmetric :: forall n x. (KnownNat n, Eq x) => M n n x -> Bool
 symmetric (M a) = Data.all
   do \(i, j) -> a ! i ! j == a ! j ! i
-  do join (liftM2 (,)) (dimensions (Proxy @n))
+  do join (liftM2 (,)) (dimensions @n).getConst
 {-# INLINE symmetric #-}
 
 hermitian :: forall n x. (KnownNat n, Eq x, Conjugate x) => M n n x -> Bool
 hermitian (M a) = Data.all
   do \(i, j) -> a ! i ! j == conjugate (a ! j ! i)
-  do join (liftM2 (,)) (dimensions (Proxy @n))
+  do join (liftM2 (,)) (dimensions @n).getConst
 {-# INLINE hermitian #-}
 
-vn :: Natural -> (Natural -> x) -> V n x
-vn n f = V (Vector.generate (from n) (f . from))
-{-# INLINE vn #-}
+pattern M22 :: x -> x -> x -> x -> M 2 2 x
+pattern M22 a b c d = M (V2 (V2 a b) (V2 c d))
+{-# COMPLETE M22 #-}
 
-vnM :: (Control.Monad m) => Natural -> (Natural -> m x) -> m (V n x)
-vnM n f = V Data.<$> Vector.generateM (from n) (f . from)
-{-# INLINE vnM #-}
+pattern M23 :: x -> x -> x -> x -> x -> x -> M 2 3 x
+pattern M23 a b c d e f = M (V2 (V3 a b c) (V3 d e f))
+{-# COMPLETE M23 #-}
 
-v1 :: forall x. x -> V 1 x
-v1 x = V (Vector.singleton x)
-{-# INLINE v1 #-}
+pattern M24 :: x -> x -> x -> x -> x -> x -> x -> x -> M 2 4 x
+pattern M24 a b c d e f g h = M (V2 (V4 a b c d) (V4 e f g h))
+{-# COMPLETE M24 #-}
 
-withV1 :: V 1 x -> (x -> y) -> y
-withV1 v f = f (v ! 0)
-{-# INLINE withV1 #-}
+pattern M32 :: x -> x -> x -> x -> x -> x -> M 3 2 x
+pattern M32 a b c d e f = M (V3 (V2 a b) (V2 c d) (V2 e f))
+{-# COMPLETE M32 #-}
 
-v2 :: forall x. x -> x -> V 2 x
-v2 x y = V (Vector.singleton x <> Vector.singleton y)
-{-# INLINE v2 #-}
+pattern M33 :: x -> x -> x -> x -> x -> x -> x -> x -> x -> M 3 3 x
+pattern M33 a b c d e f g h i = M (V3 (V3 a b c) (V3 d e f) (V3 g h i))
+{-# COMPLETE M33 #-}
 
-withV2 :: V 2 x -> (x -> x -> y) -> y
-withV2 v f = f (v ! 0) (v ! 1)
-{-# INLINE withV2 #-}
+pattern M34 ::
+  x -> x -> x -> x -> x -> x -> x -> x -> x -> x -> x -> x -> M 3 4 x
+pattern M34 a b c d e f g h i j k l = M (V3 (V4 a b c d) (V4 e f g h) (V4 i j k l))
+{-# COMPLETE M34 #-}
 
-v3 :: forall x. x -> x -> x -> V 3 x
-v3 x y z = V (Vector.fromList [x, y, z])
-{-# INLINE v3 #-}
+pattern M42 :: x -> x -> x -> x -> x -> x -> x -> x -> M 4 2 x
+pattern M42 a b c d e f g h = M (V4 (V2 a b) (V2 c d) (V2 e f) (V2 g h))
+{-# COMPLETE M42 #-}
 
-withV3 :: V 3 x -> (x -> x -> x -> y) -> y
-withV3 v f = f (v ! 0) (v ! 1) (v ! 2)
-{-# INLINE withV3 #-}
+pattern M43 ::
+  x -> x -> x -> x -> x -> x -> x -> x -> x -> x -> x -> x -> M 4 3 x
+pattern M43 a b c d e f g h i j k l = M (V4 (V3 a b c) (V3 d e f) (V3 g h i) (V3 j k l))
+{-# COMPLETE M43 #-}
 
-v4 :: forall x. x -> x -> x -> x -> V 4 x
-v4 x y z w = V (Vector.fromList [x, y, z, w])
-{-# INLINE v4 #-}
-
-withV4 :: V 4 x -> (x -> x -> x -> x -> y) -> y
-withV4 v f = f (v ! 0) (v ! 1) (v ! 2) (v ! 3)
-{-# INLINE withV4 #-}
-
-m22 :: forall x. x -> x -> x -> x -> M 2 2 x
-m22 a b c d = M $ V do
-  Vector.fromList
-    [ V (Vector.fromList [a, b])
-    , V (Vector.fromList [c, d])
-    ]
-{-# INLINE m22 #-}
-
-m23 :: forall x. x -> x -> x -> x -> x -> x -> M 2 3 x
-m23 a b c d e f = M $ V do
-  Vector.fromList
-    [ V (Vector.fromList [a, b, c])
-    , V (Vector.fromList [d, e, f])
-    ]
-{-# INLINE m23 #-}
-
-m32 :: forall x. x -> x -> x -> x -> x -> x -> M 3 2 x
-m32 a b c d e f = M $ V do
-  Vector.fromList
-    [ V (Vector.fromList [a, b])
-    , V (Vector.fromList [c, d])
-    , V (Vector.fromList [e, f])
-    ]
-{-# INLINE m32 #-}
-
-m24 :: forall x. x -> x -> x -> x -> x -> x -> x -> x -> M 2 4 x
-m24 a b c d e f g h = M $ V do
-  Vector.fromList
-    [ V (Vector.fromList [a, b, c, d])
-    , V (Vector.fromList [e, f, g, h])
-    ]
-{-# INLINE m24 #-}
-
-m42 :: forall x. x -> x -> x -> x -> x -> x -> x -> x -> M 4 2 x
-m42 a b c d e f g h = M $ V do
-  Vector.fromList
-    [ V (Vector.fromList [a, b])
-    , V (Vector.fromList [c, d])
-    , V (Vector.fromList [e, f])
-    , V (Vector.fromList [g, h])
-    ]
-{-# INLINE m42 #-}
-
-m33 :: forall x. x -> x -> x -> x -> x -> x -> x -> x -> x -> M 3 3 x
-m33 a b c d e f g h i = M $ V do
-  Vector.fromList
-    [ V (Vector.fromList [a, b, c])
-    , V (Vector.fromList [d, e, f])
-    , V (Vector.fromList [g, h, i])
-    ]
-{-# INLINE m33 #-}
-
-m34 ::
-  forall x. x -> x -> x -> x -> x -> x -> x -> x -> x -> x -> x -> x -> M 3 4 x
-m34 a b c d e f g h i j k l = M $ V do
-  Vector.fromList
-    [ V (Vector.fromList [a, b, c, d])
-    , V (Vector.fromList [e, f, g, h])
-    , V (Vector.fromList [i, j, k, l])
-    ]
-{-# INLINE m34 #-}
-
-m43 ::
-  forall x. x -> x -> x -> x -> x -> x -> x -> x -> x -> x -> x -> x -> M 4 3 x
-m43 a b c d e f g h i j k l = M $ V do
-  Vector.fromList
-    [ V (Vector.fromList [a, b, c])
-    , V (Vector.fromList [d, e, f])
-    , V (Vector.fromList [g, h, i])
-    , V (Vector.fromList [j, k, l])
-    ]
-{-# INLINE m43 #-}
-
-m44 ::
-  forall x.
+pattern M44 ::
   x ->
   x ->
   x ->
@@ -1204,11 +1540,6 @@ m44 ::
   x ->
   x ->
   M 4 4 x
-m44 a b c d e f g h i j k l m n o p = M $ V do
-  Vector.fromList
-    [ V (Vector.fromList [a, b, c, d])
-    , V (Vector.fromList [e, f, g, h])
-    , V (Vector.fromList [i, j, k, l])
-    , V (Vector.fromList [m, n, o, p])
-    ]
-{-# INLINE m44 #-}
+pattern M44 a b c d e f g h i j k l m n o p =
+  M (V4 (V4 a b c d) (V4 e f g h) (V4 i j k l) (V4 m n o p))
+{-# COMPLETE M44 #-}

@@ -21,7 +21,7 @@ instance (KnownNat n, Ring x) => Basis (V n) x where
   basis :: Finite n -> V n x
   basis j' =
     let j = from (getFinite j')
-     in vn (natVal (Proxy @n)) \i -> if i == j then one else zero
+     in vn @n \i -> if i == j then one else zero
   {-# INLINE basis #-}
 
 instance (Ring x) => Basis Complex x where

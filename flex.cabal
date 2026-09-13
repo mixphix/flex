@@ -35,6 +35,7 @@ library
     , base
     , containers >= 0.8
     , finite-typelits
+    , ghc-typelits-knownnat
     , list1
     , template-haskell
     , time >= 1.15

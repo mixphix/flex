@@ -62,8 +62,11 @@ instance {-# OVERLAPPABLE #-} (Module v, Multiplication v v v) => LieBracket v w
 
 instance {-# OVERLAPPING #-} (Eq x, Ring x) => LieBracket (V 3 x) where
   (><) :: V 3 x -> V 3 x -> V 3 x
-  a >< b = v3
-    do (a ! 1 * b ! 2) - (a ! 2 * b ! 1)
-    do (a ! 2 * b ! 0) - (a ! 0 * b ! 2)
-    do (a ! 0 * b ! 1) - (a ! 1 * b ! 0)
+  V3 a0 a1 a2 >< V3 b0 b1 b2 = V3
+    do (a1 * b2) - (a2 * b1)
+    do (a2 * b0) - (a0 * b2)
+    do (a0 * b1) - (a1 * b0)
+  v@V3{} >< VV m p = v >< (m ++ p)
+  VV m p >< v@V3{} = (m ++ p) >< v
+  VV m p >< VV m' p' = (m ++ p) >< (m' ++ p')
   {-# INLINE (><) #-}

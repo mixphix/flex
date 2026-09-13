@@ -8,21 +8,16 @@ import Control.Monad qualified as Control
 import Data.Bool (Bool)
 import Data.Eq
 import Data.Functor qualified as Data
-import Data.Int (Int)
 import Data.Monoid
 import Data.Ord
-import Data.Semigroup (Semigroup)
 import GHC.Err qualified as GHC
 import GHC.Float (Double, Float)
-import GHC.Num (Integer)
 import Generic.Random (genericArbitrary, uniform)
-import Numeric.Natural (Natural)
 import System.IO (IO)
 import Test.Hspec
 import Test.QuickCheck
 
 import Flex.Math
-import Flex.Math.Matrix
 
 instance (Ord x, Additive x, Arbitrary x) => Arbitrary (Ratio x) where
   arbitrary :: Gen (Ratio x)
@@ -203,16 +198,16 @@ instance
 
 instance (Arbitrary x) => Arbitrary (V 1 x) where
   arbitrary :: Gen (V 1 x)
-  arbitrary = Data.fmap v1 arbitrary
+  arbitrary = Data.fmap V1 arbitrary
 instance (Arbitrary x) => Arbitrary (V 2 x) where
   arbitrary :: Gen (V 2 x)
-  arbitrary = Control.liftM2 v2 arbitrary arbitrary
+  arbitrary = Control.liftM2 V2 arbitrary arbitrary
 instance (Arbitrary x) => Arbitrary (V 3 x) where
   arbitrary :: Gen (V 3 x)
-  arbitrary = Control.liftM3 v3 arbitrary arbitrary arbitrary
+  arbitrary = Control.liftM3 V3 arbitrary arbitrary arbitrary
 instance (Arbitrary x) => Arbitrary (V 4 x) where
   arbitrary :: Gen (V 4 x)
-  arbitrary = Control.liftM3 v4 arbitrary arbitrary arbitrary Control.<*> arbitrary
+  arbitrary = Control.liftM3 V4 arbitrary arbitrary arbitrary Control.<*> arbitrary
 
 instance (Arbitrary x) => Arbitrary (Quaternion x) where
   arbitrary :: Gen (Quaternion x)
@@ -278,56 +273,56 @@ instance (Arbitrary x) => Arbitrary (M 2 2 x) where
   arbitrary :: Gen (M 2 2 x)
   arbitrary =
     Control.replicateM (2 * 2) arbitrary Control.>>= \case
-      [a, b, c, d] -> Control.pure (m22 a b c d)
+      [a, b, c, d] -> Control.pure (M22 a b c d)
       _ -> GHC.error "arbitrary: replicateM incorrect"
 
 instance (Arbitrary x) => Arbitrary (M 2 3 x) where
   arbitrary :: Gen (M 2 3 x)
   arbitrary =
     Control.replicateM (2 * 3) arbitrary Control.>>= \case
-      [a, b, c, d, e, f] -> Control.pure (m23 a b c d e f)
+      [a, b, c, d, e, f] -> Control.pure (M23 a b c d e f)
       _ -> GHC.error "arbitrary: replicateM incorrect"
 
 instance (Arbitrary x) => Arbitrary (M 2 4 x) where
   arbitrary :: Gen (M 2 4 x)
   arbitrary =
     Control.replicateM (2 * 4) arbitrary Control.>>= \case
-      [a, b, c, d, e, f, g, h] -> Control.pure (m24 a b c d e f g h)
+      [a, b, c, d, e, f, g, h] -> Control.pure (M24 a b c d e f g h)
       _ -> GHC.error "arbitrary: replicateM incorrect"
 
 instance (Arbitrary x) => Arbitrary (M 3 2 x) where
   arbitrary :: Gen (M 3 2 x)
   arbitrary =
     Control.replicateM (3 * 2) arbitrary Control.>>= \case
-      [a, b, c, d, e, f] -> Control.pure (m32 a b c d e f)
+      [a, b, c, d, e, f] -> Control.pure (M32 a b c d e f)
       _ -> GHC.error "arbitrary: replicateM incorrect"
 
 instance (Arbitrary x) => Arbitrary (M 3 3 x) where
   arbitrary :: Gen (M 3 3 x)
   arbitrary =
     Control.replicateM (3 * 3) arbitrary Control.>>= \case
-      [a, b, c, d, e, f, g, h, i] -> Control.pure (m33 a b c d e f g h i)
+      [a, b, c, d, e, f, g, h, i] -> Control.pure (M33 a b c d e f g h i)
       _ -> GHC.error "arbitrary: replicateM incorrect"
 
 instance (Arbitrary x) => Arbitrary (M 3 4 x) where
   arbitrary :: Gen (M 3 4 x)
   arbitrary =
     Control.replicateM (3 * 4) arbitrary Control.>>= \case
-      [a, b, c, d, e, f, g, h, i, j, k, l] -> Control.pure (m34 a b c d e f g h i j k l)
+      [a, b, c, d, e, f, g, h, i, j, k, l] -> Control.pure (M34 a b c d e f g h i j k l)
       _ -> GHC.error "arbitrary: replicateM incorrect"
 
 instance (Arbitrary x) => Arbitrary (M 4 3 x) where
   arbitrary :: Gen (M 4 3 x)
   arbitrary =
     Control.replicateM (4 * 3) arbitrary Control.>>= \case
-      [a, b, c, d, e, f, g, h, i, j, k, l] -> Control.pure (m43 a b c d e f g h i j k l)
+      [a, b, c, d, e, f, g, h, i, j, k, l] -> Control.pure (M43 a b c d e f g h i j k l)
       _ -> GHC.error "arbitrary: replicateM incorrect"
 
 instance (Arbitrary x) => Arbitrary (M 4 4 x) where
   arbitrary :: Gen (M 4 4 x)
   arbitrary =
     Control.replicateM (4 * 4) arbitrary Control.>>= \case
-      [a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p] -> Control.pure (m44 a b c d e f g h i j k l m n o p)
+      [a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p] -> Control.pure (M44 a b c d e f g h i j k l m n o p)
       _ -> GHC.error "arbitrary: replicateM incorrect"
 
 instance (Arbitrary x) => Arbitrary (Suspension x) where
