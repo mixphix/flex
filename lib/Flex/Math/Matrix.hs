@@ -147,7 +147,7 @@ data V n x where
   V3 :: !x -> !x -> !x -> V 3 x
   V4 :: !x -> !x -> !x -> !x -> V 4 x
   VV ::
-    (KnownNat m, KnownNat p, m + p ~ n, 4 <= m, p <= 4) =>
+    (KnownNat m, KnownNat p, m + p ~ n, 4 <= m, 4 < n, p <= 4) =>
     !(V m x) -> !(V p x) -> V n x
 
 pattern V5 :: x -> x -> x -> x -> x -> V 5 x
@@ -195,7 +195,9 @@ pattern V8 x0 x1 x2 x3 x4 x5 x6 x7 = VV (V4 x0 x1 x2 x3) (V4 x4 x5 x6 x7)
   (V4 x0 x1 x2 x3) (VV (vm :: V m0 x) (vp :: V p0 x)) ->
     case sameNat (Proxy @((4 + m0) + p0)) (Proxy @(4 + n)) of
       Just Refl -> case cmpNat (Proxy @4) (Proxy @(4 + m0)) of
-        LTI -> VV (V4 x0 x1 x2 x3 ++ vm) vp
+        LTI -> case cmpNat (Proxy @4) (Proxy @(4 + n)) of
+          LTI -> VV (V4 x0 x1 x2 x3 ++ vm) vp
+          _ -> GHC.error "Flex.Math.Matrix.++: fail"
         _ -> GHC.error "Flex.Math.Matrix.++: fail"
       Nothing -> GHC.error "Flex.Math.Matrix.++: fail"
   (VV (vm :: V m0 x) (vp :: V p0 x)) v ->
@@ -214,7 +216,6 @@ instance (KnownNat n, Eq x) => Eq (V n x) where
     (VV (m0 :: V m0 x) p0) (VV (m1 :: V m1 x) p1) -> case sameNat (Proxy @m0) (Proxy @m1) of
       Just Refl -> m0 == m1 && p0 == p1
       Nothing -> (m0 ++ p0) == (m1 ++ p1)
-    _ _ -> False
   {-# INLINE (==) #-}
 instance (KnownNat n, Ord x) => Ord (V n x) where
   compare :: (KnownNat n, Ord x) => V n x -> V n x -> Ordering
@@ -226,8 +227,6 @@ instance (KnownNat n, Ord x) => Ord (V n x) where
     (VV (m0 :: V m0 x) (p0 :: V p0 x)) (VV (m1 :: V m1 x) (p1 :: V p1 x)) -> case sameNat (Proxy @m0) (Proxy @m1) of
       Just Refl -> compare m0 m1 <> compare p0 p1
       Nothing -> compare (m0 ++ p0) (m1 ++ p1)
-    v (VV m p) -> compare v (m ++ p)
-    (VV m p) v -> compare (m ++ p) v
   {-# INLINE compare #-}
 
 instance (KnownNat n, Show x) => Show (V n x) where
@@ -643,8 +642,6 @@ instance Apply (V n) where
       case sameNat (Proxy @m0) (Proxy @m1) of
         Just Refl -> VV (liftA2 x_y_z m0 m1) (liftA2 x_y_z p0 p1)
         Nothing -> liftA2 x_y_z (m0 ++ p0) (m1 ++ p1)
-    v (VV m p) -> liftA2 x_y_z v (m ++ p)
-    (VV m p) v -> liftA2 x_y_z (m ++ p) v
   {-# INLINE liftA2 #-}
 instance (KnownNat n) => Control.Applicative (V n) where
   pure :: x -> V n x
