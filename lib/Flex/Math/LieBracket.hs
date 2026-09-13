@@ -66,7 +66,4 @@ instance {-# OVERLAPPING #-} (Eq x, Ring x) => LieBracket (V 3 x) where
     do (a1 * b2) - (a2 * b1)
     do (a2 * b0) - (a0 * b2)
     do (a0 * b1) - (a1 * b0)
-  v@V3{} >< VV m p = v >< (m ++ p)
-  VV m p >< v@V3{} = (m ++ p) >< v
-  VV m p >< VV m' p' = (m ++ p) >< (m' ++ p')
   {-# INLINE (><) #-}
