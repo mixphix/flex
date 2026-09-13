@@ -147,7 +147,8 @@ data V n x where
   V3 :: !x -> !x -> !x -> V 3 x
   V4 :: !x -> !x -> !x -> !x -> V 4 x
   VV ::
-    (KnownNat m, KnownNat p, m + p ~ n, p <= 4) => !(V m x) -> !(V p x) -> V n x
+    (KnownNat m, KnownNat p, m + p ~ n, 4 <= m, p <= 4) =>
+    !(V m x) -> !(V p x) -> V n x
 
 pattern V5 :: x -> x -> x -> x -> x -> V 5 x
 pattern V5 x0 x1 x2 x3 x4 = VV (V4 x0 x1 x2 x3) (V1 x4)
@@ -193,7 +194,9 @@ pattern V8 x0 x1 x2 x3 x4 x5 x6 x7 = VV (V4 x0 x1 x2 x3) (V4 x4 x5 x6 x7)
   (V4 x0 x1 x2 x3) (V4 y0 y1 y2 y3) -> VV (V4 x0 x1 x2 x3) (V4 y0 y1 y2 y3)
   (V4 x0 x1 x2 x3) (VV (vm :: V m0 x) (vp :: V p0 x)) ->
     case sameNat (Proxy @((4 + m0) + p0)) (Proxy @(4 + n)) of
-      Just Refl -> VV (V4 x0 x1 x2 x3 ++ vm) vp
+      Just Refl -> case cmpNat (Proxy @4) (Proxy @(4 + m0)) of
+        LTI -> VV (V4 x0 x1 x2 x3 ++ vm) vp
+        _ -> GHC.error "Flex.Math.Matrix.++: fail"
       Nothing -> GHC.error "Flex.Math.Matrix.++: fail"
   (VV (vm :: V m0 x) (vp :: V p0 x)) v ->
     case sameNat (Proxy @(m0 + (p0 + n))) (Proxy @(m + n)) of
@@ -682,7 +685,7 @@ fromList xs = case sameNat (Proxy @1) (Proxy @n) of
             let (m, p) = List.splitAt (from (natVal (Proxy @n)) - 4) xs
              in case (fromList @(n - 4) m, fromList @4 p) of
                   (Just vm, Just vp) -> case sameNat (Proxy @((n - 4) + 4)) (Proxy @n) of
-                    Just Refl -> Just (VV vm vp)
+                    Just Refl -> Just (vm ++ vp)
                     Nothing -> Nothing
                   _ -> Nothing
           _ -> Nothing
