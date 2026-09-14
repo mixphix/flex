@@ -100,7 +100,6 @@ adjoint = morphism conjugate . transpose
 class
   ( Matrix m m x
   , Eq (Scalar (m x))
-  , Distributive (m x)
   , AssociativeAlgebra (m x)
   ) =>
   Square m x
