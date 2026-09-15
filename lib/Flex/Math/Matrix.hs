@@ -924,11 +924,11 @@ instance (KnownNat m, KnownNat n, Show x) => Show (M m n x) where
    where
     inside :: forall k p. (KnownNat k, KnownNat p, Show x) => V k (V p x) -> [Char]
     inside = \case
-      V1 x -> "{" <> inside2 x <> "}"
-      V2 x0 x1 -> "{" <> inside2 x0 <> " " <> inside2 x1 <> "}"
-      V3 x0 x1 x2 -> "{" <> inside2 x0 <> " " <> inside2 x1 <> " " <> inside2 x2 <> "}"
+      V1 x -> "{ " <> inside2 x <> " }"
+      V2 x0 x1 -> "{ " <> inside2 x0 <> " " <> inside2 x1 <> " }"
+      V3 x0 x1 x2 -> "{ " <> inside2 x0 <> " " <> inside2 x1 <> " " <> inside2 x2 <> " }"
       V4 x0 x1 x2 x3 ->
-        "{"
+        "{ "
           <> inside2 x0
           <> " "
           <> inside2 x1
@@ -936,8 +936,8 @@ instance (KnownNat m, KnownNat n, Show x) => Show (M m n x) where
           <> inside2 x2
           <> " "
           <> inside2 x3
-          <> "}"
-      VV m p -> "{" <> inside m <> " " <> inside p <> "}"
+          <> " }"
+      VV m p -> "{ " <> foldWith ((<> " ") . inside2) m <> foldWith ((<> " ") . inside2) p <> "}"
     {-# INLINE inside #-}
     inside2 :: forall p. (KnownNat p, Show x) => V p x -> [Char]
     inside2 = \case
@@ -946,7 +946,7 @@ instance (KnownNat m, KnownNat n, Show x) => Show (M m n x) where
       V3 x0 x1 x2 -> "{ " <> show x0 <> " " <> show x1 <> " " <> show x2 <> " }"
       V4 x0 x1 x2 x3 ->
         "{ " <> show x0 <> " " <> show x1 <> " " <> show x2 <> " " <> show x3 <> " }"
-      VV m p -> inside2 m <> " " <> inside2 p
+      VV m p -> "{ " <> foldWith ((<> " ") . show) m <> foldWith ((<> " ") . show) p <> "}"
     {-# INLINE inside2 #-}
   {-# INLINE show #-}
 
