@@ -256,8 +256,8 @@ vn f = case cmpNat (Proxy @5) (Proxy @n) of
   _ -> case sameNat (Proxy @n) (Proxy @((n - 4) + 4)) of
     Just Refl -> case cmpNat (Proxy @4) (Proxy @n) of
       LTI -> (vn f :: V (n - 4) x) ++ (vn (f . (+ natVal (Proxy @(n - 4)))) :: V 4 x)
-      GTI -> GHC.error "pure: fail"
-    _ -> GHC.error "pure: fail"
+      GTI -> GHC.error "Flex.Math.Matrix.vn: fail"
+    _ -> GHC.error "Flex.Math.Matrix.vn: fail"
 {-# INLINE vn #-}
 
 vnM :: forall n x m. (KnownNat n, Apply m) => (Natural -> m x) -> m (V n x)
@@ -278,8 +278,8 @@ vnM f = case cmpNat (Proxy @5) (Proxy @n) of
           (++)
           (vnM f :: m (V (n - 4) x))
           (vnM (f . (+ natVal (Proxy @(n - 4)))) :: m (V 4 x))
-      GTI -> GHC.error "pure: fail"
-    _ -> GHC.error "pure: fail"
+      GTI -> GHC.error "Flex.Math.Matrix.vnM: fail"
+    _ -> GHC.error "Flex.Math.Matrix.vnM: fail"
 {-# INLINE vnM #-}
 
 dimensions :: forall n. (KnownNat n) => Const [Natural] n
