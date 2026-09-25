@@ -47,11 +47,11 @@ instance From Natural Probability where
   {-# INLINE from #-}
 instance From Rational Probability where
   from :: Rational -> Probability
-  from (Ratio p q) = Probability (absolute p `reduce` absolute q)
+  from (Ratio p q) = Probability (absolute p `Ratio` absolute q)
   {-# INLINE from #-}
 instance From Probability Rational where
   from :: Probability -> Rational
-  from (Probability (Ratio p q)) = from p `reduce` from q
+  from (Probability (Ratio p q)) = from p `Ratio` from q
   {-# INLINE from #-}
 instance From Probability Double where
   from :: Probability -> Double
@@ -60,15 +60,15 @@ instance From Probability Double where
 
 instance Addition Probability Probability Probability where
   (+.) :: Probability -> Probability -> Probability
-  Probability (Ratio m n) +. Probability (Ratio p q) = Probability (reduce (m * q + n * p) (n * q))
+  Probability (Ratio m n) +. Probability (Ratio p q) = Probability (Ratio (m * q + n * p) (n * q))
   {-# INLINE (+.) #-}
 instance Multiplication Probability Probability Probability where
   (*.) :: Probability -> Probability -> Probability
-  Probability (Ratio m n) *. Probability (Ratio p q) = Probability (reduce (m * p) (n * q))
+  Probability (Ratio m n) *. Probability (Ratio p q) = Probability (Ratio (m * p) (n * q))
   {-# INLINE (*.) #-}
 instance Division Probability Probability Probability where
   (/.) :: Probability -> Probability -> Probability
-  Probability (Ratio m n) /. Probability (Ratio p q) = Probability (reduce (m * q) (n * p))
+  Probability (Ratio m n) /. Probability (Ratio p q) = Probability (Ratio (m * q) (n * p))
   {-# INLINE (/.) #-}
 instance Multiplication Rational Probability Rational where
   (*.) :: Rational -> Probability -> Rational
@@ -141,7 +141,8 @@ instance Apply Distribution where
   {-# INLINE liftA2 #-}
 instance Bind Distribution where
   (>>=) :: Distribution x -> (x -> Distribution y) -> Distribution y
-  (>>=) = (Control.>>=)
+  Distribution d >>= f = Distribution do
+    normalize [(y, px * py) | (x, px) <- d, (y, py) <- distribution (f x)]
   {-# INLINE (>>=) #-}
 
 foldD :: (Ord x) => (x -> x -> x) -> NonEmpty (Distribution x) -> Distribution x
@@ -149,11 +150,11 @@ foldD f = foldl1 \(Distribution d) -> liftA2 f (Distribution (shrink d))
 {-# INLINE foldD #-}
 
 likelihood :: (x -> Bool) -> Distribution x -> Probability
-likelihood predicate (Distribution d) = sumOn snd (List.filter (predicate . fst) d)
+likelihood predicate (Distribution d) = sumOn snd (filter (predicate . fst) d)
 {-# INLINE likelihood #-}
 
 conditional :: (x -> Bool) -> Distribution x -> Distribution x
-conditional predicate (Distribution d) = Distribution (normalize (List.filter (predicate . fst) d))
+conditional predicate (Distribution d) = Distribution (normalize (filter (predicate . fst) d))
 {-# INLINE conditional #-}
 
 uniform :: (Ord x) => [x] -> Distribution x
@@ -162,7 +163,7 @@ uniform = Distribution . normalize . shrink . foldWith \x -> [(x, one)]
 
 fairness :: Probability -> x -> x -> Distribution x
 fairness (Probability (Ratio p q)) heads tails = Distribution do
-  [(heads, Probability (reduce p q)), (tails, Probability (reduce (q - p) q))]
+  [(heads, Probability (Ratio p q)), (tails, Probability (Ratio (q - p) q))]
 {-# INLINE fairness #-}
 
 coin :: Probability -> Distribution Bool

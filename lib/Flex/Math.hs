@@ -41,7 +41,6 @@ module Flex.Math
   , Ratio (Ratio)
   , Rational
   , Ration
-  , reduce
   , Additive (zero)
   , AdditiveAbelian
   , sum

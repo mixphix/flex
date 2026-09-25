@@ -983,7 +983,7 @@ instance Structure Root where
     RootFieldLaws laws -> lawful laws
     RootPowerZero x -> (x ^ (zero :: Rational)) == one @x
     RootPowerOne x -> (x ^ (one :: Rational)) == x
-    RootPowerReciprocal x r@(Ratio n d) -> ((x ^ r :: x) ^ (reduce d n)) == x
+    RootPowerReciprocal x r@(Ratio n d) -> ((x ^ r :: x) ^ (Ratio d n)) == x
 
 instance Structure (Morphisms (->) (->)) where
   data Signature (Morphisms (->) (->)) f

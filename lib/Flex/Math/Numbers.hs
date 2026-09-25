@@ -61,7 +61,7 @@ module Flex.Math.Numbers
   , Ration
   , fromDataRational
   , toDataRational
-  , reduce
+  -- , reduce
 
     -- * Modulo
   , Modulo
@@ -80,8 +80,8 @@ module Flex.Math.Numbers
     -- * Trigonometric and Hyperbolic
   , Trigonometric (pi, sin, cos, tan, arcsin, arccos, arctan)
   , Hyperbolic (sinh, cosh, tanh, arcsinh, arccosh, arctanh)
-  
-  -- ** Re-exports
+
+    -- ** Re-exports
   , Natural
   , Integer
   , Int
@@ -103,6 +103,7 @@ import Flex.Math.Suspension
 
 import Data.Bool (Bool (..), not, otherwise)
 import Data.Bounded (Bounded)
+import Data.Char (Char)
 import Data.Complex (Complex ((:+)))
 import Data.Either
 import Data.Enum (Enum (..))
@@ -149,11 +150,38 @@ import GHC.Real qualified as Num
 import GHC.TypeNats (KnownNat, Nat, natVal)
 import Numeric.Natural (Natural)
 import Text.Read (Read)
-import Text.Show (Show)
+import Text.Show (Show (..))
 
 -- Ratio
 
-data Ratio x = Ratio !x !x deriving (Show, Generic)
+data Ratio x = MkRatio !x !x deriving (Generic)
+
+instance
+  ( Show x
+  , Eq x
+  , From Integer x
+  , Signed x
+  , Absolute x x
+  , Euclidean x
+  ) =>
+  Show (Ratio x)
+  where
+  show :: Ratio x -> [Char]
+  show (Ratio n d) = "Ratio " <> show n <> " " <> show d
+
+pattern Ratio ::
+  ( Eq x
+  , From Integer x
+  , Signed x
+  , Absolute x x
+  , Euclidean x
+  ) =>
+  x -> x -> Ratio x
+pattern Ratio p q <- MkRatio p q
+ where
+  Ratio p q = reduce p q
+
+{-# COMPLETE Ratio #-}
 
 type Rational = Ratio Integer
 type Ration = Ratio Natural
@@ -173,16 +201,34 @@ reduce ::
 reduce n d
   | d == zero = Num.ratioZeroDenominatorError
   | otherwise =
-      let d' = absolute d
-          p = gcd (absolute n) d'
-       in Ratio ((n * signum d) `quotient` p) (d' `quotient` p)
+      let !d' = absolute d
+          !p = gcd (absolute n) d'
+       in MkRatio ((n * signum d) `quotient` p) (d' `quotient` p)
 {-# INLINE reduce #-}
 
-instance (Eq x, Multiplication x x x) => Eq (Ratio x) where
+instance
+  ( Eq x
+  , From Integer x
+  , Signed x
+  , Absolute x x
+  , Euclidean x
+  , Multiplication x x x
+  ) =>
+  Eq (Ratio x)
+  where
   (==) :: Ratio x -> Ratio x -> Bool
   Ratio n0 d0 == Ratio n1 d1 = n0 * d1 == n1 * d0
   {-# INLINE (==) #-}
-instance (Ord x, Multiplication x x x) => Ord (Ratio x) where
+instance
+  ( Ord x
+  , From Integer x
+  , Signed x
+  , Absolute x x
+  , Euclidean x
+  , Multiplication x x x
+  ) =>
+  Ord (Ratio x)
+  where
   compare :: Ratio x -> Ratio x -> Ordering
   Ratio n0 d0 `compare` Ratio n1 d1 = (n0 * d1) `compare` (n1 * d0)
   {-# INLINE compare #-}
