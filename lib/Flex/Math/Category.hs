@@ -74,8 +74,8 @@ module Flex.Math.Category
   , Traversable
   , sequence
   , for
-  , mapAccumM
-  , mapAccum
+  , accumM
+  , accum
   , IxTraversable
   , itraverse
   , ifor
@@ -84,6 +84,8 @@ module Flex.Math.Category
   , sequence1
   , for1
   , IxTraversable1
+  , itraverse1
+  , ifor1
   --
   , Pure (pure)
   , Apply ((<*>), liftA2)
@@ -1972,16 +1974,15 @@ for :: (Traversable f, Applicative g) => f x -> (x -> g y) -> g (f y)
 for = flip traverse
 {-# INLINE for #-}
 
-mapAccumM ::
+accumM ::
   (Monad f, Traversable t) =>
   (s -> x -> f (s, y)) -> s -> t x -> f (s, t y)
-mapAccumM s_x_fxsy s tx =
-  traverse (StateT . flip s_x_fxsy) tx `runStateT` s
-{-# INLINE mapAccumM #-}
+accumM s_x_fxsy s tx = traverse (StateT . flip s_x_fxsy) tx `runStateT` s
+{-# INLINE accumM #-}
 
-mapAccum :: (Traversable t) => (s -> x -> (s, y)) -> s -> t x -> (s, t y)
-mapAccum f xs tx = runIdentity (mapAccumM ((Identity .) . f) xs tx)
-{-# INLINE mapAccum #-}
+accum :: (Traversable t) => (s -> x -> (s, y)) -> s -> t x -> (s, t y)
+accum f xs tx = runIdentity (accumM ((Identity .) . f) xs tx)
+{-# INLINE accum #-}
 
 instance Traversals (->) (->) Identity where
   traverse :: (Applicative g) => (x -> g y) -> Identity x -> g (Identity y)
@@ -2516,6 +2517,12 @@ instance
 
 type IxTraversable1 i =
   C2 (Traversals1 (->) (->)) (Traversals1 (Ix i) (->))
+
+itraverse1 :: (IxTraversable1 i f, Apply g) => (i -> x -> g y) -> f x -> g (f y)
+itraverse1 = traverse1 . Ix
+
+ifor1 :: (IxTraversable1 i f, Apply g) => f x -> (i -> x -> g y) -> g (f y)
+ifor1 = flip itraverse1
 
 instance Traversals1 (Ix ()) (->) Identity where
   traverse1 ::

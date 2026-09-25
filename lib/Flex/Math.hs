@@ -142,6 +142,88 @@ module Flex.Math
   , Quandle
   , Category (Objects, id, (.))
   , Groupoid (invert)
+  , Morphisms (morphism)
+  , Along
+  , IxAlong
+  , imorphism
+  , ($$)
+  , Against
+  , Phantom
+  , phantom
+  , Along2
+  , morphism'
+  , along2
+  , Folds (foldWith)
+  , Foldable
+  , fold
+  , foldl
+  , foldr
+  , traverse_
+  , for_
+  , IxFoldable
+  , ifoldWith
+  , ifoldl
+  , ifoldr
+  , itraverse_
+  , ifor_
+  , Folds1 (foldWith1)
+  , Foldable1
+  , fold1
+  , foldl1
+  , foldr1
+  , IxFoldable1
+  , ifoldWith1
+  , ifoldl1
+  , ifoldr1
+  , Foldable2 (foldWith2)
+  , Traversals (traverse)
+  , Traversable
+  , for
+  , sequence
+  , accumM
+  , accum
+  , IxTraversable
+  , itraverse
+  , ifor
+  , Traversals1 (traverse1)
+  , Traversable1
+  , for1
+  , sequence1
+  , IxTraversable1
+  , itraverse1
+  , ifor1
+  , Traversable2 (traverse2)
+  , Pure (pure)
+  , Apply ((<*>), liftA2)
+  , (<*)
+  , (*>)
+  , liftA3
+  , Applicative
+  , Nil (nil)
+  , Alt ((<|>))
+  , asum1
+  , Alternative
+  , asum
+  , Option (Option, getOption)
+  , Bind ((>>=))
+  , (=<<)
+  , (>=>)
+  , (<=<)
+  , (>>)
+  , join
+  , Monad
+  , liftM2
+  , liftM3
+  , ap
+  , void
+  , when
+  , unless
+  , Filterable
+  , justs
+  , filter
+  , IxFilterable
+  , ijusts
+  , ifilter
 
     -- * Extensions of number types
   , Projective (Projective, Infinity)
