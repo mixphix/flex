@@ -245,13 +245,27 @@ instance (KnownNat n, Show x) => Show (V n x) where
 vn :: forall n x. (KnownNat n) => (Natural -> x) -> V n x
 vn f = case cmpNat (Proxy @5) (Proxy @n) of
   GTI -> case sameNat (Proxy @1) (Proxy @n) of
-    Just Refl -> V1 (f 0)
+    Just Refl ->
+        let !v0 = f 0
+         in V1 v0
     Nothing -> case sameNat (Proxy @2) (Proxy @n) of
-      Just Refl -> V2 (f 0) (f 1)
+      Just Refl ->
+          let !v0 = f 0
+              !v1 = f 1
+           in V2 v0 v1
       Nothing -> case sameNat (Proxy @3) (Proxy @n) of
-        Just Refl -> V3 (f 0) (f 1) (f 2)
+        Just Refl ->
+            let !v0 = f 0
+                !v1 = f 1
+                !v2 = f 2
+             in V3 v0 v1 v2
         Nothing -> case sameNat (Proxy @4) (Proxy @n) of
-          Just Refl -> V4 (f 0) (f 1) (f 2) (f 3)
+          Just Refl ->
+              let !v0 = f 0
+                  !v1 = f 1
+                  !v2 = f 2
+                  !v3 = f 3
+               in V4 v0 v1 v2 v3
           Nothing -> GHC.error "Flex.Math.Matrix.vn: fail"
   _ -> case sameNat (Proxy @n) (Proxy @((n - 4) + 4)) of
     Just Refl -> case cmpNat (Proxy @4) (Proxy @n) of
