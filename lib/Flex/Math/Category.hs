@@ -4562,14 +4562,14 @@ instance (i ~ j) => Ixed j (Ix i) where
   ixed = ix
   {-# INLINE ixed #-}
 
-infixl 9 <.
+infixr 9 <.
 (<.) ::
   (Ixed i p) =>
   (Ix i xs ys -> z) -> ((x -> y) -> xs -> ys) -> p x y -> z
 (<.) iixsys x_y_xs_ys p = iixsys (Ix (x_y_xs_ys . ixed p))
 {-# INLINE (<.) #-}
 
-infixl 9 .>
+infixr 9 .>
 (.>) ::
   (Category p, Objects p x, Objects p y, Objects p z) =>
   p y z -> p x y -> p x z
