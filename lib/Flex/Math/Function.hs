@@ -1,10 +1,23 @@
-module Flex.Math.Function where
+module Flex.Math.Function
+  ( loop
+  , loopM
+  , while
+  , mergeSorted
+  , mergeSorted1
+  , mergeSortedBy
+  ) where
 
 import Flex.Math.Category
 
 import Data.Bool
 import Data.Either
 import Data.Function
+import Data.List (List)
+import Data.List1 (List1)
+import Data.List1 qualified as List1
+import Data.Maybe
+import Data.Ord
+import GHC.Err (error)
 
 loop :: x -> (x -> Either x y) -> y
 loop start with = case with start of
@@ -23,3 +36,20 @@ while :: (Monad m) => m Bool -> m ()
 while = fix \rec condition ->
   condition >>= \truth -> when truth (rec condition)
 {-# INLINE while #-}
+
+mergeSortedBy :: (x -> x -> Ordering) -> List x -> List x -> List x
+mergeSortedBy (<=>) = fix \rec -> \cases
+  [] ys -> ys
+  xs [] -> xs
+  xs@(x : xs') ys@(y : ys') -> case x <=> y of
+    LT -> x : rec xs' ys
+    EQ -> x : rec xs' ys
+    GT -> y : rec xs ys'
+
+mergeSorted :: (Ord x) => List x -> List x -> List x
+mergeSorted = mergeSortedBy compare
+
+mergeSorted1 :: (Ord x) => List1 x -> List1 x -> List1 x
+mergeSorted1 xs ys =
+  fromMaybe (error "mergeSorted1: empty list") $
+    List1.list1 (mergeSorted (List1.toList xs) (List1.toList ys))

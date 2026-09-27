@@ -6,6 +6,8 @@ module Flex.Math
     From (from)
 
     -- * Basic operations
+  , Eq ((==), (/=))
+  , Ord (compare, (<), (>), (<=), (>=))
   , Addition ((+.))
   , (+)
   , Subtraction ((-.))
@@ -27,6 +29,8 @@ module Flex.Math
 
     -- ** Numbers
   , Natural
+  , KnownNat
+  , natVal
   , Integer
   , Int
   , Word
@@ -43,11 +47,9 @@ module Flex.Math
   , Ration
   , Additive (zero)
   , AdditiveAbelian
-  , sum
   , AdditiveGroup (negative)
   , Multiplicative (one)
   , MultiplicativeAbelian
-  , product
   , MultiplicativeGroup (reciprocal)
   , Distributive
   , Semiring
@@ -117,7 +119,12 @@ module Flex.Math
   , Complex ((:+))
   , Quaternion (..)
   , V (VV, V1, V2, V3, V4, V5, V6, V7, V8)
+  , (!)
+  , vn
+  , vnM
   , dimensions
+  , orthogonalize
+  , orthonormalize
   , M (M, unM, M22, M23, M24, M32, M33, M34, M42, M43, M44)
   , row
   , column
@@ -323,8 +330,9 @@ import Flex.Math.Rack
 import Flex.Math.Structure
 import Flex.Math.Suspension
 
-import Data.Eq (Eq)
+import Data.Eq (Eq (..))
 import Data.List1 (List1)
+import Data.Ord (Ord (..))
 import GHC.Base (Double)
 import GHC.Num (Num)
 import GHC.Real qualified as Num

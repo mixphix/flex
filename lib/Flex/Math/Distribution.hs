@@ -1,7 +1,23 @@
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE ViewPatterns #-}
 
-module Flex.Math.Distribution where
+module Flex.Math.Distribution
+  ( Probability (Probability, runProbability)
+  , normalize
+  , shrink
+  , foldD
+  , likelihood
+  , conditional
+  , uniform
+  , fairness
+  , coin
+  , binomial
+  , die
+  , expectation
+  , variance
+  , deviation
+  , quantile
+  ) where
 
 import Flex.Math.Category
 import Flex.Math.Foldable
