@@ -15,27 +15,37 @@
 {- HLINT ignore "Use >=>" -}
 
 module Flex.Math.Category
-  ( Category (type Objects, id, (.))
+  ( -- * Constrained categories
+    Category (type Objects, id, (.))
   , Groupoid (invert)
   , C0
   , C2
   , CC
   , Composed
-  --
+
+    -- ** Other examples of categories
+  , Ix (Ix, ix)
+  , type (~>) (OrdArrow, unOrdArrow)
+
+    -- * Functors
   , Morphisms (morphism)
   , ($$)
   , Along
-  --
-  , type (~>) (OrdArrow, unOrdArrow)
-  --
-  , Ix (Ix, ix)
   , IxAlong
   , imorphism
   , OrdAlong
-  --
+  , Against
+  , Phantom
+  , phantom
+
+    -- * Natural transformations
   , Transform (Transform, transform)
   , type (-->)
-  --
+  , Along2
+  , morphism'
+  , along2
+
+    -- * Foldables
   , Folds (foldWith)
   , fold
   , foldl
@@ -61,15 +71,9 @@ module Flex.Math.Category
   , ifoldWith1
   , ifoldl1
   , ifoldr1
-  --
-  , Against
-  , Phantom
-  , phantom
-  --
-  , Along2
-  , morphism'
-  , along2
-  --
+  , Foldable2 (foldWith2)
+
+    -- * Traversables
   , Traversals (traverse)
   , Traversable
   , sequence
@@ -86,13 +90,21 @@ module Flex.Math.Category
   , IxTraversable1
   , itraverse1
   , ifor1
-  --
+  , Traversable2 (traverse2)
+
+    -- * Structured functors
   , Pure (pure)
   , Apply ((<*>), liftA2)
   , liftA3
   , (<*)
   , (*>)
   , Applicative
+  , Collectable (collect, distribute)
+  , cotraverse
+  , Tabulation (type Table, fromTable, toTable)
+  , ComplexBasis (Real, Imaginary)
+
+    -- * Monads
   , Bind ((>>=))
   , (>>)
   , join
@@ -106,10 +118,8 @@ module Flex.Math.Category
   , void
   , when
   , unless
-  --
-  , Foldable2 (foldWith2)
-  , Traversable2 (traverse2)
-  --
+
+    -- * Alternatives
   , Nil (nil)
   , guard
   , Alt ((<|>))
@@ -117,46 +127,39 @@ module Flex.Math.Category
   , Alternative
   , asum
   , Option (Option, getOption)
-  --
+
+    -- * Filterable and Witherable
   , Filterable
   , justs
   , filter
   , IxFilterable
   , ijusts
   , ifilter
-  --
   , Witherable (witherK)
   , wither
   , filterA
   , IxWitherable (iwitherK)
   , iwither
   , ifilterA
-  --
+
+    -- * Comonads
   , Copure (copure)
   , Extend (duplicate, extend)
   , Coapply ((<@>))
   , Comonad
-  , Collectable (collect, distribute)
-  , cotraverse
-  , Tabulation (type Table, fromTable, toTable)
-  , ComplexBasis (Real, Imaginary)
-  , Adjunction (unit, counit, left, right)
-  , zipR
-  , unzipR
-  , cozipL
-  , uncozipL
   , Cotabulation (type Cotable, fromCotable, toCotable)
-  , Coadjunction (unitCo, counitCo, leftCo, rightCo)
+
+    -- * Profunctors
   , phormism
   , Fletched
   , ( #. )
   , (.#)
   , fletch
   , Forget (Forget, runForget)
-  , Strong (product0, product1)
-  , Costrong (unproduct0, unproduct1)
-  , Choice (inl, inr)
-  , Cochoice (outl, outr)
+  , Strong (strong0, strong1)
+  , Costrong (costrong0, costrong1)
+  , Choice (choiceL, choiceR)
+  , Cochoice (cochoiceL, cochoiceR)
   , Sieve (sieve)
   , Cosieve (cosieve)
   , Representable (type Representation, represent)
@@ -173,7 +176,8 @@ module Flex.Math.Category
   , icompose
   , (<.>)
   , Procompose (Procompose)
-  --
+
+    -- * The state monad (transformer)
   , StateT (StateT, runStateT)
   , State
   , state
@@ -184,7 +188,7 @@ module Flex.Math.Category
   ) where
 
 import Control.Applicative qualified as Control
-import Control.Arrow (Kleisli (..), (&&&), (|||))
+import Control.Arrow (Kleisli (..))
 import Control.Category qualified as Control
 import Control.Monad qualified as Control
 import Control.Monad.Fix (MonadFix (..), fix)
@@ -238,9 +242,9 @@ import GHC.Exts (oneShot)
 import GHC.Generics
 import GHC.Num.Integer (Integer)
 import GHC.Real (fromIntegral)
+import GHC.ST
 import Numeric.Natural (Natural)
 import System.IO (IO)
-import GHC.ST
 
 -- Categories and Functors
 
@@ -258,11 +262,25 @@ instance (c0 (f x)) => CC c0 f x
 
 type Composed ::
   (j -> Constraint) -> (k -> Constraint) -> (j -> k) -> Constraint
-class (forall x. ((g x) => c (f x))) => Composed g c f
+class (forall x. (g x) => c (f x)) => Composed g c f
 
 class (Objects c x) => Objects' c x
 instance (Objects c x) => Objects' c x
 
+-- |
+-- A 'Category' is a two-argument type former @cat@ such that,
+--   for every type @x@ with instance @'Objects' cat x@,
+--     there is an /identity/ called @id :: c x x@;
+--
+--   and for all types @x@, @y@, @z@ with @'Objects' cat@ instances,
+--     there is a /composition/ called @(.) :: c y z -> c x y -> c x z@.
+--
+-- For example, the type former @(->)@ is a category, where:
+-- > id :: x -> x
+-- > id x = x
+-- >
+-- > (.) :: (y -> z) -> (x -> y) -> (x -> z)
+-- > g . f = \x -> g (f x)
 type Category :: (k -> k -> Type) -> Constraint
 class Category cat where
   type Objects cat :: k -> Constraint
@@ -270,6 +288,7 @@ class Category cat where
   (.) ::
     (Objects cat x, Objects cat y, Objects cat z) =>
     cat y z -> cat x y -> cat x z
+
 type Groupoid :: (k -> k -> Type) -> Constraint
 class (Category cat) => Groupoid cat where
   invert :: cat x y -> cat y x
@@ -299,6 +318,8 @@ instance (Monad f) => Category (Kleisli f) where
   Kleisli y_fz . Kleisli x_fy = Kleisli (y_fz <=< x_fy)
   {-# INLINE (.) #-}
 
+-- |
+-- A constrained @'Category'@, where the constraint @'Objects' (~>) = Ord@.
 data (~>) x y = (Ord x, Ord y) => OrdArrow {unOrdArrow :: x -> y}
 
 instance Category (~>) where
@@ -310,6 +331,11 @@ instance Category (~>) where
   OrdArrow y_z . OrdArrow x_y = OrdArrow (y_z . x_y)
   {-# INLINE (.) #-}
 
+-- |
+-- The constraint @'Morphisms' c d f@ represents the transport of values
+-- @c x y@ to values of @d (f x) (f y)@. For example, when @c = d = (->)@,
+-- the type @'Morphisms' (->) (->) f@ represents a @'Data.Functor' f@.
+-- In this library, the concept is named @'Along'@.
 type Morphisms ::
   (j -> j -> Type) ->
   (k -> k -> Type) ->
@@ -318,6 +344,7 @@ type Morphisms ::
 class (Category d) => Morphisms c d f where
   morphism :: c x y -> d (f x) (f y)
 
+-- | > type Along f = Morphisms (->) (->) f
 type Along f = Morphisms (->) (->) f
 
 instance Morphisms (->) (->) Identity where
@@ -499,6 +526,9 @@ instance Morphisms (~>) (->) Set where
 fxz $$ x = morphism ($ x) fxz
 {-# INLINE ($$) #-}
 
+-- |
+-- @'Ix' i x y@ is the type of functions @i -> x -> y@,
+-- written so that @'Ix' i@ is a 'Category'.
 type Ix :: Type -> Type -> Type -> Type
 newtype Ix i x y = Ix {ix :: i -> x -> y}
 
@@ -781,6 +811,10 @@ instance
       fgx
   {-# INLINE morphism #-}
 
+-- |
+-- The constraint @'Folds' c d f@ represents type formers @f@ such that
+-- given a morphism @c x z@ where @z@ is a @'Monoid'@, we can create a
+-- canonical morphism @d (f x) z@.
 type Folds ::
   (Type -> Type -> Type) ->
   (Type -> Type -> Type) ->
@@ -789,6 +823,7 @@ type Folds ::
 class (Category d) => Folds c d f where
   foldWith :: (Monoid z) => c x z -> d (f x) z
 
+-- | > type Foldable f = Folds (->) (->) f
 type Foldable f = Folds (->) (->) f
 
 fold :: (Foldable f, Monoid x) => f x -> x
@@ -979,6 +1014,7 @@ instance Folds (->) (->) Vector.Vector where
   foldWith = Data.foldMap
   {-# INLINE foldWith #-}
 
+-- | > type IxFoldable i = C2 (Folds (->) (->)) (Folds (Ix i) (->))
 type IxFoldable i = C2 (Folds (->) (->)) (Folds (Ix i) (->))
 
 ifoldWith :: (IxFoldable i f, Monoid z) => (i -> x -> z) -> f x -> z
@@ -1215,6 +1251,10 @@ instance Semigroup (FromMaybe x) where
   FromMaybe mx_x <> FromMaybe my_y = FromMaybe (mx_x . Just . my_y)
   {-# INLINE (<>) #-}
 
+-- |
+-- The constraint @'Folds1' c d f@ represents type formers @f@ such that
+-- given a morphism @c x z@ where @z@ is a @'Semigroup'@, we can create a
+-- canonical morphism @d (f x) z@.
 class Folds1 c d f where
   foldWith1 :: (Semigroup z) => c x z -> d (f x) z
 
@@ -1336,7 +1376,7 @@ type IxFoldable1 i = C2 (Folds1 (->) (->)) (Folds1 (Ix i) (->))
 
 ifoldWith1 :: (IxFoldable1 i f, Semigroup z) => (i -> x -> z) -> f x -> z
 ifoldWith1 = foldWith1 . Ix
-{- INLINE ifoldWith1 -}
+{-# INLINE ifoldWith1 #-}
 
 ifoldl1 :: (IxFoldable1 i f) => (i -> y -> x -> y) -> y -> f x -> y
 ifoldl1 i_y_x_y y0 fx =
@@ -1345,11 +1385,12 @@ ifoldl1 i_y_x_y y0 fx =
     id
     fx
     y0
-{- INLINE ifoldl1 -}
+{-# INLINE ifoldl1 #-}
+
 ifoldr1 :: (IxFoldable1 i f) => (i -> x -> y -> y) -> y -> f x -> y
 ifoldr1 i_x_y_y y fx =
   foldWith1 (Ix \i -> Endo . i_x_y_y i) fx `appEndo` y
-{- INLINE ifoldr1 -}
+{-# INLINE ifoldr1 #-}
 
 instance Folds1 (Ix ()) (->) Identity where
   foldWith1 ::
@@ -1484,6 +1525,8 @@ instance
       fgx
   {-# INLINE foldWith1 #-}
 
+-- |
+-- The constraint @'Against' f@ is the @flex@ analogue of @'Data.Functor.Contravariant.Contravariant' f@.
 type Against f = Morphisms Op (->) f
 
 instance Morphisms Op (->) (Op z) where
@@ -1587,18 +1630,26 @@ instance (Control.Category c, Control.Category d) => Control.Category (Transform
   Transform g_h . Transform f_g = Transform (g_h Control.. f_g)
   {-# INLINE (.) #-}
 
+-- |
+-- The @flex@ analogue of @Data.Bifunctor.Bifunctor'@.
 type Along2 :: (Type -> Type -> Type) -> Constraint
 type Along2 f = (forall z. Along (f z), Morphisms (->) (-->) f)
 
+-- |
+-- The @flex@ analogue of @'Data.Bifunctor.first'@.
 morphism' ::
   forall b x x'.
   (Morphisms (->) (-->) b) =>
   (x -> x') -> (forall y. b x y -> b x' y)
 morphism' x_x' = transform (morphism x_x' :: b x --> b x')
+
 {- INLINE morphism' -}
 
+-- |
+-- The @flex@ analogue of @'Data.Bifunctor.bimap'@.
 along2 :: (Along2 b) => (x -> x') -> (y -> y') -> b x y -> b x' y'
 along2 x_x' y_y' bxy = morphism y_y' (morphism' x_x' bxy)
+
 {- INLINE along2 -}
 
 instance Morphisms (->) (-->) Either where
@@ -1662,6 +1713,8 @@ instance Morphisms (~>) (-->) Map where
   morphism (OrdArrow x_y) = Transform (Map.mapKeys x_y)
   {-# INLINE morphism #-}
 
+-- |
+-- Type formers that are lax semigroupal with respect to the tensor product.
 type Apply :: (Type -> Type) -> Constraint
 class (Along f) => Apply f where
   {-# MINIMAL (<*>) | liftA2 #-}
@@ -1813,6 +1866,8 @@ instance (Apply f, Apply g) => Apply (f :.: g) where
   Comp1 fgxy <*> Comp1 fgx = Comp1 (liftA2 (<*>) fgxy fgx)
   {-# INLINE (<*>) #-}
 
+-- |
+-- A coalgebra on a type former.
 type Pure :: (Type -> Type) -> Constraint
 class Pure f where
   pure :: x -> f x
@@ -1908,13 +1963,21 @@ instance (Pure f, Pure g) => Pure (f :.: g) where
   pure x = Comp1 (pure (pure x))
   {-# INLINE pure #-}
 
+-- |
+-- 'Applicative' functors have both a coalgebra and a semigroup structure;
+-- this makes them @'Monoid'@al functors.
 type Applicative :: (Type -> Type) -> Constraint
 type Applicative f = (Pure f, Apply f)
 
+-- |
+-- The state monad transformer.
 newtype StateT s f x = StateT {runStateT :: s -> f (s, x)}
   deriving (Data.Functor)
 
+-- |
+-- The state monad.
 type State s = StateT s Identity
+
 state :: (s -> (s, x)) -> State s x
 state f = StateT (Identity . f)
 {-# INLINE state #-}
@@ -1928,7 +1991,7 @@ instance (Along f) => Morphisms (->) (->) (StateT s f) where
     StateT (morphism (morphism x_y :: (s, x) -> (s, y)) . s_fsx)
   {-# INLINE morphism #-}
 instance (Pure f) => Pure (StateT s f) where
-  pure :: (Pure f) => x -> StateT s f x
+  pure :: x -> StateT s f x
   pure x = StateT \s -> pure (s, x)
   {-# INLINE pure #-}
 instance (Monad f) => Apply (StateT s f) where
@@ -1961,9 +2024,14 @@ instance (Monad f, Control.Monad f) => Control.Monad (StateT s f) where
     StateT \s -> s_x s >>= \(s', x) -> (x_Ssfy x).runStateT s'
   {-# INLINE (>>=) #-}
 
+-- |
+-- The constraint @'Traversals' c d f@ represents type formers @f@ such that
+-- given a morphism @c x (g y)@ where @g@ is @'Applicative'@, we can create
+-- a canonical morphism @d (f x) (g (f y))@.
 class (Morphisms c d f, Folds c d f) => Traversals c d f where
   traverse :: (Applicative g) => c x (g y) -> d (f x) (g (f y))
 
+-- | > type Traversable f = Traversals (->) (->) f
 type Traversable f = Traversals (->) (->) f
 
 sequence :: (Traversable f, Applicative g) => f (g x) -> g (f x)
@@ -2131,6 +2199,7 @@ instance (Traversable f, Traversable g) => Traversals (->) (->) (f :.: g) where
     morphism Comp1 (traverse (traverse x_hy :: g x -> h (g y)) fgx)
   {-# INLINE traverse #-}
 
+-- | > type IxTraversable i = C2 (Traversals (->) (->)) (Traversals (Ix i) (->))
 type IxTraversable i =
   C2 (Traversals (->) (->)) (Traversals (Ix i) (->))
 
@@ -2407,9 +2476,14 @@ instance
       fgx
   {-# INLINE traverse #-}
 
+-- |
+-- The constraint @'Traversals1' c d f@ represents type formers @f@ such that
+-- given a morphism @c x z@ where @z@ is a @'Monoid'@, we can create a
+-- canonical morphism @d (f x) z@.
 class (Morphisms c d f, Folds1 c d f) => Traversals1 c d f where
   traverse1 :: (Apply g) => c x (g y) -> d (f x) (g (f y))
 
+-- | > type Traversable1 f = Traversals1 (->) (->) f
 type Traversable1 f = Traversals1 (->) (->) f
 
 sequence1 :: (Traversable1 f, Apply g) => f (g x) -> g (f x)
@@ -2515,6 +2589,9 @@ instance
     traverse1 (traverse1 x_hy :: g x -> h (g y)) fgx
   {-# INLINE traverse1 #-}
 
+-- |
+-- > type IxTraversable1 i =
+-- >   C2 (Traversals1 (->) (->)) (Traversals1 (Ix i) (->))
 type IxTraversable1 i =
   C2 (Traversals1 (->) (->)) (Traversals1 (Ix i) (->))
 
@@ -2652,6 +2729,10 @@ instance
       fgx
   {-# INLINE traverse1 #-}
 
+-- |
+-- For type formers @f@ of class @'Bind'@ there is a natural transformation
+-- @'join' :: f (f x) -> f x@. This is equivalently expressed through
+-- the "Kliesli operation" @(=<<) :: (x -> f y) -> (f x -> f y)@
 type Bind :: (Type -> Type) -> Constraint
 class (Apply f) => Bind f where
   (>>=) :: f x -> (x -> f y) -> f y
@@ -2664,6 +2745,8 @@ join :: (Bind f) => f (f x) -> f x
 join ffx = ffx >>= id
 {-# INLINE join #-}
 
+-- |
+-- A 'Monad' is a coalgebra that is also of class 'Bind'.
 type Monad :: (Type -> Type) -> Constraint
 type Monad = C2 Pure Bind
 
@@ -2773,6 +2856,8 @@ instance (Bind f) => Bind (M1 i c f) where
   M1 fx >>= x_Micfy = M1 (fx >>= \x -> unM1 (x_Micfy x))
   {-# INLINE (>>=) #-}
 
+-- |
+-- A bifunctor that is 'Foldable' over both of its arguments.
 class (Along2 f) => Foldable2 f where
   foldWith2 :: (Monoid z) => (x -> z) -> (y -> z) -> f x y -> z
 
@@ -2819,6 +2904,8 @@ instance Foldable2 ((,,,,,,,) a b c d e f) where
   foldWith2 x_z y_z (_, _, _, _, _, _, x, y) = x_z x <> y_z y
   {-# INLINE foldWith2 #-}
 
+-- |
+-- A bifunctor that is 'Traversable' in the same 'Applicative' over both of its arguments.
 class (Foldable2 f) => Traversable2 f where
   traverse2 :: (Applicative g) => (x -> g y) -> (z -> g w) -> f x z -> g (f y w)
 
@@ -2892,6 +2979,8 @@ instance Traversable2 ((,,,,,,,) a b c d e f) where
     liftA2 (a,b,c,d,e,f,,) (x_gy x) (z_gw z)
   {-# INLINE traverse2 #-}
 
+-- |
+-- A type former with a designated 'nil' value for every base type.
 type Nil :: (Type -> Type) -> Constraint
 class Nil f where
   nil :: f x
@@ -2955,9 +3044,12 @@ instance (Nil f, Nil g) => Nil (f :*: g) where
   nil = nil :*: nil
   {-# INLINE nil #-}
 
+-- |
+-- A coalgebra with a binary operation that preserves the base type.
 type Alt :: (Type -> Type) -> Constraint
-class (Applicative f) => Alt f where
+class (Pure f) => Alt f where
   (<|>) :: f x -> f x -> f x
+
 instance Alt Maybe where
   (<|>) :: Maybe x -> Maybe x -> Maybe x
   (<|>) = \cases
@@ -3003,6 +3095,7 @@ asum1 :: (Alt f, Foldable1 t) => t (f x) -> f x
 asum1 = foldr1 (<|>)
 {-# INLINE asum1 #-}
 
+-- | > type Alternative = C2 Nil Alt
 type Alternative = C2 Nil Alt
 
 asum :: (Alternative f, Foldable t) => t (f x) -> f x
@@ -3061,6 +3154,7 @@ instance (Alternative f) => Monoid (Option f x) where
   mempty = nil
   {-# INLINE mempty #-}
 
+-- | > type Filterable f = Morphisms (Kleisli Maybe) (->) f
 type Filterable f = Morphisms (Kleisli Maybe) (->) f
 
 justs :: (Filterable f) => (x -> Maybe y) -> f x -> f y
@@ -3170,6 +3264,11 @@ instance (Along f, Filterable g) => Morphisms (Kleisli Maybe) (->) (f :.: g) whe
       fgx
   {-# INLINE morphism #-}
 
+-- |
+-- > type IxFilterable i =
+-- >   C2
+-- >     (Morphisms (Kleisli Maybe) (->))
+-- >     (Morphisms (Procompose (Kleisli Maybe) (Ix i)) (->))
 type IxFilterable i =
   C2
     (Morphisms (Kleisli Maybe) (->))
@@ -3356,6 +3455,8 @@ instance
       fgx
   {-# INLINE morphism #-}
 
+-- |
+-- Applicatively-filterable type formers.
 class (Traversable f, Filterable f) => Witherable f where
   witherK ::
     (Applicative g) => Kleisli (Compose g Maybe) x y -> f x -> g (f y)
@@ -3514,6 +3615,8 @@ instance Witherable IntMap where
   witherK (Kleisli x_gmy) = traverseMaybeWithKeyIntMap (const (getCompose . x_gmy))
   {-# INLINE witherK #-}
 
+-- |
+-- Type formers that are indexed and applicatively-filterable.
 class (IxFilterable i f, Witherable f) => IxWitherable i f where
   iwitherK ::
     (Applicative g) =>
@@ -3700,6 +3803,8 @@ instance IxWitherable Int IntMap where
 
 -- Comonads
 
+-- |
+-- An algebra on a type former.
 type Copure :: (Type -> Type) -> Constraint
 class Copure f where
   copure :: f x -> x
@@ -3725,6 +3830,8 @@ instance Copure (Arg z) where
   copure (Arg _ x) = x
   {-# INLINE copure #-}
 
+-- |
+-- The dual notion of 'Bind'.
 type Extend :: (Type -> Type) -> Constraint
 class (Along f) => Extend f where
   {-# MINIMAL duplicate | extend #-}
@@ -3733,6 +3840,12 @@ class (Along f) => Extend f where
   extend :: (f x -> y) -> f x -> f y
   extend f = morphism f . duplicate
 
+-- |
+-- In the same way that a 'Monad' is a coalgebra @f@ with a natural
+-- transformation @f (f x) -> f x@, a 'Comonad' is an algebra with a
+-- natural transformation @f x -> f (f x)@.
+--
+-- > type Comonad = C2 Copure Extend
 type Comonad = C2 Copure Extend
 
 instance Extend Identity where
@@ -3771,6 +3884,8 @@ instance Extend (Arg z) where
   extend f (Arg z x) = Arg z (f (Arg z x))
   {-# INLINE extend #-}
 
+-- |
+-- Algebras that are also lax monoidal. Usually the same as 'Applicative'.
 type Coapply :: (Type -> Type) -> Constraint
 class (Along f, Copure f) => Coapply f where
   (<@>) :: f (x -> y) -> f x -> f y
@@ -3842,6 +3957,8 @@ instance (Comonad f) => Category (Cokleisli f) where
 
 -- Collectable and Tabulation
 
+-- |
+-- The dual notion of 'Traversable'.
 type Collectable :: (Type -> Type) -> Constraint
 class (Along d) => Collectable d where
   {-# MINIMAL collect | distribute #-}
@@ -3936,6 +4053,11 @@ instance (Collectable f, Collectable g) => Collectable (f :.: g) where
   collect x_fgy = Comp1 . morphism distribute . collect (coerce x_fgy)
   {-# INLINE collect #-}
 
+-- |
+-- A 'Tabulation' is a type former @f@ such that @f x@ is isomorphic to
+-- @Table f -> x@. We say that @f@ is /tabulated by/ @Table f@.
+--
+-- For example, @Table ('Flex.Math.Matrix.V' n x) = Finite n@.
 type Tabulation :: (Type -> Type) -> Constraint
 class (Collectable f) => Tabulation f where
   type Table f :: Type
@@ -3967,6 +4089,7 @@ instance Tabulation Proxy where
   toTable Proxy = absurd
   {-# INLINE toTable #-}
 
+-- | The tabulation for 'Data.Complex.Complex'.
 data ComplexBasis
   = Real
   | Imaginary
@@ -4008,52 +4131,6 @@ instance
   toTable (Compose fgx) (tf, tg) = toTable (toTable fgx tf) tg
   {-# INLINE toTable #-}
 
-class
-  (Along f, Tabulation t) =>
-  Adjunction f t
-    | f -> t
-    , t -> f
-  where
-  {-# MINIMAL (unit, counit) | (left, right) #-}
-  unit :: x -> t (f x)
-  unit = left id
-  counit :: f (t x) -> x
-  counit = right id
-  left :: (f x -> y) -> x -> t y
-  left f = morphism f . unit
-  right :: (x -> t y) -> f x -> y
-  right f = counit . morphism f
-instance Adjunction Identity Identity where
-  unit :: x -> Identity (Identity x)
-  unit = Identity . Identity
-  {-# INLINE unit #-}
-  counit :: Identity (Identity x) -> x
-  counit = runIdentity . runIdentity
-  {-# INLINE counit #-}
-instance Adjunction ((,) z) ((->) z) where
-  unit :: x -> z -> (z, x)
-  unit = flip (,)
-  {-# INLINE unit #-}
-  counit :: (z, z -> x) -> x
-  counit = uncurry (flip ($))
-  {-# INLINE counit #-}
-
-zipR :: (Adjunction f t) => (t x, t y) -> t (x, y)
-zipR = left (right fst &&& right snd)
-{-# INLINE zipR #-}
-
-unzipR :: (Along f) => f (x, y) -> (f x, f y)
-unzipR = morphism fst &&& morphism snd
-{-# INLINE unzipR #-}
-
-cozipL :: (Adjunction f t) => f (Either x y) -> Either (f x) (f y)
-cozipL = right (left Left ||| left Right)
-{-# INLINE cozipL #-}
-
-uncozipL :: (Along f) => Either (f x) (f y) -> f (Either x y)
-uncozipL = morphism Left ||| morphism Right
-{-# INLINE uncozipL #-}
-
 class (Against f) => Cotabulation f where
   type Cotable f :: Type
   fromCotable :: (x -> Cotable f) -> f x
@@ -4075,23 +4152,10 @@ instance Cotabulation Proxy where
   toCotable Proxy = const ()
   {-# INLINE toCotable #-}
 
-class (Against f, Cotabulation g) => Coadjunction f g where
-  unitCo :: x -> g (f x)
-  unitCo = leftCo id
-  counitCo :: x -> f (g x)
-  counitCo = rightCo id
-  leftCo :: (y -> f x) -> x -> g y
-  leftCo f = morphism (Op f) . unitCo
-  rightCo :: (x -> g y) -> y -> f x
-  rightCo f = morphism (Op f) . counitCo
-instance Coadjunction (Op z) (Op z) where
-  unitCo :: x -> Op z (Op z x)
-  unitCo x = Op \(Op x_z) -> x_z x
-  counitCo :: x -> Op z (Op z x)
-  counitCo = unitCo
-
 -- Profunctors
 
+-- |
+-- 'morphism' in the opposite direction over the first type argument.
 phormism ::
   forall x a p.
   (Morphisms Op (-->) p) =>
@@ -4099,6 +4163,8 @@ phormism ::
 phormism a_x = transform (morphism (Op a_x) :: p x --> p a)
 {-# INLINE phormism #-}
 
+-- |
+-- The @flex@ analogue of a @Profunctor@.
 type Fletched :: (Type -> Type -> Type) -> Constraint
 type Fletched p = (forall z. Along (p z), Morphisms Op (-->) p)
 
@@ -4113,6 +4179,8 @@ type Fletched p = (forall z. Along (p z), Morphisms Op (-->) p)
 (.#) !p _ = phormism coerce p
 {-# INLINE (.#) #-}
 
+-- |
+-- The @flex@ analogue of @dimap@.
 fletch :: (Fletched p) => (a -> x) -> (y -> b) -> p x y -> p a b
 fletch a_x y_b = phormism a_x . morphism y_b
 {-# INLINE fletch #-}
@@ -4137,6 +4205,9 @@ instance Morphisms Op (-->) (Ix i) where
     Transform \(Ix i_x_z) -> Ix \i -> i_x_z i . y_x
   {-# INLINE morphism #-}
 
+-- |
+-- The type @'Forget' z x y@ is the type of functions @x -> z@; that is,
+-- it has a 'Phantom' final argument, and its second argument maps 'Against'.
 type Forget :: Type -> Type -> k -> Type
 newtype Forget z x y = Forget {runForget :: x -> z}
 
@@ -4166,158 +4237,162 @@ instance Morphisms Op (-->) (Forget z) where
     Transform \(Forget x_z) -> Forget (x_z . y_x)
   {-# INLINE morphism #-}
 
+-- |
+-- Profunctors that can be changed to target the parts of a product.
 type Strong :: (Type -> Type -> Type) -> Constraint
 class (Fletched p) => Strong p where
-  product0 :: p x y -> p (x, z) (y, z)
-  product1 :: p x y -> p (z, x) (z, y)
+  strong0 :: p x y -> p (x, z) (y, z)
+  strong1 :: p x y -> p (z, x) (z, y)
 
 instance Strong (->) where
-  product0 :: (x -> y) -> (x, z) -> (y, z)
-  product0 x_y = morphism' x_y
-  {-# INLINE product0 #-}
-  product1 :: (x -> y) -> (z, x) -> (z, y)
-  product1 = morphism
-  {-# INLINE product1 #-}
+  strong0 :: (x -> y) -> (x, z) -> (y, z)
+  strong0 x_y = morphism' x_y
+  {-# INLINE strong0 #-}
+  strong1 :: (x -> y) -> (z, x) -> (z, y)
+  strong1 = morphism
+  {-# INLINE strong1 #-}
 instance (Monad f) => Strong (Kleisli f) where
-  product0 :: Kleisli f x y -> Kleisli f (x, z) (y, z)
-  product0 (Kleisli x_fy) =
+  strong0 :: Kleisli f x y -> Kleisli f (x, z) (y, z)
+  strong0 (Kleisli x_fy) =
     Kleisli \(x, z) -> morphism (,z) (x_fy x)
-  {-# INLINE product0 #-}
-  product1 :: Kleisli f x y -> Kleisli f (z, x) (z, y)
-  product1 (Kleisli x_fy) =
+  {-# INLINE strong0 #-}
+  strong1 :: Kleisli f x y -> Kleisli f (z, x) (z, y)
+  strong1 (Kleisli x_fy) =
     Kleisli \(z, x) -> morphism (z,) (x_fy x)
-  {-# INLINE product1 #-}
+  {-# INLINE strong1 #-}
 instance Strong (Forget z) where
-  product0 :: Forget z x y -> Forget z (x, z') (y, z')
-  product0 (Forget z) = Forget (z . fst)
-  {-# INLINE product0 #-}
-  product1 :: Forget z x y -> Forget z (z', x) (z', y)
-  product1 (Forget z) = Forget (z . snd)
-  {-# INLINE product1 #-}
+  strong0 :: Forget z x y -> Forget z (x, z') (y, z')
+  strong0 (Forget z) = Forget (z . fst)
+  {-# INLINE strong0 #-}
+  strong1 :: Forget z x y -> Forget z (z', x) (z', y)
+  strong1 (Forget z) = Forget (z . snd)
+  {-# INLINE strong1 #-}
 instance Strong (Ix i) where
-  product0 :: Ix i x y -> Ix i (x, z) (y, z)
-  product0 (Ix i_x_y) = Ix \i (x, z) -> (i_x_y i x, z)
-  {-# INLINE product0 #-}
-  product1 :: Ix i x y -> Ix i (z, x) (z, y)
-  product1 (Ix i_x_y) = Ix \i (z, x) -> (z, i_x_y i x)
-  {-# INLINE product1 #-}
+  strong0 :: Ix i x y -> Ix i (x, z) (y, z)
+  strong0 (Ix i_x_y) = Ix \i (x, z) -> (i_x_y i x, z)
+  {-# INLINE strong0 #-}
+  strong1 :: Ix i x y -> Ix i (z, x) (z, y)
+  strong1 (Ix i_x_y) = Ix \i (z, x) -> (z, i_x_y i x)
+  {-# INLINE strong1 #-}
 
+-- |
+-- Profunctors that can be restricted to from a product.
 type Costrong :: (Type -> Type -> Type) -> Constraint
 class (Fletched p) => Costrong p where
-  unproduct0 :: p (x, z) (y, z) -> p x y
-  unproduct1 :: p (z, x) (z, y) -> p x y
+  costrong0 :: p (x, z) (y, z) -> p x y
+  costrong1 :: p (z, x) (z, y) -> p x y
 
 instance Costrong (->) where
-  unproduct0 :: ((x, z) -> (y, z)) -> x -> y
-  unproduct0 x_y x = let (y, __) = x_y (x, __) in y
-  {-# INLINE unproduct0 #-}
-  unproduct1 :: ((z, x) -> (z, y)) -> x -> y
-  unproduct1 x_y x = let (__, y) = x_y (__, x) in y
-  {-# INLINE unproduct1 #-}
+  costrong0 :: ((x, z) -> (y, z)) -> x -> y
+  costrong0 x_y x = let (y, __) = x_y (x, __) in y
+  {-# INLINE costrong0 #-}
+  costrong1 :: ((z, x) -> (z, y)) -> x -> y
+  costrong1 x_y x = let (__, y) = x_y (__, x) in y
+  {-# INLINE costrong1 #-}
 instance (Along f, MonadFix f) => Costrong (Kleisli f) where
-  unproduct0 :: Kleisli f (x, z) (y, z) -> Kleisli f x y
-  unproduct0 (Kleisli x_fy) =
+  costrong0 :: Kleisli f (x, z) (y, z) -> Kleisli f x y
+  costrong0 (Kleisli x_fy) =
     Kleisli (Data.fmap fst . mfix . \x y -> x_fy (x, snd y))
-  {-# INLINE unproduct0 #-}
-  unproduct1 :: Kleisli f (z, x) (z, y) -> Kleisli f x y
-  unproduct1 (Kleisli x_fy) =
+  {-# INLINE costrong0 #-}
+  costrong1 :: Kleisli f (z, x) (z, y) -> Kleisli f x y
+  costrong1 (Kleisli x_fy) =
     Kleisli (Data.fmap snd . mfix . \x y -> x_fy (fst y, x))
-  {-# INLINE unproduct1 #-}
+  {-# INLINE costrong1 #-}
 instance (Along f) => Costrong (Cokleisli f) where
-  unproduct0 :: Cokleisli f (x, z) (y, z) -> Cokleisli f x y
-  unproduct0 (Cokleisli fx_y) =
+  costrong0 :: Cokleisli f (x, z) (y, z) -> Cokleisli f x y
+  costrong0 (Cokleisli fx_y) =
     Cokleisli \fx -> let (y, __) = fx_y (morphism (,__) fx) in y
-  {-# INLINE unproduct0 #-}
-  unproduct1 :: Cokleisli f (z, x) (z, y) -> Cokleisli f x y
-  unproduct1 (Cokleisli fx_y) =
+  {-# INLINE costrong0 #-}
+  costrong1 :: Cokleisli f (z, x) (z, y) -> Cokleisli f x y
+  costrong1 (Cokleisli fx_y) =
     Cokleisli \fx -> let (__, y) = fx_y (morphism (__,) fx) in y
-  {-# INLINE unproduct1 #-}
+  {-# INLINE costrong1 #-}
 instance Costrong (Ix i) where
-  unproduct0 :: Ix i (x, z) (y, z) -> Ix i x y
-  unproduct0 (Ix i_xz_yz) =
+  costrong0 :: Ix i (x, z) (y, z) -> Ix i x y
+  costrong0 (Ix i_xz_yz) =
     Ix \i x -> let (y, z) = i_xz_yz i (x, z) in y
-  {-# INLINE unproduct0 #-}
-  unproduct1 :: Ix i (z, x) (z, y) -> Ix i x y
-  unproduct1 (Ix i_zx_zy) =
+  {-# INLINE costrong0 #-}
+  costrong1 :: Ix i (z, x) (z, y) -> Ix i x y
+  costrong1 (Ix i_zx_zy) =
     Ix \i x -> let (z, y) = i_zx_zy i (z, x) in y
-  {-# INLINE unproduct1 #-}
+  {-# INLINE costrong1 #-}
 
 type Choice :: (Type -> Type -> Type) -> Constraint
 class (Fletched p) => Choice p where
-  inl :: p x y -> p (Either x z) (Either y z)
-  inr :: p x y -> p (Either z x) (Either z y)
+  choiceL :: p x y -> p (Either x z) (Either y z)
+  choiceR :: p x y -> p (Either z x) (Either z y)
 
 instance Choice (->) where
-  inl :: (x -> y) -> Either x z -> Either y z
-  inl x_y = morphism' x_y
-  {-# INLINE inl #-}
-  inr :: (x -> y) -> Either z x -> Either z y
-  inr = morphism
-  {-# INLINE inr #-}
+  choiceL :: (x -> y) -> Either x z -> Either y z
+  choiceL x_y = morphism' x_y
+  {-# INLINE choiceL #-}
+  choiceR :: (x -> y) -> Either z x -> Either z y
+  choiceR = morphism
+  {-# INLINE choiceR #-}
 instance (Monad f) => Choice (Kleisli f) where
-  inl :: Kleisli f x y -> Kleisli f (Either x z) (Either y z)
-  inl (Kleisli x_fy) = Kleisli \case
+  choiceL :: Kleisli f x y -> Kleisli f (Either x z) (Either y z)
+  choiceL (Kleisli x_fy) = Kleisli \case
     Left x -> morphism Left (x_fy x)
     Right r -> pure (Right r)
-  {-# INLINE inl #-}
-  inr :: Kleisli f x y -> Kleisli f (Either z x) (Either z y)
-  inr (Kleisli x_fy) = Kleisli \case
+  {-# INLINE choiceL #-}
+  choiceR :: Kleisli f x y -> Kleisli f (Either z x) (Either z y)
+  choiceR (Kleisli x_fy) = Kleisli \case
     Left l -> pure (Left l)
     Right x -> morphism Right (x_fy x)
-  {-# INLINE inr #-}
+  {-# INLINE choiceR #-}
 instance Choice (Ix i) where
-  inl :: Ix i x y -> Ix i (Either x z) (Either y z)
-  inl (Ix i_x_y) = Ix \i -> \case
+  choiceL :: Ix i x y -> Ix i (Either x z) (Either y z)
+  choiceL (Ix i_x_y) = Ix \i -> \case
     Left x -> Left (i_x_y i x)
     Right r -> Right r
-  {-# INLINE inl #-}
-  inr :: Ix i x y -> Ix i (Either z x) (Either z y)
-  inr (Ix i_x_y) = Ix \i -> \case
+  {-# INLINE choiceL #-}
+  choiceR :: Ix i x y -> Ix i (Either z x) (Either z y)
+  choiceR (Ix i_x_y) = Ix \i -> \case
     Left l -> Left l
     Right x -> Right (i_x_y i x)
-  {-# INLINE inr #-}
+  {-# INLINE choiceR #-}
 
 type Cochoice :: (Type -> Type -> Type) -> Constraint
 class (Fletched p) => Cochoice p where
-  outl :: p (Either x z) (Either y z) -> p x y
-  outr :: p (Either z x) (Either z y) -> p x y
+  cochoiceL :: p (Either x z) (Either y z) -> p x y
+  cochoiceR :: p (Either z x) (Either z y) -> p x y
 
 instance Cochoice (->) where
-  outl :: (Either x z -> Either y z) -> x -> y
-  outl f = rec . Left where rec = either id (rec . Right) . f
-  {-# INLINE outl #-}
-  outr :: (Either z x -> Either z y) -> x -> y
-  outr f = rec . Right where rec = either (rec . Left) id . f
-  {-# INLINE outr #-}
+  cochoiceL :: (Either x z -> Either y z) -> x -> y
+  cochoiceL f = rec . Left where rec = either id (rec . Right) . f
+  {-# INLINE cochoiceL #-}
+  cochoiceR :: (Either z x -> Either z y) -> x -> y
+  cochoiceR f = rec . Right where rec = either (rec . Left) id . f
+  {-# INLINE cochoiceR #-}
 instance (Applicative f) => Cochoice (Cokleisli f) where
-  outl :: Cokleisli f (Either x z) (Either y z) -> Cokleisli f x y
-  outl (Cokleisli f) = Cokleisli (rec . morphism Left)
+  cochoiceL :: Cokleisli f (Either x z) (Either y z) -> Cokleisli f x y
+  cochoiceL (Cokleisli f) = Cokleisli (rec . morphism Left)
    where
     rec = either id (rec . pure . Right) . f
-  {-# INLINE outl #-}
-  outr :: Cokleisli f (Either z x) (Either z y) -> Cokleisli f x y
-  outr (Cokleisli f) = Cokleisli (rec . morphism Right)
+  {-# INLINE cochoiceL #-}
+  cochoiceR :: Cokleisli f (Either z x) (Either z y) -> Cokleisli f x y
+  cochoiceR (Cokleisli f) = Cokleisli (rec . morphism Right)
    where
     rec = either (rec . pure . Left) id . f
-  {-# INLINE outr #-}
+  {-# INLINE cochoiceR #-}
 instance Cochoice (Forget z) where
-  outl :: Forget z (Either x z') (Either y z') -> Forget z x y
-  outl (Forget z) = Forget (z . Left)
-  {-# INLINE outl #-}
-  outr :: Forget z (Either z' x) (Either z' y) -> Forget z x y
-  outr (Forget z) = Forget (z . Right)
-  {-# INLINE outr #-}
+  cochoiceL :: Forget z (Either x z') (Either y z') -> Forget z x y
+  cochoiceL (Forget z) = Forget (z . Left)
+  {-# INLINE cochoiceL #-}
+  cochoiceR :: Forget z (Either z' x) (Either z' y) -> Forget z x y
+  cochoiceR (Forget z) = Forget (z . Right)
+  {-# INLINE cochoiceR #-}
 instance Cochoice (Ix i) where
-  outl :: Ix i (Either x z) (Either y z) -> Ix i x y
-  outl (Ix i_exzeyz) = Ix \i -> rec i . Left
+  cochoiceL :: Ix i (Either x z) (Either y z) -> Ix i x y
+  cochoiceL (Ix i_exzeyz) = Ix \i -> rec i . Left
    where
     rec i = either id (rec i . Right) . i_exzeyz i
-  {-# INLINE outl #-}
-  outr :: Ix i (Either z x) (Either z y) -> Ix i x y
-  outr (Ix i_ezxezy) = Ix \i -> rec i . Right
+  {-# INLINE cochoiceL #-}
+  cochoiceR :: Ix i (Either z x) (Either z y) -> Ix i x y
+  cochoiceR (Ix i_ezxezy) = Ix \i -> rec i . Right
    where
     rec i = either (rec i . Left) id . i_ezxezy i
-  {-# INLINE outr #-}
+  {-# INLINE cochoiceR #-}
 
 type Sieve ::
   (Type -> Type -> Type) -> (Type -> Type) -> Constraint
@@ -4359,6 +4434,10 @@ instance Cosieve (Ix i) ((,) i) where
   cosieve (Ix i_x_y) = uncurry i_x_y
   {-# INLINE cosieve #-}
 
+-- |
+-- Profunctors that can be /represented by/ a functor:
+-- those @p@ for which, given a morphism @x -> 'Representation' p y@,
+-- there is a canonical @p x y@.
 type Representable :: (Type -> Type -> Type) -> Constraint
 class
   (Sieve p (Representation p), Strong p) =>
@@ -4388,6 +4467,10 @@ instance Representable (Ix i) where
   represent = Ix . flip
   {-# INLINE represent #-}
 
+-- |
+-- Profunctors that are /corepresented by/ a functor:
+-- those @p@ for which, given a morphism @'Corepresentation' p x -> y@
+-- there is a canonical @p x y@.
 class
   (Cosieve p (Corepresentation p), Costrong p) =>
   Corepresentable p
@@ -4412,6 +4495,8 @@ instance Corepresentable (Ix i) where
   corepresent = Ix . curry
   {-# INLINE corepresent #-}
 
+-- |
+-- Profunctors that can act on exponentials.
 type Closed :: (Type -> Type -> Type) -> Constraint
 class (Fletched p) => Closed p where
   closed :: p x y -> p (z -> x) (z -> y)
@@ -4481,14 +4566,14 @@ instance (i ~ j) => Ixed j (Ix i) where
   ixed = ix
   {-# INLINE ixed #-}
 
-infixr 9 <.
+infixl 9 <.
 (<.) ::
   (Ixed i p) =>
   (Ix i xs ys -> z) -> ((x -> y) -> xs -> ys) -> p x y -> z
 (<.) iixsys x_y_xs_ys p = iixsys (Ix (x_y_xs_ys . ixed p))
 {-# INLINE (<.) #-}
 
-infixr 9 .>
+infixl 9 .>
 (.>) ::
   (Category p, Objects p x, Objects p y, Objects p z) =>
   p y z -> p x y -> p x z
@@ -4555,35 +4640,35 @@ instance
     Transform \(Procompose pzx qxz) -> Procompose pzx (phormism y_x qxz)
   {-# INLINE morphism #-}
 instance (Strong p, Strong q) => Strong (Procompose p q) where
-  product0 :: Procompose p q x y -> Procompose p q (x, w) (y, w)
-  product0 (Procompose pzy qxz) =
-    Procompose (product0 pzy) (product0 qxz)
-  {-# INLINE product0 #-}
-  product1 :: Procompose p q x y -> Procompose p q (w, x) (w, y)
-  product1 (Procompose pzy qxz) =
-    Procompose (product1 pzy) (product1 qxz)
-  {-# INLINE product1 #-}
+  strong0 :: Procompose p q x y -> Procompose p q (x, w) (y, w)
+  strong0 (Procompose pzy qxz) =
+    Procompose (strong0 pzy) (strong0 qxz)
+  {-# INLINE strong0 #-}
+  strong1 :: Procompose p q x y -> Procompose p q (w, x) (w, y)
+  strong1 (Procompose pzy qxz) =
+    Procompose (strong1 pzy) (strong1 qxz)
+  {-# INLINE strong1 #-}
 instance
   (Corepresentable p, Corepresentable q) =>
   Costrong (Procompose p q)
   where
-  unproduct0 :: Procompose p q (x, z) (y, z) -> Procompose p q x y
-  unproduct0 pq = corepresent f
+  costrong0 :: Procompose p q (x, z) (y, z) -> Procompose p q x y
+  costrong0 pq = corepresent f
    where
     f fx = b where (b, d) = cosieve pq (morphism (,d) fx)
-  {-# INLINE unproduct0 #-}
-  unproduct1 :: Procompose p q (z, x) (z, y) -> Procompose p q x y
-  unproduct1 pq = corepresent f
+  {-# INLINE costrong0 #-}
+  costrong1 :: Procompose p q (z, x) (z, y) -> Procompose p q x y
+  costrong1 pq = corepresent f
    where
     f fx = b where (d, b) = cosieve pq (morphism (d,) fx)
-  {-# INLINE unproduct1 #-}
+  {-# INLINE costrong1 #-}
 instance (Choice p, Choice q) => Choice (Procompose p q) where
-  inl :: Procompose p q x y -> Procompose p q (Either x z) (Either y z)
-  inl (Procompose pzy qxz) = Procompose (inl pzy) (inl qxz)
-  {-# INLINE inl #-}
-  inr :: Procompose p q x y -> Procompose p q (Either z x) (Either z y)
-  inr (Procompose pzy qxz) = Procompose (inr pzy) (inr qxz)
-  {-# INLINE inr #-}
+  choiceL :: Procompose p q x y -> Procompose p q (Either x z) (Either y z)
+  choiceL (Procompose pzy qxz) = Procompose (choiceL pzy) (choiceL qxz)
+  {-# INLINE choiceL #-}
+  choiceR :: Procompose p q x y -> Procompose p q (Either z x) (Either z y)
+  choiceR (Procompose pzy qxz) = Procompose (choiceR pzy) (choiceR qxz)
+  {-# INLINE choiceR #-}
 instance
   (Sieve p f, Sieve q g) =>
   Sieve (Procompose p q) (Compose g f)

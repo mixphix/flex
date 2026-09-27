@@ -19,12 +19,16 @@ import Data.Maybe
 import Data.Ord
 import GHC.Err (error)
 
+-- |
+-- Run a function on a value until it's 'Right'.
 loop :: x -> (x -> Either x y) -> y
 loop start with = case with start of
   Left next -> loop next with
   Right y -> y
 {-# INLINE loop #-}
 
+-- |
+-- Run a monadic function on a value until it's 'Right'.
 loopM :: (Monad m) => x -> (x -> m (Either x y)) -> m y
 loopM start with =
   with start >>= \case
@@ -32,6 +36,8 @@ loopM start with =
     Right y -> pure y
 {-# INLINE loopM #-}
 
+-- |
+-- Run a monadic action until it's 'False'.
 while :: (Monad m) => m Bool -> m ()
 while = fix \rec condition ->
   condition >>= \truth -> when truth (rec condition)

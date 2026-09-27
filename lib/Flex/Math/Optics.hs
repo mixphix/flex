@@ -8,7 +8,195 @@
 {- HLINT ignore "Eta reduce" -}
 {- HLINT ignore "Redundant lambda" -}
 
-module Flex.Math.Optics where
+module Flex.Math.Optics
+  ( type Optical
+  , type Optic
+  , type Optic'
+  , type Iso
+  , type Iso'
+  , iso
+  , idl
+  , idr
+  , assoc
+  , type Over
+  , type Over'
+  , type Focus
+  , type Focus'
+  , (%%~)
+  , type IxFocus
+  , type IxFocus'
+  , type Lens
+  , type Lens'
+  , united
+  , type IxLens
+  , type IxLens'
+  , type IxPreservingLens
+  , type IxPreservingLens'
+  , lens
+  , ixlens
+  , ixplens
+  , type Prism
+  , type Prism'
+  , filtered
+  , ifiltered
+  , prism
+  , prism'
+  , matchingF
+  , _Left
+  , _Right
+  , _Just
+  , type Traversal
+  , type Traversal'
+  , type IxTraversal
+  , filteredBy
+  , type IxTraversal'
+  , itraverseOf
+  , iforOf
+  , imapAccumMOf
+  , imapAccumOf
+  , type IxPreservingTraversal
+  , type IxPreservingTraversal'
+  , type Traversal1
+  , type Traversal1'
+  , type IxTraversal1
+  , type IxTraversal1'
+  , type IxPreservingTraversal1
+  , type IxPreservingTraversal1'
+  , onIndices
+  , onIndex
+  , traversal
+  , traverseOf
+  , forOf
+  , sequenceOf
+  , Indices (type Index, type Value, index)
+  , iindex
+  , At (at)
+  , iat
+  , type Fold
+  , folding
+  , foldring
+  , ifolding
+  , ifoldring
+  , repeated
+  , replicated
+  , cycled
+  , unfolded
+  , iterated
+  , type IxFold
+  , folded
+  , type IxPreservingFold
+  , type Fold1
+  , type IxFold1
+  , type IxPreservingFold1
+  , type Getter
+  , type IxGetter
+  , type IxPreservingGetter
+  , type Getting
+  , type IxGetting
+  , type Accessing
+  , getting
+  , to
+  , ito
+  , (^.)
+  , view
+  , views
+  , (^@.)
+  , iview
+  , iviews
+  , (^..)
+  , toListOf
+  , foldlOf
+  , foldlOf'
+  , foldrOf
+  , foldWithOf
+  , foldOf
+  , optionOf
+  , allOf
+  , andOf
+  , orOf
+  , anyOf
+  , traverseOf_
+  , forOf_
+  , sequenceOf_
+  , asumOf
+  , elemOf
+  , notElemOf
+  , has
+  , hasn't
+  , lengthOf
+  , findOf
+  , findMOf
+  , (^?)
+  , (^?!)
+  , pre
+  , preview
+  , previews
+  , ipre
+  , ipreview
+  , ipreviews
+  , itoListOf
+  , (^@..)
+  , ifoldWithOf
+  , ifoldrOf
+  , ifoldlOf
+  , ianyOf
+  , iallOf
+  , itraverseOf_
+  , iforOf_
+  , ifindOf
+  , ifindMOf
+  , (^@?)
+  , (^@?!)
+  -- , Indexing (Indexing, runIndexing)
+  , indexing
+  , traversed
+  , traversed1
+  , itraversed
+  , elementsOf
+  , elementOf
+  , element
+  , elements
+  , type Setter
+  , type IxSetter
+  , type IxPreservingSetter
+  , type Setting
+  , sets
+  , mapped
+  , over
+  , (%~)
+  , iover
+  , (%@~)
+  , set
+  , (.~)
+  , (?~)
+  , (+~)
+  , (-~)
+  , (*~)
+  , (/~)
+  , (^~)
+  , Field0 (_0)
+  , Field1 (_1)
+  , Field2 (_2)
+  , Field3 (_3)
+  , Field4 (_4)
+  , Field5 (_5)
+  , Field6 (_6)
+  , Field7 (_7)
+  , Field8 (_8)
+  , Field9 (_9)
+  , Field10 (_10)
+  , Field11 (_11)
+  , Field12 (_12)
+  , Field13 (_13)
+  , Field14 (_14)
+  , Field15 (_15)
+  , Field16 (_16)
+  , Field17 (_17)
+  , Field18 (_18)
+  , Field19 (_19)
+  , Field20 (_20)
+  , Each (each)
+  ) where
 
 import Flex.Math.Category
 import Flex.Math.Numbers
@@ -55,7 +243,8 @@ import GHC.Arr qualified as Array
 import GHC.Base (($!))
 import GHC.Err (error)
 
--- | @
+-- |
+-- @
 -- type Optical p q f xs ys x y = p x (f y) -> q xs (f ys)
 -- @
 type Optical ::
@@ -69,26 +258,40 @@ type Optical ::
   Type
 type Optical p q f xs ys x y = p x (f y) -> q xs (f ys)
 
--- | @
+-- |
+-- @
 -- type Optic p f xs ys x y = p x (f y) -> p xs (f ys)
 -- @
 type Optic p f xs ys x y = Optical p p f xs ys x y
 
+-- |
+-- @
+-- type Optic' p f xs x = Optic p f xs xs x x
+-- @
 type Optic' p f xs x = Optic p f xs xs x x
 
--- | @
+-- |
+-- @
 -- type Iso xs ys x y =
 --   forall p f. (Fletched p, Along f) => p x (f y) -> p xs (f ys)
---  @
+-- @
 type Iso xs ys x y =
   forall p f. (Fletched p, Along f) => Optic p f xs ys x y
 
+-- |
+-- @
+-- type Iso' xs x = Iso xs xs x x
+-- @
 type Iso' xs x = Iso xs xs x x
 
+-- |
+-- Create an 'Iso' from two functions that are assumed to be inverses.
 iso :: (xs -> x) -> (y -> ys) -> Iso xs ys x y
 iso xs_x y_ys = fletch xs_x (morphism y_ys)
 {-# INLINE iso #-}
 
+-- |
+-- Evidence that (->) is the left identity for 'Procompose'.
 idl ::
   (Fletched q) =>
   Iso
@@ -102,6 +305,8 @@ idl =
     (morphism (Procompose id))
 {-# INLINE idl #-}
 
+-- |
+-- Evidence that (->) is the right identity for 'Procompose'.
 idr ::
   (Fletched q) =>
   Iso
@@ -115,6 +320,8 @@ idr =
     (morphism (`Procompose` id))
 {-# INLINE idr #-}
 
+-- |
+-- Evidence that 'Procompose' is associative.
 assoc ::
   Iso
     (Procompose p (Procompose q r) x y)
@@ -127,129 +334,198 @@ assoc =
     (morphism \(Procompose (Procompose p q) r) -> Procompose p (Procompose q r))
 {-# INLINE assoc #-}
 
--- | @
+-- |
+-- @
 -- type Over p f xs ys x y = p x (f y) -> xs -> f ys
 -- @
 type Over p f xs ys x y = Optical p (->) f xs ys x y
 
+-- |
+-- @
+-- type Over' p f xs x = Over p f xs xs x x
+-- @
 type Over' p f xs x = Over p f xs xs x x
 
--- | @
+-- |
+-- @
 -- type Focus f xs ys x y = (x -> f y) -> (xs -> f ys)
 -- @
 type Focus f xs ys x y = Over (->) f xs ys x y
 
+-- |
+-- @
+-- type Focus' f xs x = Focus f xs xs x x
+-- @
 type Focus' f xs x = Focus f xs xs x x
 
 (%%~) :: Focus f xs ys x y -> (x -> f y) -> xs -> f ys
 (%%~) = id
 {-# INLINE (%%~) #-}
 
--- | @
+-- |
+-- @
 -- type IxFocus i f xs ys x y =
 --   forall p. (Ixed i p) => p x (f y) -> xs -> f ys
 -- @
 type IxFocus i f xs ys x y =
   forall p. (Ixed i p) => Optical p (->) f xs ys x y
 
+-- |
+-- @
+-- type IxFocus' i f xs x = IxFocus i f xs xs x x
+-- @
 type IxFocus' i f xs x = IxFocus i f xs xs x x
 
--- | @
+-- |
+-- @
 -- type Lens xs ys x y =
 --   forall f. (Along f) => (x -> f y) -> (xs -> f ys)
 -- @
 type Lens xs ys x y = forall f. (Along f) => Focus f xs ys x y
 
+-- |
+-- @
+-- type Lens' xs x = Lens xs xs x x
+-- @
 type Lens' xs x = Lens xs xs x x
 
+-- |
+-- Every type has a lens to the unit.
 united :: Lens' xs ()
 united f v = morphism (\() -> v) (f ())
 {-# INLINE united #-}
 
--- | @
+-- |
+-- @
 -- type IxLens i xs ys x y =
 --   forall p f. (Ixed i p, Along f) => p x (f y) -> (xs -> f ys)
 -- @
 type IxLens i xs ys x y =
   forall f. (Along f) => IxFocus i f xs ys x y
 
+-- |
+-- @
+-- type IxLens' i xs x = IxLens i xs xs x x
+-- @
 type IxLens' i xs x = IxLens i xs xs x x
 
--- | @
+-- |
+-- @
 -- type IxPreservingLens xs ys x y =
 --   forall p f. (Conjoined p, Along f) => p x (f y) -> p xs (f ys)
 -- @
 type IxPreservingLens xs ys x y =
   forall p f. (Conjoined p, Along f) => Optic p f xs ys x y
 
+-- |
+-- @
+-- type IxPreservingLens' xs x = IxPreservingLens xs xs x x
+-- @
 type IxPreservingLens' xs x = IxPreservingLens xs xs x x
 
+-- |
+-- Create a 'Lens' from a getter and a setter.
 lens :: (xs -> x) -> (xs -> y -> ys) -> Lens xs ys x y
 lens xs_x xs_y_ys pxfy xs = morphism (xs_y_ys xs) (pxfy (xs_x xs))
 {-# INLINE lens #-}
 
+-- |
+-- Create an 'IxLens' from a getter and a setter.
 ixlens :: (xs -> (i, x)) -> (xs -> y -> ys) -> IxLens i xs ys x y
 ixlens xs_ix xs_y_ys pxfy xs =
   morphism (xs_y_ys xs) (uncurry (ixed pxfy) (xs_ix xs))
 {-# INLINE ixlens #-}
 
+-- |
+-- Create an 'IxPreservingLens' from a getter and a setter.
 ixplens :: (xs -> x) -> (xs -> y -> ys) -> IxPreservingLens xs ys x y
 ixplens xs_x xs_y_ys pxfy = corepresent \fxs ->
   morphism (xs_y_ys (copure fxs)) (cosieve pxfy (morphism xs_x fxs))
 {-# INLINE ixplens #-}
 
--- | @
+-- |
+-- @
 -- type Prism xs ys x y =
 --   forall p f. (Choice p, Applicative f) => p x (f y) -> p xs (f ys)
 -- @
 type Prism xs ys x y =
   forall p f. (Choice p, Applicative f) => Optic p f xs ys x y
 
+-- |
+-- @
+-- type Prism' xs x = Prism xs xs x x
+-- @
 type Prism' xs x = Prism xs xs x x
 
-filtered :: (xs -> Bool) -> Prism' xs xs
-filtered p = fletch (\xs -> if p xs then Right xs else Left xs) (either pure id) . inr
+-- |
+-- Obtain a 'Prism' that can be used to filter another 'Optic'.
+--
+-- Note: be sure not to inject a value that fails the predicate!
+filtered :: (x -> Bool) -> Prism' x x
+filtered p = fletch (\x -> if p x then Right x else Left x) (either pure id) . choiceR
 {-# INLINE filtered #-}
 
+-- |
+-- Obtain an 'Optical' into @'Ix' i@ that can be used to filter another 'Optic'.
+--
+-- Note: be sure not to inject a value that fails the predicate!
 ifiltered ::
   (Ixed i p, Applicative f) => (i -> xs -> Bool) -> Optical p (Ix i) f xs xs xs xs
 ifiltered p pxsfxs = Ix \i x -> if p i x then ixed pxsfxs i x else pure x
 {-# INLINE ifiltered #-}
 
+-- |
+-- Create a general 'Prism'.
 prism :: (y -> ys) -> (xs -> Either ys x) -> Prism xs ys x y
-prism y_ys xs_eysx = fletch xs_eysx (either pure (morphism y_ys)) . inr
+prism y_ys xs_eysx = fletch xs_eysx (either pure (morphism y_ys)) . choiceR
 {-# INLINE prism #-}
 
+-- |
+-- Create a 'Prism' in a way that preserves the type.
 prism' :: (y -> xs) -> (xs -> Maybe x) -> Prism xs xs x y
 prism' y_ys xs_mx = prism y_ys \xs -> maybe (Left xs) Right (xs_mx xs)
 {-# INLINE prism' #-}
 
+-- |
+-- Retrieve the value targeted by a 'Prism', or the whole value.
 matchingF :: Focus (Either x) xs ys x y -> xs -> Either ys x
 matchingF f = either Right Left . f Left
 {-# INLINE matchingF #-}
 
+-- |
+-- A 'Prism' into the 'Left' side of an 'Either'.
 _Left :: Prism (Either x z) (Either y z) x y
 _Left = prism Left (either Right (Left . Right))
 {-# INLINE _Left #-}
 
+-- |
+-- A 'Prism' into the 'Right' side of an 'Either'.
 _Right :: Prism (Either z x) (Either z y) x y
 _Right = prism Right (either (Left . Left) Right)
 {-# INLINE _Right #-}
 
+-- |
+-- A 'Prism' into the 'Just' part of a 'Maybe'.
 _Just :: Prism (Maybe x) (Maybe y) x y
 _Just = prism Just (maybe (Left Nothing) Right)
 {-# INLINE _Just #-}
 
--- | @
+-- |
+-- @
 -- type Traversal xs ys x y =
 --   forall f. (Applicative f) => (x -> f y) -> xs -> f ys
 -- @
 type Traversal xs ys x y =
   forall f. (Applicative f) => Focus f xs ys x y
 
+-- |
+-- @
+-- type Traversal' xs x = Traversal xs xs x x
+-- @
 type Traversal' xs x = Traversal xs xs x x
 
--- | @
+-- |
+-- @
 -- type IxTraversal i xs ys x y =
 --   forall p f.
 --   (Ixed i p, Applicative f) =>
@@ -258,12 +534,18 @@ type Traversal' xs x = Traversal xs xs x x
 type IxTraversal i xs ys x y =
   forall f. (Applicative f) => IxFocus i f xs ys x y
 
+-- |
+-- Obtain an 'IxTraversal' by visiting only the targeted indices.
 filteredBy :: Getting (Maybe (First i)) x i -> IxTraversal' i x x
-filteredBy g f x = case x ^? g of
+filteredBy g pxfx x = case x ^? g of
   Nothing -> pure x
-  Just y -> ixed f y x
+  Just y -> ixed pxfx y x
 {-# INLINE filteredBy #-}
 
+-- |
+-- @
+-- type IxTraversal' i xs x = IxTraversal i xs xs x x
+-- @
 type IxTraversal' i xs x = IxTraversal i xs xs x x
 
 itraverseOf ::
@@ -298,7 +580,8 @@ imapAccumOf l i_x_s_sy xs =
       (l (StateT #. Ix (((.) Identity .) . i_x_s_sy)) xs)
 {-# INLINE imapAccumOf #-}
 
--- | @
+-- |
+-- @
 -- type IxPreservingTraversal xs ys x y =
 --   forall p f.
 --   (Conjoined p, Applicative f) =>
@@ -307,26 +590,41 @@ imapAccumOf l i_x_s_sy xs =
 type IxPreservingTraversal xs ys x y =
   forall p f. (Conjoined p, Applicative f) => Over p f xs ys x y
 
+-- |
+-- @
+-- type IxPreservingTraversal' xs x = IxPreservingTraversal xs xs x x
+-- @
 type IxPreservingTraversal' xs x = IxPreservingTraversal xs xs x x
 
--- | @
+-- |
+-- @
 -- type Traversal1 xs ys x y =
 --   forall f. (Apply f) => (x -> f y) -> xs -> f ys
 -- @
 type Traversal1 xs ys x y = forall f. (Apply f) => Focus f xs ys x y
 
+-- |
+-- @
+-- type Traversal1' xs x = Traversal1 xs xs x x
+-- @
 type Traversal1' xs x = Traversal1 xs xs x x
 
--- | @
+-- |
+-- @
 -- type IxTraversal1 xs ys x y =
 --   forall p f. (Ixed i p, Apply f) => p x (f y) -> xs -> f ys
 -- @
 type IxTraversal1 i xs ys x y =
   forall f. (Apply f) => IxFocus i f xs ys x y
 
+-- |
+-- @
+-- type IxTraversal1' i xs x = IxTraversal1 i xs xs x x
+-- @
 type IxTraversal1' i xs x = IxTraversal1 i xs xs x x
 
--- | @
+-- |
+-- @
 -- type IxPreservingTraversal1 xs ys x y =
 --   forall p f.
 --   (Conjoined p, Apply f) =>
@@ -335,6 +633,10 @@ type IxTraversal1' i xs x = IxTraversal1 i xs xs x x
 type IxPreservingTraversal1 xs ys x y =
   forall p f. (Conjoined p, Apply f) => Over p f xs ys x y
 
+-- |
+-- @
+-- type IxPreservingTraversal1' xs x = IxPreservingTraversal1 xs xs x x
+-- @
 type IxPreservingTraversal1' xs x = IxPreservingTraversal1 xs xs x x
 
 onIndices ::
@@ -371,7 +673,7 @@ class Indices xs where
   type Value xs :: Type
   index :: Index xs -> Traversal' xs (Value xs)
   default index ::
-    (At xs) => Index xs -> Traversal xs xs (Value xs) (Value xs)
+    (At xs) => Index xs -> Traversal' xs (Value xs)
   index i = at i . traverse
   {-# INLINE index #-}
 
@@ -502,7 +804,8 @@ instance At (IntMap v) where
           Just v -> IntMap.insert k v m
   {-# INLINE at #-}
 
--- | @
+-- |
+-- @
 -- type Fold xs x =
 --   forall f. (Phantom f, Applicative f) => (x -> f x) -> (xs -> f xs)
 -- @
@@ -557,7 +860,8 @@ replicated n x_fx x =
 {-# INLINE replicated #-}
 
 cycled :: (Apply f) => Focus f xs ys x y -> Focus f xs ys x y
-cycled f x_fy xs = liftA2 (const id) (f x_fy xs) (cycled f x_fy xs)
+cycled = fix \rec f x_fy xs ->
+  liftA2 (const id) (f x_fy xs) (rec f x_fy xs)
 {-# INLINE cycled #-}
 
 unfolded :: (x -> Maybe (y, x)) -> Fold x y
@@ -571,7 +875,8 @@ iterated x_x x_fx =
   fix \rec x -> liftA2 (const id) (x_fx x) (rec (x_x x))
 {-# INLINE iterated #-}
 
--- | @
+-- |
+-- @
 -- type IxFold i xs ys x y =
 --   forall p f.
 --   (Ixed i p, Phantom f, Applicative f) =>
@@ -584,7 +889,8 @@ folded :: forall i f x. (IxFoldable i f) => IxFold i (f x) x
 folded = conjoined (foldring foldr) (ifoldring @i ifoldr)
 {-# INLINE folded #-}
 
--- | @
+-- |
+-- @
 -- type IxPreservingFold xs x =
 --   forall f.
 --   (Conjoined p, Phantom f, Applicative f) =>
@@ -595,14 +901,16 @@ type IxPreservingFold xs x =
   (Conjoined p, Phantom f, Applicative f) =>
   Optic p f xs xs x x
 
--- | @
+-- |
+-- @
 -- type Fold1 xs x =
 --   forall f. (Phantom f, Apply f) => (x -> f x) -> (xs -> f xs)
 -- @
 type Fold1 xs x =
   forall f. (Phantom f, Apply f) => Focus f xs xs x x
 
--- | @
+-- |
+-- @
 -- type IxFold1 i xs ys x y =
 --   forall f.
 --   (Ixed i p, Phantom f, Apply f) =>
@@ -611,7 +919,8 @@ type Fold1 xs x =
 type IxFold1 i xs x =
   forall f. (Phantom f, Apply f) => IxFocus i f xs xs x x
 
--- | @
+-- |
+-- @
 -- type IxPreservingFold1 xs x =
 --   forall f.
 --   (Ixed i p, Phantom f, Apply f) =>
@@ -622,38 +931,44 @@ type IxPreservingFold1 xs x =
   (Conjoined p, Phantom f, Apply f) =>
   Optic p f xs xs x x
 
--- | @
+-- |
+-- @
 -- type Getter xs ys x y =
 --   forall f. (Phantom f) => (x -> f x) -> (xs -> f xs)
 -- @
 type Getter xs x = forall f. (Phantom f) => Focus f xs xs x x
 
--- | @
+-- |
+-- @
 -- type IxGetter i xs x =
 --   forall p f. (Ixed i p, Phantom f) => p x (f x) -> (xs -> f xs)
 -- @
 type IxGetter i xs x =
   forall f. (Phantom f) => IxFocus i f xs x x x
 
--- | @
+-- |
+-- @
 -- type IxPreservingGetter xs x =
 --   forall p f. (Conjoined p, Phantom f) => p x (f x) -> p xs (f xs)
 -- @
 type IxPreservingGetter xs x =
   forall p f. (Conjoined p, Phantom f) => Optic p f xs xs x x
 
--- | @
+-- |
+-- @
 -- type Getting z xs x = (x -> Const z x) -> (xs -> Const z xs)
 -- @
 type Getting z xs x = Focus (Const z) xs xs x x
 
--- | @
+-- |
+-- @
 -- type IxGetting i z xs x =
 --   Ix i x (Const z x) -> (xs -> Const z xs)
 -- @
 type IxGetting i z xs x = Over (Ix i) (Const z) xs xs x x
 
--- | @
+-- |
+-- @
 -- type Accessing p z xs x =
 --   p x (Const z x) -> (xs -> Const z xs)
 -- @
@@ -997,8 +1312,9 @@ instance (Monoid (f x)) => Monoid (Indexing f x) where
 indexing ::
   (Ixed Natural p) =>
   Focus (Indexing f) xs ys x y -> Over p f xs ys x y
-indexing focus pxfy xs = snd do
-  runIndexing (focus (\x -> Indexing \ !i -> (succ i, ixed pxfy i x)) xs) 0
+indexing focus pxfy xs = snd $ flip runIndexing 0 do
+  flip focus xs \x -> Indexing \ !i ->
+    (succ i, ixed pxfy i x)
 {-# INLINE indexing #-}
 
 traversed :: (Traversable t) => IxTraversal Natural (t x) (t y) x y
@@ -1019,8 +1335,8 @@ elementsOf ::
   Focus (Indexing f) xs ys x x ->
   (Natural -> Bool) ->
   IxFocus Natural f xs ys x x
-elementsOf f p pxfy xs = snd $ flip runIndexing 0 do
-  flip f xs \x -> Indexing \ !i ->
+elementsOf focus p pxfy xs = snd $ flip runIndexing 0 do
+  flip focus xs \x -> Indexing \ !i ->
     (succ i, if p i then ixed pxfy i x else pure x)
 {-# INLINE elementsOf #-}
 
@@ -1042,7 +1358,8 @@ elements ::
 elements p = elementsOf traverse p
 {-# INLINE elements #-}
 
--- | @
+-- |
+-- @
 -- type Setter xs ys x y =
 --   forall f.
 --   (Collectable f, Traversable f, Copure f, Applicative f) =>
@@ -1053,12 +1370,8 @@ type Setter xs ys x y =
   (Collectable f, Traversable f, Copure f, Applicative f) =>
   Focus f xs ys x y
 
--- | @
--- type ASetter xs ys x y = (x -> Identity y) -> xs -> Identity ys
+-- |
 -- @
-type ASetter xs ys x y = Focus Identity xs ys x y
-
--- | @
 -- type IxSetter xs ys x y =
 --   forall p.
 --   (Ixed i p) =>
@@ -1067,13 +1380,8 @@ type ASetter xs ys x y = Focus Identity xs ys x y
 type IxSetter i xs ys x y =
   forall p. (Ixed i p) => Over p Identity xs ys x y
 
--- | @
--- type AnIxSetter i xs ys x y =
---   Ix i x (Identity y) -> xs -> Identity ys
+-- |
 -- @
-type AnIxSetter i xs ys x y = Over (Ix i) Identity xs ys x y
-
--- | @
 -- type IxPreservingSetter xs ys x y =
 --   forall p f.
 --   ( Conjoined p
@@ -1094,7 +1402,8 @@ type IxPreservingSetter xs ys x y =
   ) =>
   Optic p f xs ys x y
 
--- | @
+-- |
+-- @
 -- type Setting p xs ys x y = p x (Identity y) -> xs -> Identity ys
 -- @
 type Setting p xs ys x y = Over p Identity xs ys x y
@@ -1111,51 +1420,54 @@ sets ::
 sets pxy_qxsys pxfy = morphism pure (pxy_qxsys (morphism copure pxfy))
 {-# INLINE sets #-}
 
-over :: ASetter xs ys x y -> (x -> y) -> xs -> ys
+mapped :: (Along f) => Setter (f x) (f y) x y
+mapped = sets morphism
+
+over :: Focus Identity xs ys x y -> (x -> y) -> xs -> ys
 over = coerce
 {-# INLINE over #-}
 
-(%~) :: ASetter xs ys x y -> (x -> y) -> xs -> ys
+(%~) :: Focus Identity xs ys x y -> (x -> y) -> xs -> ys
 (%~) = over
 {-# INLINE (%~) #-}
 
-iover :: AnIxSetter i xs ys x y -> (i -> x -> y) -> xs -> ys
+iover :: (Ix i x y -> xs -> Identity ys) -> (i -> x -> y) -> xs -> ys
 iover = coerce
 {-# INLINE iover #-}
 
-(%@~) :: AnIxSetter i xs ys x y -> (i -> x -> y) -> xs -> ys
+(%@~) :: (Ix i x y -> xs -> Identity ys) -> (i -> x -> y) -> xs -> ys
 (%@~) = iover
 {-# INLINE (%@~) #-}
 
-set :: ASetter xs ys x y -> y -> xs -> ys
+set :: Focus Identity xs ys x y -> y -> xs -> ys
 set s b = runIdentity #. s (\_ -> Identity b)
 {-# INLINE set #-}
 
-(.~) :: ASetter xs ys x y -> y -> xs -> ys
+(.~) :: Focus Identity xs ys x y -> y -> xs -> ys
 (.~) = set
 {-# INLINE (.~) #-}
 
-(?~) :: ASetter xs ys x (Maybe y) -> y -> xs -> ys
+(?~) :: Focus Identity xs ys x (Maybe y) -> y -> xs -> ys
 s ?~ y = s .~ Just y
 {-# INLINE (?~) #-}
 
-(+~) :: (Addition x x x) => ASetter xs ys x x -> x -> xs -> ys
+(+~) :: (Addition x x x) => Focus Identity xs ys x x -> x -> xs -> ys
 s +~ x = over s (+ x)
 {-# INLINE (+~) #-}
 
-(-~) :: (Subtraction x x x) => ASetter xs ys x x -> x -> xs -> ys
+(-~) :: (Subtraction x x x) => Focus Identity xs ys x x -> x -> xs -> ys
 s -~ x = over s (-. x)
 {-# INLINE (-~) #-}
 
-(*~) :: (Multiplication x x x) => ASetter xs ys x x -> x -> xs -> ys
+(*~) :: (Multiplication x x x) => Focus Identity xs ys x x -> x -> xs -> ys
 s *~ x = over s (* x)
 {-# INLINE (*~) #-}
 
-(/~) :: (Division x x x) => ASetter xs ys x x -> x -> xs -> ys
+(/~) :: (Division x x x) => Focus Identity xs ys x x -> x -> xs -> ys
 s /~ x = over s (/ x)
 {-# INLINE (/~) #-}
 
-(^~) :: (Power x y x) => ASetter xs ys x x -> y -> xs -> ys
+(^~) :: (Power x y x) => Focus Identity xs ys x x -> y -> xs -> ys
 s ^~ y = over s (^ y)
 {-# INLINE (^~) #-}
 

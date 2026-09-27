@@ -7,13 +7,20 @@ import Data.Char (Char)
 import Data.Eq ((==))
 import Data.Foldable qualified as Data
 import Data.Function ((.))
-import Data.Functor (Functor (fmap))
+import Data.Functor qualified as Data
 import Data.List (replicate)
 import Data.Maybe
 import Data.Semigroup ((<>))
 import Language.Haskell.TH
 import Text.Show (show)
 
+-- |
+-- @'fieldN' 0@ generates the declaration:
+--
+-- > class Field0 xs ys x y
+-- >   | xs -> x, ys -> y, xs y -> ys, ys x -> xs
+-- >   where
+-- >   _0 :: Lens xs ys x y
 fieldN :: Natural -> Q Dec
 fieldN n =
   classD
@@ -44,9 +51,16 @@ fieldN n =
           (varT (mkName "y"))
     ]
 
-generate :: [Char] -> Natural -> (Natural -> [Char] -> Q Type) -> [Q Type]
-generate prefix n n_p_qt = fmap (`n_p_qt` prefix) [0 .. n]
+-- |
+-- @'generate' 2 "x" f@ generates the list @[f 0 "x", f 1 "x", f 2 "x"]@.
+generate :: Natural -> [Char] -> (Natural -> [Char] -> Q Type) -> [Q Type]
+generate n prefix n_p_qt = Data.fmap (`n_p_qt` prefix) [0 .. n]
 
+-- |
+-- @'instanceField' 2 1@ generates the declaration:
+--
+-- > instance Field2 (x0, x1, x2) (x0, x1, x2') x2 x2' where
+-- >   _2 k (x0, x1, x2) = morphism (\x2' -> (x0, x1, x2')) (k x2)
 instanceField :: Natural -> Natural -> Q Dec
 instanceField m n =
   instanceD
@@ -59,13 +73,13 @@ instanceField m n =
                     ( Data.foldl'
                         appT
                         (tupleT (from (n + 1)))
-                        (generate "x" n \k pfx -> varT (mkName (pfx <> show k)))
+                        (generate n "x" \k pfx -> varT (mkName (pfx <> show k)))
                     )
                 )
                 ( Data.foldl'
                     appT
                     (tupleT (from (n + 1)))
-                    ( generate "x" n \k pfx -> varT (mkName (pfx <> show k <> if k == m then "'" else ""))
+                    ( generate n "x" \k pfx -> varT (mkName (pfx <> show k <> if k == m then "'" else ""))
                     )
                 )
             )
@@ -76,7 +90,7 @@ instanceField m n =
     [ funD
         (mkName ("_" <> show m))
         [ clause
-            [varP (mkName "k"), tupP (fmap (varP . mkName . ("x" <>) . show) [0 .. n])]
+            [varP (mkName "k"), tupP (Data.fmap (varP . mkName . ("x" <>) . show) [0 .. n])]
             ( normalB
                 ( appE
                     ( appE
@@ -84,7 +98,7 @@ instanceField m n =
                         ( lamE
                             [varP (mkName ("x" <> show m <> "'"))]
                             ( tupE
-                                ( fmap
+                                ( Data.fmap
                                     (\i -> varE (mkName ("x" <> show i <> if i == m then "'" else "")))
                                     [0 .. n]
                                 )
@@ -101,6 +115,11 @@ instanceField m n =
         ]
     ]
 
+-- |
+-- @'instanceFieldV' 0 3@ generates the declaration:
+--
+-- > instance Field0 (V 3 x) (V 3 x) x x where
+-- >   _0 k v = morphism (\x' -> setV 0 x' v) (k (v ! 0))
 instanceFieldV :: Natural -> Natural -> Q Dec
 instanceFieldV m n =
   instanceD
@@ -160,6 +179,12 @@ instanceFieldV m n =
         ]
     ]
 
+-- |
+-- @'instanceEach' 1@ generates the declaration:
+--
+-- > instance Each (x, x) (x', x') x x' where
+-- >   each :: Traversal (x, x) (x', x') x x'
+-- >   each k (x0, x1) = pure (,) <*> k x0 <*> k x1
 instanceEach :: Natural -> Q Dec
 instanceEach n =
   instanceD
@@ -172,13 +197,13 @@ instanceEach n =
                     ( Data.foldl'
                         appT
                         (tupleT (from (n + 1)))
-                        (generate "x" n \_ pfx -> varT (mkName pfx))
+                        (generate n "x" \_ pfx -> varT (mkName pfx))
                     )
                 )
                 ( Data.foldl'
                     appT
                     (tupleT (from (n + 1)))
-                    (generate "x'" n \_ pfx -> varT (mkName pfx))
+                    (generate n "x'" \_ pfx -> varT (mkName pfx))
                 )
             )
             (varT (mkName "x"))
@@ -188,7 +213,7 @@ instanceEach n =
     [ funD
         (mkName "each")
         [ clause
-            [varP (mkName "k"), tupP (fmap (varP . mkName . ("x" <>) . show) [0 .. n])]
+            [varP (mkName "k"), tupP (Data.fmap (varP . mkName . ("x" <>) . show) [0 .. n])]
             ( normalB
                 ( Data.foldl'
                     (\x y -> infixE (Just x) (varE (mkName "<*>")) (Just y))
@@ -196,7 +221,7 @@ instanceEach n =
                         (varE (mkName "pure"))
                         (Control.pure (TupE (replicate (from (n + 1)) Nothing)))
                     )
-                    (fmap (\i -> appE (varE (mkName "k")) (varE (mkName ("x" <> show i)))) [0 .. n])
+                    (Data.fmap (\i -> appE (varE (mkName "k")) (varE (mkName ("x" <> show i)))) [0 .. n])
                 )
             )
             []

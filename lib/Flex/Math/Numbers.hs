@@ -194,8 +194,8 @@ toDataRational :: Rational -> Data.Rational
 toDataRational (Ratio n d) = n Num.:% d
 {-# INLINE toDataRational #-}
 
-{-# SPECIALIZE reduce :: Integer -> Integer -> Rational #-}
-{-# SPECIALIZE reduce :: Natural -> Natural -> Ration #-}
+-- |
+-- Obtain a fraction from two whole numbers.
 reduce ::
   (Eq x, From Integer x, Signed x, Absolute x x, Euclidean x) => x -> x -> Ratio x
 reduce n d
@@ -205,6 +205,8 @@ reduce n d
           !p = gcd (absolute n) d'
        in MkRatio ((n * signum d) `quotient` p) (d' `quotient` p)
 {-# INLINE reduce #-}
+{-# SPECIALIZE reduce :: Integer -> Integer -> Rational #-}
+{-# SPECIALIZE reduce :: Natural -> Natural -> Ration #-}
 
 instance
   ( Eq x

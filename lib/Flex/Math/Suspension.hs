@@ -17,6 +17,8 @@ import GHC.Generics (Generic)
 import GHC.Read (Read)
 import GHC.Show (Show)
 
+-- |
+-- Adjoin two points at the 'North' and 'South'.
 data Suspension x
   = South
   | Meridian !x
@@ -72,6 +74,8 @@ instance Traversals (->) (->) Suspension where
     North -> pure North
   {-# INLINE traverse #-}
 
+-- |
+-- Eliminator for 'Suspension'.
 suspension :: y -> (x -> y) -> y -> Suspension x -> y
 suspension south meridian north = \case
   South -> south

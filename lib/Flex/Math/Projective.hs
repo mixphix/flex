@@ -19,6 +19,8 @@ import GHC.Generics (Generic)
 import GHC.Read (Read)
 import GHC.Show (Show)
 
+-- |
+-- Adjoin a point at 'Infinity'.
 data Projective x
   = Projective !x
   | Infinity
@@ -82,12 +84,16 @@ instance Control.Monad Projective where
     (Projective x) f -> f x
   {-# INLINE (>>=) #-}
 
+-- |
+-- Eliminator for 'Projective'.
 projective :: (x -> y) -> y -> Projective x -> y
 projective projective_ infinity = \case
   Projective x -> projective_ x
   Infinity -> infinity
 {-# INLINE projective #-}
 
+-- |
+-- For use with the tropical semiring.
 newtype Tropical x = TropicalProjective (Projective x)
   deriving
     ( Eq
