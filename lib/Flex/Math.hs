@@ -7,7 +7,9 @@ module Flex.Math
 
     -- * Basic operations
   , Eq ((==), (/=))
-  , Ord (compare, (<), (>), (<=), (>=))
+  , Ord (compare, (<), (>), (<=), (>=), max, min)
+  , comparing
+  , Ordering (..)
   , Addition ((+.))
   , (+)
   , Subtraction ((-.))
@@ -307,8 +309,12 @@ module Flex.Math
 
     -- ** Bases
   , Basis (basis)
-  ) where
+  )
+where
 
+import Data.Eq (Eq (..))
+import Data.List1 (List1)
+import Data.Ord (Ord (..), Ordering (..), comparing)
 import Flex.Math.Action
 import Flex.Math.Algebra
 import Flex.Math.Base
@@ -329,16 +335,14 @@ import Flex.Math.Projective
 import Flex.Math.Rack
 import Flex.Math.Structure
 import Flex.Math.Suspension
-
-import Data.Eq (Eq (..))
-import Data.List1 (List1)
-import Data.Ord (Ord (..))
 import GHC.Base (Double)
 import GHC.Num (Num)
 import GHC.Real qualified as Num
 
 default Num (Natural, Integer, Int, Rational, Double)
+
 default Num.Integral (Natural, Integer, Int)
+
 default Num.Fractional (Rational, Double)
 
 eval :: (Eq x, Ring x) => List1 x -> x -> x
