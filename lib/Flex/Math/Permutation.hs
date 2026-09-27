@@ -2,6 +2,7 @@ module Flex.Math.Permutation
   ( S (S, s)
   , permute
   , transposition
+  , mkS
   ) where
 
 import Flex.Math.Category
@@ -12,6 +13,7 @@ import Data.Bool
 import Data.Bounded (Bounded (..))
 import Data.Enum (Enum (..))
 import Data.Eq (Eq ((==)))
+import Data.Finite
 import Data.List qualified as List
 import Data.Maybe
 import Data.Ord (Ord)
@@ -75,3 +77,11 @@ transposition f
               _ -> f
           | otherwise -> from i
 {-# INLINE transposition #-}
+
+mkS :: forall n x. (KnownNat n, From x Integer) => V n x -> Maybe (S n)
+mkS v
+  | List.sort (morphism from (toList v))
+      == morphism (from @Natural @Integer) [0 .. pred (natVal (Proxy @n))] =
+      Just (S (morphism (finite . from) v))
+  | otherwise = Nothing
+{-# INLINE mkS #-}
