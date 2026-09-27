@@ -1641,15 +1641,13 @@ morphism' ::
   (Morphisms (->) (-->) b) =>
   (x -> x') -> (forall y. b x y -> b x' y)
 morphism' x_x' = transform (morphism x_x' :: b x --> b x')
-
-{- INLINE morphism' -}
+{-# INLINE morphism' #-}
 
 -- |
 -- The @flex@ analogue of @'Data.Bifunctor.bimap'@.
 along2 :: (Along2 b) => (x -> x') -> (y -> y') -> b x y -> b x' y'
 along2 x_x' y_y' bxy = morphism y_y' (morphism' x_x' bxy)
-
-{- INLINE along2 -}
+{-# INLINE along2 #-}
 
 instance Morphisms (->) (-->) Either where
   morphism :: (x -> y) -> Either x --> Either y

@@ -1440,7 +1440,7 @@ iover = coerce
 {-# INLINE (%@~) #-}
 
 set :: Focus Identity xs ys x y -> y -> xs -> ys
-set s b = runIdentity #. s (\_ -> Identity b)
+set s b = runIdentity #. s \_ -> Identity b
 {-# INLINE set #-}
 
 (.~) :: Focus Identity xs ys x y -> y -> xs -> ys
