@@ -19,7 +19,17 @@ import Test.QuickCheck
 
 import Flex.Math
 
-instance (Ord x, Additive x, Arbitrary x) => Arbitrary (Ratio x) where
+instance
+  ( Ord x
+  , Additive x
+  , From Integer x
+  , Signed x
+  , Absolute x x
+  , Euclidean x
+  , Arbitrary x
+  ) =>
+  Arbitrary (Ratio x)
+  where
   arbitrary :: Gen (Ratio x)
   arbitrary = Control.liftM2 Ratio arbitrary (nonnegative arbitrary)
    where
