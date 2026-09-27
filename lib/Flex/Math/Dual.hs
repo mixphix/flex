@@ -130,11 +130,11 @@ derivative f x = tangent (apply f x)
 {-# INLINE derivative #-}
 
 applied ::
-  (Additive x, Multiplicative x, Data.Traversable xt) =>
+  (Additive x, Multiplicative x, Traversable xt) =>
   (xt (Dual x) -> y) -> xt x -> xt y
-applied f xs = snd (Data.mapAccumL outer (zero @Int) xs)
+applied f xs = snd (accum outer (zero @Int) xs)
  where
-  outer !i _ = (succ i, f (snd (Data.mapAccumL (innr i) (zero @Int) xs)))
+  outer !i _ = (succ i, f (snd (accum (innr i) (zero @Int) xs)))
   innr !i !j x = (succ j, if i == j then x :& one else x :& zero)
 {-# INLINE applied #-}
 
