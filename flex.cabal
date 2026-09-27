@@ -11,6 +11,8 @@ synopsis:
   
 description:
   
+tested-with:
+  GHC==9.14.1,
 
 common setup
   ghc-options: -Wall
