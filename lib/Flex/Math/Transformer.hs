@@ -3,7 +3,29 @@
 {-# LANGUAGE QuantifiedConstraints #-}
 {-# LANGUAGE UndecidableInstances #-}
 
-module Flex.Math.Transformer where
+module Flex.Math.Transformer
+  ( MonadTrans (lift)
+  , MonadState (state, gets, put, modify)
+  , get
+  , StateT (runStateT)
+  , EitherT (runEitherT)
+  , MonadEither (throw, catch)
+  , EitherStateT (runEitherStateT)
+  , EitherState
+  , runEitherState
+  , MaybeT (runMaybeT)
+  , hoistMaybe
+  , fromEitherT
+  , ContT (runContT)
+  , evalContT
+  , reset
+  , shift
+  , Cont
+  , runCont
+  , evalCont
+  , liftCC
+  , MonadCont (cc)
+  ) where
 
 import Flex.Math.Category
 import Flex.Math.Category qualified as Flex

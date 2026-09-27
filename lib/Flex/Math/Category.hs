@@ -180,7 +180,6 @@ module Flex.Math.Category
     -- * The state monad (transformer)
   , StateT (StateT, runStateT)
   , State
-  , state
   , runState
   --
   , Semigroup ((<>))
@@ -1978,9 +1977,6 @@ newtype StateT s f x = StateT {runStateT :: s -> f (s, x)}
 -- The state monad.
 type State s = StateT s Identity
 
-state :: (s -> (s, x)) -> State s x
-state f = StateT (Identity . f)
-{-# INLINE state #-}
 runState :: State s x -> s -> (s, x)
 runState (StateT x) s = runIdentity (x s)
 {-# INLINE runState #-}
