@@ -1056,7 +1056,7 @@ foldOf :: Getting x xs x -> xs -> x
 foldOf g = getConst #. g Const
 {-# INLINE foldOf #-}
 
-optionOf :: (Alternative f) => Getting (Option f x) xs x -> xs -> f x
+optionOf :: (Pure f, Alternative f) => Getting (Option f x) xs x -> xs -> f x
 optionOf g = getOption #. views g (Option #. pure)
 {-# INLINE optionOf #-}
 

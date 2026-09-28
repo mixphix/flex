@@ -127,6 +127,9 @@ module Flex.Math.Category
   , Nil (nil)
   , guard
   , Alt ((<|>))
+  , some
+  , many
+  , optional
   , asum1
   , Alternative
   , asum
@@ -3066,8 +3069,17 @@ instance (Nil f, Nil g) => Nil (f :*: g) where
 -- |
 -- A coalgebra with a binary operation that preserves the base type.
 type Alt :: (Type -> Type) -> Constraint
-class (Pure f) => Alt f where
+class (Along f) => Alt f where
   (<|>) :: f x -> f x -> f x
+
+some :: (Alt f, Applicative f) => f x -> f (List x)
+some = fix \rec fx -> liftA2 (:) fx (rec fx <|> pure [])
+
+many :: (Alt f, Applicative f) => f x -> f (List x)
+many = fix \rec fx -> liftA2 (:) fx (rec fx) <|> pure []
+
+optional :: (Alt f, Applicative f) => f x -> f (Maybe x)
+optional = (<|> pure Nothing) . morphism Just
 
 instance Alt Maybe where
   (<|>) :: Maybe x -> Maybe x -> Maybe x
