@@ -74,8 +74,10 @@ module Flex.Math.Optics
   , iat
   , type Fold
   , folding
+  , folding1
   , foldring
   , ifolding
+  , ifolding1
   , ifoldring
   , repeated
   , replicated
@@ -816,6 +818,10 @@ folding :: (Foldable t) => (xs -> t x) -> Fold xs x
 folding xs_tx x_fx = phantom . traverse_ x_fx . xs_tx
 {-# INLINE folding #-}
 
+folding1 :: (Foldable1 t) => (xs -> t x) -> Fold xs x
+folding1 xs_tx x_fx = phantom . traverse1_ x_fx . xs_tx
+{-# INLINE folding1 #-}
+
 foldring ::
   (Phantom f, Applicative f) =>
   ((x -> f x -> f x) -> f x -> xs -> f x) -> Focus f xs xs x x
@@ -835,6 +841,16 @@ ifolding xs_tix pxfx =
       (phantom . uncurry (ixed pxfx))
     . xs_tix
 {-# INLINE ifolding #-}
+
+ifolding1 ::
+  (Ixed i p, Foldable1 t, Phantom f, Applicative f) =>
+  (xs -> t (i, x)) -> Over p f xs xs x x
+ifolding1 xs_tix pxfx =
+  phantom
+    . traverse1_
+      (phantom . uncurry (ixed pxfx))
+    . xs_tix
+{-# INLINE ifolding1 #-}
 
 ifoldring ::
   (Ixed i p, Phantom f, Applicative f) =>
