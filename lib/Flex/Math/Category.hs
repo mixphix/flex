@@ -67,10 +67,14 @@ module Flex.Math.Category
   , fold1
   , foldl1
   , foldr1
+  , traverse1_
+  , for1_
   , IxFoldable1
   , ifoldWith1
   , ifoldl1
   , ifoldr1
+  , itraverse1_
+  , ifor1_
   , Foldable2 (foldWith2)
 
     -- * Traversables
@@ -1288,6 +1292,19 @@ foldr1 :: (Foldable1 f) => (y -> y -> y) -> f y -> y
 foldr1 = foldrWith1 id
 {-# INLINE foldr1 #-}
 
+data Rightward f x = Rightward {getRightward :: f x}
+instance (Apply f) => Semigroup (Rightward f x) where
+  (<>) :: Rightward f x -> Rightward f x -> Rightward f x
+  Rightward fx <> Rightward fy = Rightward (fx *> fy)
+
+traverse1_ :: (Foldable1 t, Apply f) => (x -> f y) -> t x -> f ()
+traverse1_ x_fy = morphism (const ()) . getRightward . foldWith1 (Rightward . x_fy)
+{-# INLINE traverse1_ #-}
+
+for1_ :: (Foldable1 t, Apply f) => t x -> (x -> f y) -> f ()
+for1_ = flip traverse1_
+{-# INLINE for1_ #-}
+
 instance Folds1 (->) (->) Identity where
   foldWith1 :: (Semigroup z) => (x -> z) -> Identity x -> z
   foldWith1 x_z (Identity x) = x_z x
@@ -1390,6 +1407,14 @@ ifoldr1 :: (IxFoldable1 i f) => (i -> x -> y -> y) -> y -> f x -> y
 ifoldr1 i_x_y_y y fx =
   foldWith1 (Ix \i -> Endo . i_x_y_y i) fx `appEndo` y
 {-# INLINE ifoldr1 #-}
+
+itraverse1_ :: (IxFoldable1 i t, Apply f) => (i -> x -> f y) -> t x -> f ()
+itraverse1_ i_x_fy = morphism (const ()) . getRightward . foldWith1 (Ix ((Rightward .) . i_x_fy))
+{-# INLINE itraverse1_ #-}
+
+ifor1_ :: (IxFoldable1 i t, Apply f) => t x -> (i -> x -> f y) -> f ()
+ifor1_ = flip itraverse1_
+{-# INLINE ifor1_ #-}
 
 instance Folds1 (Ix ()) (->) Identity where
   foldWith1 ::
