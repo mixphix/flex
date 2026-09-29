@@ -158,6 +158,7 @@ module Flex.Math.Optics
   , traversed
   , traversed1
   , itraversed
+  , itraversed1
   , elementsOf
   , elementOf
   , element
@@ -1369,6 +1370,11 @@ itraversed ::
   forall i t x y. (IxTraversable i t) => IxTraversal i (t x) (t y) x y
 itraversed = conjoined traverse (traverse . Ix @i . ixed)
 {-# INLINE itraversed #-}
+
+itraversed1 ::
+  forall i t x y. (IxTraversable1 i t) => IxTraversal1 i (t x) (t y) x y
+itraversed1 = conjoined traverse1 (traverse1 . Ix @i . ixed)
+{-# INLINE itraversed1 #-}
 
 elementsOf ::
   (Applicative f) =>
