@@ -107,6 +107,7 @@ module Flex.Math.Optics
   , iviews
   , (^..)
   , toListOf
+  , toList1Of
   , foldlOf
   , foldlOf'
   , foldrOf
@@ -138,8 +139,9 @@ module Flex.Math.Optics
   , ipre
   , ipreview
   , ipreviews
-  , itoListOf
   , (^@..)
+  , itoListOf
+  , itoList1Of
   , ifoldWithOf
   , ifoldrOf
   , ifoldlOf
@@ -224,6 +226,7 @@ import Data.Kind (Type)
 import Data.List (List)
 import Data.List.NonEmpty (NonEmpty ((:|)))
 import Data.List1 (List1)
+import Data.List1 qualified as List1
 import Data.Map (Map)
 import Data.Map qualified as Map
 import Data.Maybe
@@ -1050,6 +1053,14 @@ toListOf :: Getting (Endo [x]) xs x -> xs -> [x]
 toListOf g = foldrOf g (:) []
 {-# INLINE toListOf #-}
 
+newtype L1DL x = L1DL {runL1DL :: [x] -> List1 x}
+instance Semigroup (L1DL x) where
+  (<>) :: L1DL x -> L1DL x -> L1DL x
+  L1DL f <> L1DL g = L1DL (f . List1.toList . g)
+
+toList1Of :: Getting (L1DL x) xs x -> xs -> List1 x
+toList1Of g = flip runL1DL [] . foldWithOf g (L1DL #. (:|))
+
 foldlOf :: Getting (Dual (Endo z)) xs x -> (z -> x -> z) -> z -> xs -> z
 foldlOf g z_x_z z = \xs ->
   let Dual (Endo z_z) = foldWithOf g (Dual #. Endo #. flip z_x_z) xs
@@ -1218,6 +1229,9 @@ ipreviews ig = view (ipre ig)
 itoListOf :: IxGetting i (Endo [(i, x)]) xs x -> xs -> [(i, x)]
 itoListOf ig = ifoldrOf ig (\i x -> ((i, x) :)) []
 {-# INLINE itoListOf #-}
+
+itoList1Of :: IxGetting i (L1DL (i, x)) xs x -> xs -> List1 (i, x)
+itoList1Of ig = flip runL1DL [] . ifoldWithOf ig \i a -> L1DL ((i, a) :|)
 
 (^@..) :: xs -> IxGetting i (Endo [(i, x)]) xs x -> [(i, x)]
 (^@..) = flip itoListOf
