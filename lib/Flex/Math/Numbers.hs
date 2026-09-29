@@ -103,7 +103,6 @@ import Flex.Math.Suspension
 
 import Data.Bool (Bool (..), not, otherwise)
 import Data.Bounded (Bounded)
-import Data.Char (Char)
 import Data.Complex (Complex ((:+)))
 import Data.Either
 import Data.Enum (Enum (..))
@@ -150,7 +149,7 @@ import GHC.Real qualified as Num
 import GHC.TypeNats (KnownNat, Nat, natVal)
 import Numeric.Natural (Natural)
 import Text.Read (Read)
-import Text.Show (Show (..))
+import Text.Show
 
 -- Ratio
 
@@ -166,8 +165,8 @@ instance
   ) =>
   Show (Ratio x)
   where
-  show :: Ratio x -> [Char]
-  show (Ratio n d) = "Ratio " <> show n <> " " <> show d
+  showsPrec :: Int -> Ratio x -> ShowS
+  showsPrec prec (Ratio n d) = showParen (prec > 10) (showString "Ratio " . showsPrec 11 n . showString " " . showsPrec 11 d)
 
 pattern Ratio ::
   ( Eq x

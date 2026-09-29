@@ -69,7 +69,6 @@ import Flex.Math.Structure
 import Control.Applicative qualified as Control
 import Control.Monad qualified as Control
 import Data.Bool
-import Data.Char (Char)
 import Data.Enum
 import Data.Eq
 import Data.Finite (Finite, finite, getFinite)
@@ -229,43 +228,56 @@ instance (KnownNat n, Ord x) => Ord (V n x) where
   {-# INLINE compare #-}
 
 instance (KnownNat n, Show x) => Show (V n x) where
-  show :: V n x -> [Char]
-  show v = "V { " <> inside v <> " }"
+  showsPrec :: Int -> V n x -> ShowS
+  showsPrec prec v = showParen (prec > 10) do
+    showString "V { " . inside 11 v . showString " }"
    where
-    inside :: forall m. V m x -> [Char]
-    inside = \case
-      V1 x -> show x
-      V2 x0 x1 -> show x0 <> " " <> show x1
-      V3 x0 x1 x2 -> show x0 <> " " <> show x1 <> " " <> show x2
-      V4 x0 x1 x2 x3 -> show x0 <> " " <> show x1 <> " " <> show x2 <> " " <> show x3
-      VV vm vp -> inside vm <> " " <> inside vp
+    inside :: forall m. Int -> V m x -> ShowS
+    inside p = \case
+      V1 x -> showsPrec p x
+      V2 x0 x1 -> showsPrec p x0 . showString " " . showsPrec p x1
+      V3 x0 x1 x2 ->
+        showsPrec p x0
+          . showString " "
+          . showsPrec p x1
+          . showString " "
+          . showsPrec p x2
+      V4 x0 x1 x2 x3 ->
+        showsPrec p x0
+          . showString " "
+          . showsPrec p x1
+          . showString " "
+          . showsPrec p x2
+          . showString " "
+          . showsPrec p x3
+      VV vm vp -> inside p vm . showString " " . inside p vp
     {-# INLINE inside #-}
-  {-# INLINE show #-}
+  {-# INLINE showsPrec #-}
 
 vn :: forall n x. (KnownNat n) => (Natural -> x) -> V n x
 vn f = case cmpNat (Proxy @5) (Proxy @n) of
   GTI -> case sameNat (Proxy @1) (Proxy @n) of
     Just Refl ->
-        let !v0 = f 0
-         in V1 v0
+      let !v0 = f 0
+       in V1 v0
     Nothing -> case sameNat (Proxy @2) (Proxy @n) of
       Just Refl ->
-          let !v0 = f 0
-              !v1 = f 1
-           in V2 v0 v1
+        let !v0 = f 0
+            !v1 = f 1
+         in V2 v0 v1
       Nothing -> case sameNat (Proxy @3) (Proxy @n) of
         Just Refl ->
+          let !v0 = f 0
+              !v1 = f 1
+              !v2 = f 2
+           in V3 v0 v1 v2
+        Nothing -> case sameNat (Proxy @4) (Proxy @n) of
+          Just Refl ->
             let !v0 = f 0
                 !v1 = f 1
                 !v2 = f 2
-             in V3 v0 v1 v2
-        Nothing -> case sameNat (Proxy @4) (Proxy @n) of
-          Just Refl ->
-              let !v0 = f 0
-                  !v1 = f 1
-                  !v2 = f 2
-                  !v3 = f 3
-               in V4 v0 v1 v2 v3
+                !v3 = f 3
+             in V4 v0 v1 v2 v3
           Nothing -> GHC.error "Flex.Math.Matrix.vn: fail"
   _ -> case sameNat (Proxy @n) (Proxy @((n - 4) + 4)) of
     Just Refl -> case cmpNat (Proxy @4) (Proxy @n) of
@@ -933,36 +945,77 @@ instance (KnownNat m, KnownNat n, Ord x) => Ord (M m n x) where
   {-# INLINE compare #-}
 
 instance (KnownNat m, KnownNat n, Show x) => Show (M m n x) where
-  show :: M m n x -> [Char]
-  show (M a) = "M " <> inside a
+  showsPrec :: Int -> M m n x -> ShowS
+  showsPrec prec (M a) = showParen (prec > 10) (showString "M " . inside 11 a)
    where
-    inside :: forall k p. (KnownNat k, KnownNat p, Show x) => V k (V p x) -> [Char]
-    inside = \case
-      V1 x -> "{ " <> inside2 x <> " }"
-      V2 x0 x1 -> "{ " <> inside2 x0 <> " " <> inside2 x1 <> " }"
-      V3 x0 x1 x2 -> "{ " <> inside2 x0 <> " " <> inside2 x1 <> " " <> inside2 x2 <> " }"
+    inside ::
+      forall k p. (KnownNat k, KnownNat p, Show x) => Int -> V k (V p x) -> ShowS
+    inside p = \case
+      V1 x -> showString "{ " . inside2 p x . showString " }"
+      V2 x0 x1 ->
+        showString "{ "
+          . inside2 p x0
+          . showString " "
+          . inside2 p x1
+          . showString " }"
+      V3 x0 x1 x2 ->
+        showString "{ "
+          . inside2 p x0
+          . showString " "
+          . inside2 p x1
+          . showString " "
+          . inside2 p x2
+          . showString " }"
       V4 x0 x1 x2 x3 ->
-        "{ "
-          <> inside2 x0
-          <> " "
-          <> inside2 x1
-          <> " "
-          <> inside2 x2
-          <> " "
-          <> inside2 x3
-          <> " }"
-      VV m p -> "{ " <> foldWith ((<> " ") . inside2) m <> foldWith ((<> " ") . inside2) p <> "}"
+        showString "{ "
+          . inside2 p x0
+          . showString " "
+          . inside2 p x1
+          . showString " "
+          . inside2 p x2
+          . showString " "
+          . inside2 p x3
+          . showString " }"
+      VV m p' ->
+        showString "{ "
+          . foldWith ((. showString " ") . inside2 p) m
+          . foldWith ((. showString " ") . inside2 p) p'
+          . showString "}"
     {-# INLINE inside #-}
-    inside2 :: forall p. (KnownNat p, Show x) => V p x -> [Char]
-    inside2 = \case
-      V1 x -> "{ " <> show x <> " }"
-      V2 x0 x1 -> "{ " <> show x0 <> " " <> show x1 <> " }"
-      V3 x0 x1 x2 -> "{ " <> show x0 <> " " <> show x1 <> " " <> show x2 <> " }"
+    inside2 :: forall p. (KnownNat p, Show x) => Int -> V p x -> ShowS
+    inside2 p = \case
+      V1 x -> showString "{ " . showsPrec p x . showString " }"
+      V2 x0 x1 ->
+        showString "{ "
+          . showsPrec p x0
+          . showString " "
+          . showsPrec p x1
+          . showString " }"
+      V3 x0 x1 x2 ->
+        showString "{ "
+          . showsPrec p x0
+          . showString " "
+          . showsPrec p x1
+          . showString " "
+          . showsPrec p x2
+          . showString " }"
       V4 x0 x1 x2 x3 ->
-        "{ " <> show x0 <> " " <> show x1 <> " " <> show x2 <> " " <> show x3 <> " }"
-      VV m p -> "{ " <> foldWith ((<> " ") . show) m <> foldWith ((<> " ") . show) p <> "}"
+        showString "{ "
+          . showsPrec p x0
+          . showString " "
+          . showsPrec p x1
+          . showString " "
+          . showsPrec p x2
+          . showString " "
+          . showsPrec p x3
+          . showString " }"
+      VV m p' ->
+        showString "{ "
+          . foldWith ((. showString " ") . showsPrec p) m
+          . foldWith ((. showString " ") . showsPrec p) p'
+          . showString "}"
     {-# INLINE inside2 #-}
-  {-# INLINE show #-}
+  {-# INLINE showsPrec #-}
 
 instance
   (KnownNat m, KnownNat n, Addition x x x) =>
