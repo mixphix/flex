@@ -850,7 +850,7 @@ ifolding xs_tix pxfx =
 {-# INLINE ifolding #-}
 
 ifolding1 ::
-  (Ixed i p, Foldable1 t, Phantom f, Applicative f) =>
+  (Ixed i p, Foldable1 t, Phantom f, Apply f) =>
   (xs -> t (i, x)) -> Over p f xs xs x x
 ifolding1 xs_tix pxfx =
   phantom
@@ -967,7 +967,7 @@ type Getter xs x = forall f. (Phantom f) => Focus f xs xs x x
 --   forall p f. (Ixed i p, Phantom f) => p x (f x) -> (xs -> f xs)
 -- @
 type IxGetter i xs x =
-  forall f. (Phantom f) => IxFocus i f xs x x x
+  forall f. (Phantom f) => IxFocus i f xs xs x x
 
 -- |
 -- @
