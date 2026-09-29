@@ -126,6 +126,8 @@ module Flex.Math.Optics
   , has
   , hasn't
   , lengthOf
+  , minimumOf
+  , maximumOf
   , findOf
   , findMOf
   , (^?)
@@ -225,13 +227,15 @@ import Data.List1 (List1)
 import Data.Map (Map)
 import Data.Map qualified as Map
 import Data.Maybe
-import Data.Ord (Ord, (<))
+import Data.Ord
 import Data.Semigroup
   ( All (..)
   , Any (..)
   , Dual (..)
   , Endo (..)
   , First (..)
+  , Max (..)
+  , Min (..)
   )
 import Data.Sequence (Seq)
 import Data.Sequence qualified as Seq
@@ -1135,6 +1139,12 @@ lengthOf ::
   Getting (Endo (Endo z)) xs x -> xs -> z
 lengthOf g = foldlOf' g (const . succ) zero
 {-# INLINE lengthOf #-}
+
+minimumOf :: (Ord x) => Getting (Min x) xs x -> xs -> x
+minimumOf g = getMin . foldWithOf g Min
+
+maximumOf :: (Ord x) => Getting (Max x) xs x -> xs -> x
+maximumOf g = getMax . foldWithOf g Max
 
 findOf ::
   Getting (Endo (Maybe x)) xs x -> (x -> Bool) -> xs -> Maybe x
