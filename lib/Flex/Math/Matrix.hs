@@ -729,7 +729,7 @@ fromList xs = case sameNat (Proxy @1) (Proxy @n) of
           _ -> Nothing
 {-# INLINE fromList #-}
 
-instance Each (V n x) (V n x) x x
+instance Each (V n x) (V n y) x y
 instance Indices (V n x) where
   type Index (V n x) = Natural
   type Value (V n x) = x
