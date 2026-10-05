@@ -129,6 +129,7 @@ import GHC.Base
   , and#
   , decodeFloat_Int#
   , eqWord#
+  , error
   , int2Word#
   , isTrue#
   , negateInt#
@@ -166,7 +167,10 @@ instance
   Show (Ratio x)
   where
   showsPrec :: Int -> Ratio x -> ShowS
-  showsPrec prec (Ratio n d) = showParen (prec > 10) (showString "Ratio " . showsPrec 11 n . showString " " . showsPrec 11 d)
+  showsPrec prec (Ratio n d) =
+    showParen
+      (prec > 10)
+      (showString "Ratio " . showsPrec 11 n . showString " " . showsPrec 11 d)
 
 pattern Ratio ::
   ( Eq x
@@ -198,7 +202,7 @@ toDataRational (Ratio n d) = n Num.:% d
 reduce ::
   (Eq x, From Integer x, Signed x, Absolute x x, Euclidean x) => x -> x -> Ratio x
 reduce n d
-  | d == zero = Num.ratioZeroDenominatorError
+  | d == zero = error "Flex.Math.Numbers.reduce: Ratio has zero denominator"
   | otherwise =
       let !d' = absolute d
           !p = gcd (absolute n) d'

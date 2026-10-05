@@ -1482,7 +1482,7 @@ system a y = let (l, u) = lu a in backward u (forward l y)
                 (pred i)
                 ( vn @n \i' ->
                     if i == succ i'
-                      then (x ! i' - coeff i' (succ i') zero z) / u ! i' ! i'
+                      then (x ! i' - coeff i' i zero z) / u ! i' ! i'
                       else z ! i'
                 )
      in go n zero
