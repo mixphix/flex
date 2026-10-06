@@ -426,7 +426,7 @@ shifted = shifted' (natVal (Proxy @n))
           (u0, u') -> shifted' (pred k) (snoc u' u0) v
 
 reverse :: forall n x. (KnownNat n) => V n x -> V n x
-reverse v = vn @n \i -> v ! (natVal (Proxy @n) - i)
+reverse v = vn @n \i -> v ! (natVal (Proxy @n) - 1 - i)
 
 instance Morphisms (->) (->) (V n) where
   morphism :: (x -> y) -> V n x -> V n y
