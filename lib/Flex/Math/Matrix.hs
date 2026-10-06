@@ -18,6 +18,8 @@ module Flex.Math.Matrix
   , uncons
   , snoc
   , unsnoc
+  , shifted
+  , reverse
   , toList
   , fromList
   , projection
@@ -399,14 +401,32 @@ instance (KnownNat n) => Field7 (V n x) (V n x) x x where
 cons :: (KnownNat n) => x -> V n x -> V (1 + n) x
 cons x v = V1 x ++ v
 
-uncons :: forall n x. (KnownNat n, n >= 1) => V (1 + n) x -> (x, V n x)
+uncons :: forall n x. (KnownNat n) => V (1 + n) x -> (x, V n x)
 uncons v = (v ! 0, vn @n \i -> v ! succ i)
 
 snoc :: (KnownNat n) => V n x -> x -> V (n + 1) x
 snoc v x = v ++ V1 x
 
-unsnoc :: forall n x. (KnownNat n, n >= 1) => V (n + 1) x -> (V n x, x)
+unsnoc :: forall n x. (KnownNat n) => V (n + 1) x -> (V n x, x)
 unsnoc v = (vn @n \i -> v ! i, v ! natVal (Proxy @n))
+
+shifted ::
+  forall n x.
+  ( KnownNat n
+  , (1 + n) ~ (n + 1)
+  , Eq x
+  ) =>
+  V (1 + n) x -> V (n + 1) x -> Bool
+shifted = shifted' (natVal (Proxy @n))
+ where
+  shifted' k u v
+    | k == 0 = u == v
+    | otherwise =
+        u == v || case uncons u of
+          (u0, u') -> shifted' (pred k) (snoc u' u0) v
+
+reverse :: forall n x. (KnownNat n) => V n x -> V n x
+reverse v = vn @n \i -> v ! (natVal (Proxy @n) - i)
 
 instance Morphisms (->) (->) (V n) where
   morphism :: (x -> y) -> V n x -> V n y
