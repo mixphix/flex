@@ -124,7 +124,7 @@ module Flex.Math
   , (!)
   , vn
   , vnM
-  , dimensions
+  , upto
   , orthogonalize
   , orthonormalize
   , M (M, unM, M22, M23, M24, M32, M33, M34, M42, M43, M44)

@@ -8,7 +8,7 @@ module Flex.Math.Matrix
   , adjoint
   , Square (trace, determinant)
   , V (VV, V1, V2, V3, V4, V5, V6, V7, V8)
-  , dimensions
+  , upto
   , (++)
   , vn
   , vnM
@@ -314,9 +314,9 @@ vnM f = case cmpNat (Proxy @5) (Proxy @n) of
     _ -> GHC.error "Flex.Math.Matrix.vnM: fail"
 {-# INLINE vnM #-}
 
-dimensions :: forall n. (KnownNat n) => Const [Natural] n
-dimensions = Const [0 .. natVal (Proxy @n) - 1]
-{-# INLINE dimensions #-}
+upto :: forall n. (KnownNat n) => Const [Natural] n
+upto = Const [0 .. natVal (Proxy @n) - 1]
+{-# INLINE upto #-}
 
 (!) :: V n x -> Natural -> x
 v ! n = case v of
@@ -704,25 +704,25 @@ toList = \case
 {-# INLINE toList #-}
 
 fromList :: forall n x. (KnownNat n) => [x] -> Maybe (V n x)
-fromList xs = case sameNat (Proxy @1) (Proxy @n) of
-  Just Refl -> case xs of
+fromList ns = case sameNat (Proxy @1) (Proxy @n) of
+  Just Refl -> case ns of
     [x] -> Just (V1 x)
     _ -> Nothing
   _ -> case sameNat (Proxy @2) (Proxy @n) of
-    Just Refl -> case xs of
+    Just Refl -> case ns of
       [x0, x1] -> Just (V2 x0 x1)
       _ -> Nothing
     _ -> case sameNat (Proxy @3) (Proxy @n) of
-      Just Refl -> case xs of
+      Just Refl -> case ns of
         [x0, x1, x2] -> Just (V3 x0 x1 x2)
         _ -> Nothing
       _ -> case sameNat (Proxy @4) (Proxy @n) of
-        Just Refl -> case xs of
+        Just Refl -> case ns of
           [x0, x1, x2, x3] -> Just (V4 x0 x1 x2 x3)
           _ -> Nothing
         _ -> case cmpNat (Proxy @4) (Proxy @n) of
           LTI ->
-            let (m, p) = List.splitAt (from (natVal (Proxy @n)) - 4) xs
+            let (m, p) = List.splitAt (from (natVal (Proxy @n)) - 4) ns
              in case (fromList @(n - 4) m, fromList @4 p) of
                   (Just vm, Just vp) -> case sameNat (Proxy @((n - 4) + 4)) (Proxy @n) of
                     Just Refl -> Just (vm ++ vp)
@@ -901,10 +901,10 @@ orthogonalize ::
 orthogonalize [] = []
 orthogonalize (v0 : vs0) = gramSchmidt1 [v0] vs0
  where
-  gramSchmidt1 us [] = List.reverse us
-  gramSchmidt1 us (v : vs) =
-    let u = v + sumOn (negative . (`projection` v)) us
-     in gramSchmidt1 (u : us) vs
+  gramSchmidt1 ns [] = List.reverse ns
+  gramSchmidt1 ns (v : vs) =
+    let u = v + sumOn (negative . (`projection` v)) ns
+     in gramSchmidt1 (u : ns) vs
 {-# INLINE orthogonalize #-}
 
 orthonormalize ::
@@ -1330,24 +1330,20 @@ instance (KnownNat m, KnownNat n) => Matrix (M m n) (M n m) x where
   {-# INLINE transpose #-}
 instance (KnownNat n, Eq x, MultiplicativeAbelian x, Ring x) => Square (M n n) x where
   trace :: M n n x -> Scalar (M n n x)
-  trace (M a) = ScalarM do
-    sumOn (\k -> a ! k ! k) (dimensions @n).getConst
+  trace (M a) = ScalarM do sumOn (\k -> a ! k ! k) (upto @n).getConst
   {-# INLINE trace #-}
   determinant :: M n n x -> Scalar (M n n x)
   determinant (M a) = ScalarM do
-    flip
-      sumOn
-      (List.permutations (dimensions @n).getConst)
-      \p ->
-        signature p
-          * productOn
-            (\x -> a ! x ! (p List.!! from x))
-            (dimensions @n).getConst
+    flip sumOn (List.permutations ns) \p ->
+      signature p * productOn (\x -> a ! x ! (p List.!! from x)) ns
    where
-    signature p = (\cnt -> if even cnt then one else negative one) $ count id do
-      x <- (dimensions @n).getConst
-      y <- List.dropWhile (<= x) (dimensions @n).getConst
-      pure $ (p List.!! from x) > (p List.!! from y)
+    Const ns = upto @n
+    signature p = product do
+      i <- ns
+      j <- List.dropWhile (<= i) ns
+      pure case compare (p List.!! from i) (p List.!! from j) of
+        GT -> negative one
+        _ -> one
   {-# INLINE determinant #-}
 
 permanent ::
@@ -1355,8 +1351,8 @@ permanent ::
   (KnownNat n, MultiplicativeAbelian x, Ring x) =>
   M n n x -> Scalar (M n n x)
 permanent (M a) = ScalarM do
-  flip sumOn (List.permutations (dimensions @n).getConst) \p ->
-    productOn (\x -> a ! x ! (p List.!! from x)) (dimensions @n).getConst
+  flip sumOn (List.permutations (upto @n).getConst) \p ->
+    productOn (\x -> a ! x ! (p List.!! from x)) (upto @n).getConst
 
 instance
   (KnownNat n, AdditiveAbelian x, Multiplicative x) =>
@@ -1372,7 +1368,7 @@ rows ::
   forall m n x.
   (KnownNat m, KnownNat n) =>
   M m n x -> [V n x]
-rows (M a) = morphism (a !) (dimensions @m).getConst
+rows = toList . unM
 {-# INLINE rows #-}
 
 unrows :: forall m n x. (KnownNat m, KnownNat n) => [V n x] -> Maybe (M m n x)
@@ -1390,9 +1386,7 @@ columns ::
   forall m n x.
   (KnownNat m, KnownNat n) =>
   M m n x -> [V m x]
-columns a =
-  let M aT = transpose @(M m n) @(M n m) a
-   in morphism (aT !) (dimensions @n).getConst
+columns = rows . transpose @(M m n) @(M n m)
 {-# INLINE columns #-}
 
 uncolumns ::
@@ -1556,33 +1550,33 @@ gramMatrix vs = M do vn @m \i -> vn @m \j -> (vs ! i <•> vs ! j).unScalar
 diagonal :: forall n x. (KnownNat n, Additive x, Eq x) => M n n x -> Bool
 diagonal (M a) = all
   do \(i, j) -> i == j || a ! i ! j == zero
-  do join (liftM2 (,)) (dimensions @n).getConst
+  do join (liftM2 (,)) (upto @n).getConst
 {-# INLINE diagonal #-}
 
 upperTriangular ::
   forall n x. (KnownNat n, Additive x, Eq x) => M n n x -> Bool
 upperTriangular (M a) = Data.all
   do \(i, j) -> i <= j || a ! i ! j == zero
-  do join (liftM2 (,)) (dimensions @n).getConst
+  do join (liftM2 (,)) (upto @n).getConst
 {-# INLINE upperTriangular #-}
 
 lowerTriangular ::
   forall n x. (KnownNat n, Additive x, Eq x) => M n n x -> Bool
 lowerTriangular (M a) = Data.all
   do \(i, j) -> i >= j || a ! i ! j == zero
-  do join (liftM2 (,)) (dimensions @n).getConst
+  do join (liftM2 (,)) (upto @n).getConst
 {-# INLINE lowerTriangular #-}
 
 symmetric :: forall n x. (KnownNat n, Eq x) => M n n x -> Bool
 symmetric (M a) = Data.all
   do \(i, j) -> a ! i ! j == a ! j ! i
-  do join (liftM2 (,)) (dimensions @n).getConst
+  do join (liftM2 (,)) (upto @n).getConst
 {-# INLINE symmetric #-}
 
 hermitian :: forall n x. (KnownNat n, Eq x, Conjugate x) => M n n x -> Bool
 hermitian (M a) = Data.all
   do \(i, j) -> a ! i ! j == conjugate (a ! j ! i)
-  do join (liftM2 (,)) (dimensions @n).getConst
+  do join (liftM2 (,)) (upto @n).getConst
 {-# INLINE hermitian #-}
 
 pattern M22 :: x -> x -> x -> x -> M 2 2 x
