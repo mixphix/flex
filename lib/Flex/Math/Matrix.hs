@@ -32,6 +32,7 @@ module Flex.Math.Matrix
   , uncolumns
   , column
   , outerproduct
+  , permanent
   , toLists
   , qr
   , lu
@@ -1348,6 +1349,14 @@ instance (KnownNat n, Eq x, MultiplicativeAbelian x, Ring x) => Square (M n n) x
       y <- List.dropWhile (<= x) (dimensions @n).getConst
       pure $ (p List.!! from x) > (p List.!! from y)
   {-# INLINE determinant #-}
+
+permanent ::
+  forall n x.
+  (KnownNat n, MultiplicativeAbelian x, Ring x) =>
+  M n n x -> Scalar (M n n x)
+permanent (M a) = ScalarM do
+  flip sumOn (List.permutations (dimensions @n).getConst) \p ->
+    productOn (\x -> a ! x ! (p List.!! from x)) (dimensions @n).getConst
 
 instance
   (KnownNat n, AdditiveAbelian x, Multiplicative x) =>
