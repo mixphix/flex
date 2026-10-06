@@ -1,10 +1,15 @@
+{-# OPTIONS_GHC -Wno-incomplete-uni-patterns #-}
+
 module Flex.Math.Permutation
   ( S (S, s)
   , permute
   , transposition
   , mkS
+  , permRows
+  , permColumns
   ) where
 
+import Flex.Math.Basis
 import Flex.Math.Category
 import Flex.Math.Matrix
 import Flex.Math.Numbers
@@ -85,3 +90,11 @@ mkS v
       Just (S (morphism (finite . from) v))
   | otherwise = Nothing
 {-# INLINE mkS #-}
+
+permRows :: forall n x. (KnownNat n, Ring x) => S n -> M n n x
+permRows π =
+  let Just (M a) = uncolumns @n (morphism (basis @(V n)) [minBound .. maxBound])
+   in M (permute π a)
+
+permColumns :: forall n x. (KnownNat n, Ring x) => S n -> M n n x
+permColumns = transpose . permRows
