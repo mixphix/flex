@@ -286,7 +286,7 @@ vn f = case cmpNat (Proxy @5) (Proxy @n) of
                 !v2 = f 2
                 !v3 = f 3
              in V4 v0 v1 v2 v3
-          Nothing -> GHC.error "Flex.Math.Matrix.vn: fail"
+          Nothing -> GHC.error "Flex.Math.Matrix.vn: zero length"
   _ -> case sameNat (Proxy @n) (Proxy @((n - 4) + 4)) of
     Just Refl -> case cmpNat (Proxy @4) (Proxy @n) of
       LTI -> (vn f :: V (n - 4) x) ++ (vn (f . (+ natVal (Proxy @(n - 4)))) :: V 4 x)
