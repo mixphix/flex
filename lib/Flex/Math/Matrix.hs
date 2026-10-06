@@ -43,6 +43,7 @@ module Flex.Math.Matrix
   , cofactorMatrix
   , adjugate
   , characteristicPolynomial
+  , gramMatrix
   , diagonal
   , upperTriangular
   , lowerTriangular
@@ -1532,11 +1533,16 @@ adjugate = transpose . cofactorMatrix
 characteristicPolynomial ::
   forall n x.
   (KnownNat n, Eq x, MultiplicativeAbelian x, Ring x) =>
-  M n n x -> List1 (Scalar (M n n x))
-characteristicPolynomial a = morphism ScalarM (determinant (tI - morphism pure a)).unScalar
+  M n n x -> List1 x
+characteristicPolynomial a = (determinant (tI - morphism pure a)).unScalar
  where
   tI = M $ vn @n \i -> vn @n \j -> if i == j then variable else zero
 {-# INLINE characteristicPolynomial #-}
+
+gramMatrix ::
+  forall m n x.
+  (KnownNat m, KnownNat n, Ring x, Conjugate x) => V m (V n x) -> M m m x
+gramMatrix vs = M do vn @m \i -> vn @m \j -> (vs ! i <•> vs ! j).unScalar
 
 diagonal :: forall n x. (KnownNat n, Additive x, Eq x) => M n n x -> Bool
 diagonal (M a) = all
