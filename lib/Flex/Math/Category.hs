@@ -1024,31 +1024,31 @@ instance Folds (->) (->) Vector.Vector where
 type IxFoldable i = C2 (Folds (->) (->)) (Folds (Ix i) (->))
 
 ifoldWith :: (IxFoldable i f, Monoid z) => (i -> x -> z) -> f x -> z
-ifoldWith = foldWith . Ix
+ifoldWith i_x_z = foldWith (Ix \ !i -> i_x_z i)
 {-# INLINE ifoldWith #-}
 
 ifoldl :: (IxFoldable i f) => (i -> y -> x -> y) -> y -> f x -> y
 ifoldl i_y_x_y y0 fx =
   ifoldr
-    (\i x y_y -> oneShot \ !y -> y_y (i_y_x_y i y x))
+    (\ !i x y_y -> oneShot \ !y -> y_y (i_y_x_y i y x))
     id
     fx
     y0
 {-# INLINE ifoldl #-}
 ifoldr :: (IxFoldable i f) => (i -> x -> y -> y) -> y -> f x -> y
 ifoldr i_x_y_y y fx =
-  ifoldWith (\i -> Endo . i_x_y_y i) fx `appEndo` y
+  ifoldWith (\ !i -> Endo . i_x_y_y i) fx `appEndo` y
 {-# INLINE ifoldr #-}
 
 ifoldWithA ::
   (IxFoldable i t, Applicative f, Monoid m) => (i -> x -> f m) -> t x -> f m
-ifoldWithA i_x_fm = ifoldl (\i !fm x -> liftA2 (<>) fm (i_x_fm i x)) (pure mempty)
+ifoldWithA i_x_fm = ifoldl (\ !i !fm x -> liftA2 (<>) fm (i_x_fm i x)) (pure mempty)
 {-# INLINE ifoldWithA #-}
 
 itraverse_ :: (IxFoldable i f, Applicative g) => (i -> x -> g y) -> f x -> g ()
 itraverse_ i_x_gy = ifoldr f (pure ())
  where
-  f i x k = i_x_gy i x *> k
+  f !i x k = i_x_gy i x *> k
 {-# INLINE itraverse_ #-}
 
 ifor_ :: (IxFoldable i f, Applicative g) => f x -> (i -> x -> g y) -> g ()
