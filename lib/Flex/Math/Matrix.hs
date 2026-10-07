@@ -1165,8 +1165,7 @@ instance
   Multiplicative (M n n x)
   where
   one :: M n n x
-  one = M do
-    vn @n \i -> vn @n \j -> if i == j then one else zero
+  one = M (vn @n \i -> vn @n \j -> if i == j then one else zero)
   {-# INLINE one #-}
 
 instance (KnownNat m, KnownNat n, From y x) => From y (Scalar (M m n x)) where
@@ -1544,7 +1543,6 @@ cofactorMatrix a = M do
 
 adjugate ::
   ( KnownNat n
-  , KnownNat (n + 1)
   , Eq x
   , MultiplicativeAbelian x
   , Ring x
@@ -1591,13 +1589,19 @@ lowerTriangular (M a) = Data.all
 symmetric :: forall n x. (KnownNat n, Eq x) => M n n x -> Bool
 symmetric (M a) = Data.all
   do \(i, j) -> a ! i ! j == a ! j ! i
-  do join (liftM2 (,)) (upto @n).getConst
+  do
+    i <- (upto @n).getConst
+    j <- List.dropWhile (<= i) (upto @n).getConst
+    pure (i, j)
 {-# INLINE symmetric #-}
 
 hermitian :: forall n x. (KnownNat n, Eq x, Conjugate x) => M n n x -> Bool
 hermitian (M a) = Data.all
   do \(i, j) -> a ! i ! j == conjugate (a ! j ! i)
-  do join (liftM2 (,)) (upto @n).getConst
+  do
+    i <- (upto @n).getConst
+    j <- List.dropWhile (< i) (upto @n).getConst
+    pure (i, j)
 {-# INLINE hermitian #-}
 
 pattern M22 :: x -> x -> x -> x -> M 2 2 x
