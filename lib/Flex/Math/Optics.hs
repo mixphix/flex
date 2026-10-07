@@ -481,7 +481,7 @@ filtered p = fletch (\x -> if p x then Right x else Left x) (either pure id) . c
 -- Note: be sure not to inject a value that fails the predicate!
 ifiltered ::
   (Ixed i p, Applicative f) => (i -> xs -> Bool) -> Optical p (Ix i) f xs xs xs xs
-ifiltered p pxsfxs = Ix \i x -> if p i x then ixed pxsfxs i x else pure x
+ifiltered p pxsfxs = Ix \ !i x -> if p i x then ixed pxsfxs i x else pure x
 {-# INLINE ifiltered #-}
 
 -- |
@@ -587,7 +587,7 @@ imapAccumOf ::
 imapAccumOf l i_x_s_sy xs =
   runIdentity
     . runStateT
-      (l (StateT #. Ix (((.) Identity .) . i_x_s_sy)) xs)
+      (l (StateT #. Ix \ !i -> (Identity .) . i_x_s_sy i) xs)
 {-# INLINE imapAccumOf #-}
 
 -- |
@@ -653,7 +653,7 @@ onIndices ::
   (Ixed i p, Applicative f) =>
   (i -> Bool) -> Optical p (Ix i) f x x x x
 onIndices p pxfx =
-  Ix \i x -> if p i then ixed pxfx i x else pure x
+  Ix \ !i x -> if p i then ixed pxfx i x else pure x
 {-# INLINE onIndices #-}
 
 onIndex ::
@@ -866,7 +866,7 @@ ifoldring ::
 ifoldring ixfxfx_fx_xs_fx pxfy =
   phantom
     . ixfxfx_fx_xs_fx
-      (\i x fx -> liftA2 (const id) (ixed pxfy i x) fx)
+      (\ !i x fx -> liftA2 (const id) (ixed pxfy i x) fx)
       (phantom (pure ()))
 {-# INLINE ifoldring #-}
 
@@ -1042,11 +1042,11 @@ infixl 8 ^@.
 {-# INLINE (^@.) #-}
 
 iview :: IxGetting i (i, x) xs x -> xs -> (i, x)
-iview ig = getConst . ig (Ix \i -> Const . (i,))
+iview ig = getConst . ig (Ix \ !i -> Const . (i,))
 {-# INLINE iview #-}
 
 iviews :: IxGetting i z xs x -> (i -> x -> z) -> xs -> z
-iviews ig i_xs_z = getConst . ig (Ix \i -> Const . i_xs_z i)
+iviews ig i_xs_z = getConst . ig (Ix \ !i -> Const . i_xs_z i)
 {-# INLINE iviews #-}
 
 infixl 8 ^..
@@ -1216,7 +1216,7 @@ ipre ig =
   fletch
     ( morphism getFirst
         . getConst
-        . ig (Ix \i -> Const . Just . First . (i,))
+        . ig (Ix \ !i -> Const . Just . First . (i,))
     )
     phantom
 {-# INLINE ipre #-}
@@ -1232,11 +1232,11 @@ ipreviews ig = view (ipre ig)
 {-# INLINE ipreviews #-}
 
 itoListOf :: IxGetting i (Endo [(i, x)]) xs x -> xs -> [(i, x)]
-itoListOf ig = ifoldrOf ig (\i x -> ((i, x) :)) []
+itoListOf ig = ifoldrOf ig (\ !i x -> ((i, x) :)) []
 {-# INLINE itoListOf #-}
 
 itoList1Of :: IxGetting i (L1DL (i, x)) xs x -> xs -> List1 (i, x)
-itoList1Of ig = flip runL1DL [] . ifoldWithOf ig \i a -> L1DL ((i, a) :|)
+itoList1Of ig = flip runL1DL [] . ifoldWithOf ig \ !i a -> L1DL ((i, a) :|)
 
 (^@..) :: xs -> IxGetting i (Endo [(i, x)]) xs x -> [(i, x)]
 (^@..) = flip itoListOf
@@ -1259,7 +1259,7 @@ ifoldlOf ::
   xs ->
   z
 ifoldlOf ig i_z_x_z z xs =
-  getDual (ifoldWithOf ig (\i -> (Dual . Endo) #. flip (i_z_x_z i)) xs)
+  getDual (ifoldWithOf ig (\ !i -> (Dual . Endo) #. flip (i_z_x_z i)) xs)
     `appEndo` z
 {-# INLINE ifoldlOf #-}
 
@@ -1275,7 +1275,7 @@ itraverseOf_ ::
   (Along f) =>
   IxGetting i (f z) xs x -> (i -> x -> f z) -> xs -> f ()
 itraverseOf_ ig i_x_fz =
-  morphism (const ()) . getConst . ig (Ix ((Const .) . i_x_fz))
+  morphism (const ()) . getConst . ig (Ix \ !i -> Const . i_x_fz i)
 {-# INLINE itraverseOf_ #-}
 
 iforOf_ ::
@@ -1290,7 +1290,7 @@ ifindOf ::
   xs ->
   Maybe x
 ifindOf ig i_x_b =
-  ifoldrOf ig (\i x fmx -> if i_x_b i x then Just x else fmx) Nothing
+  ifoldrOf ig (\ !i x fmx -> if i_x_b i x then Just x else fmx) Nothing
 {-# INLINE ifindOf #-}
 
 ifindMOf ::
@@ -1302,17 +1302,17 @@ ifindMOf ::
 ifindMOf ig i_x_fb =
   ifoldrOf
     ig
-    (\i x fmx -> i_x_fb i x >>= \b -> if b then pure (Just x) else fmx)
+    (\ !i x fmx -> i_x_fb i x >>= \b -> if b then pure (Just x) else fmx)
     (pure Nothing)
 {-# INLINE ifindMOf #-}
 
 (^@?) :: xs -> IxGetting i (Endo (Maybe (i, x))) xs x -> Maybe (i, x)
-xs ^@? ig = ifoldrOf ig (\i x _ -> Just (i, x)) Nothing xs
+xs ^@? ig = ifoldrOf ig (\ !i x _ -> Just (i, x)) Nothing xs
 {-# INLINE (^@?) #-}
 
 (^@?!) :: xs -> IxGetting i (Endo (i, x)) xs x -> (i, x)
 xs ^@?! ig =
-  ifoldrOf ig (\i x _ -> (i, x)) (error "(^@?!): empty IxFold") xs
+  ifoldrOf ig (\ !i x _ -> (i, x)) (error "(^@?!): empty IxFold") xs
 {-# INLINE (^@?!) #-}
 
 newtype Indexing f x = Indexing {runIndexing :: Natural -> (Natural, f x)}
@@ -1320,46 +1320,45 @@ newtype Indexing f x = Indexing {runIndexing :: Natural -> (Natural, f x)}
 instance (Along f) => Morphisms (->) (->) (Indexing f) where
   morphism :: forall x y. (x -> y) -> Indexing f x -> Indexing f y
   morphism x_y (Indexing i_ifx) =
-    Indexing (morphism (morphism x_y :: f x -> f y) . i_ifx)
+    Indexing \ !i -> morphism (morphism x_y :: f x -> f y) (i_ifx i)
   {-# INLINE morphism #-}
 instance (Pure f) => Pure (Indexing f) where
   pure :: x -> Indexing f x
-  pure x = Indexing (,pure x)
+  pure x = Indexing \ !i -> (i, pure x)
   {-# INLINE pure #-}
 instance (Apply f) => Apply (Indexing f) where
   (<*>) :: (Apply f) => Indexing f (x -> y) -> Indexing f x -> Indexing f y
-  Indexing s0 <*> Indexing s1 = Indexing \i -> case s0 i of
+  Indexing s0 <*> Indexing s1 = Indexing \ !i -> case s0 i of
     (j, fxy) -> case s1 j of ~(k, fx) -> (k, fxy <*> fx)
   {-# INLINE (<*>) #-}
 instance (Control.Applicative f) => Control.Applicative (Indexing f) where
   pure :: x -> Indexing f x
-  pure x = Indexing (,Control.pure x)
+  pure x = Indexing \ !i -> (i, Control.pure x)
   {-# INLINE pure #-}
   (<*>) :: Indexing f (x -> y) -> Indexing f x -> Indexing f y
-  Indexing s0 <*> Indexing s1 = Indexing \i -> case s0 i of
+  Indexing s0 <*> Indexing s1 = Indexing \ !i -> case s0 i of
     (j, fxy) -> case s1 j of ~(k, fx) -> (k, fxy Control.<*> fx)
   {-# INLINE (<*>) #-}
 instance (Against f) => Morphisms Op (->) (Indexing f) where
   morphism :: forall x y. Op x y -> Indexing f x -> Indexing f y
   morphism (Op y_x) (Indexing i_ifx) =
-    Indexing (morphism (morphism (Op y_x) :: f x -> f y) . i_ifx)
+    Indexing \ !i -> morphism (morphism (Op y_x) :: f x -> f y) (i_ifx i)
   {-# INLINE morphism #-}
 instance (Semigroup (f x)) => Semigroup (Indexing f x) where
   (<>) :: Indexing f x -> Indexing f x -> Indexing f x
-  Indexing s0 <> Indexing s1 = Indexing \i -> case s0 i of
+  Indexing s0 <> Indexing s1 = Indexing \ !i -> case s0 i of
     (j, fx) -> case s1 j of ~(k, fx') -> (k, fx <> fx')
   {-# INLINE (<>) #-}
 instance (Monoid (f x)) => Monoid (Indexing f x) where
   mempty :: Indexing f x
-  mempty = Indexing (,mempty)
+  mempty = Indexing \ !i -> (i, mempty)
   {-# INLINE mempty #-}
 
 indexing ::
   (Ixed Natural p) =>
   Focus (Indexing f) xs ys x y -> Over p f xs ys x y
 indexing focus pxfy xs = snd $ flip runIndexing 0 do
-  flip focus xs \x -> Indexing \ !i ->
-    (succ i, ixed pxfy i x)
+  flip focus xs \x -> Indexing \ !i -> (succ i, ixed pxfy i x)
 {-# INLINE indexing #-}
 
 traversed :: (Traversable t) => IxTraversal Natural (t x) (t y) x y
@@ -1386,8 +1385,7 @@ elementsOf ::
   (Natural -> Bool) ->
   IxFocus Natural f xs ys x x
 elementsOf focus p pxfy xs = snd $ flip runIndexing 0 do
-  flip focus xs \x -> Indexing \ !i ->
-    (succ i, if p i then ixed pxfy i x else pure x)
+  flip focus xs \x -> Indexing \ !i -> (succ i, if p i then ixed pxfy i x else pure x)
 {-# INLINE elementsOf #-}
 
 elementOf ::

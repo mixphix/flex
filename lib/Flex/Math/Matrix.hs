@@ -941,7 +941,7 @@ instance Morphisms (->) (->) (M m n) where
 instance Morphisms (Ix (Natural, Natural)) (->) (M m n) where
   morphism :: forall x y. Ix (Natural, Natural) x y -> M m n x -> M m n y
   morphism (Ix i_x_y) (M a) =
-    M (morphism (Ix \i -> morphism (Ix \j -> i_x_y (i, j))) a)
+    M (morphism (Ix \ !i -> morphism (Ix \ !j -> i_x_y (i, j))) a)
   {-# INLINE morphism #-}
 instance (KnownNat m, KnownNat n) => Folds (->) (->) (M m n) where
   foldWith :: forall x z. (Monoid z) => (x -> z) -> M m n x -> z
@@ -950,7 +950,7 @@ instance (KnownNat m, KnownNat n) => Folds (->) (->) (M m n) where
 instance (KnownNat m, KnownNat n) => Folds (Ix (Natural, Natural)) (->) (M m n) where
   foldWith :: (Monoid z) => Ix (Natural, Natural) x z -> M m n x -> z
   foldWith (Ix ij_x_z) (M vs) =
-    foldWith (Ix \i -> foldWith (Ix \j -> ij_x_z (i, j))) vs
+    foldWith (Ix \ !i -> foldWith (Ix \ !j -> ij_x_z (i, j))) vs
   {-# INLINE foldWith #-}
 instance (KnownNat m, KnownNat n) => Traversals (->) (->) (M m n) where
   traverse ::
@@ -962,7 +962,7 @@ instance (KnownNat m, KnownNat n) => Traversals (Ix (Natural, Natural)) (->) (M 
     (Applicative f) =>
     Ix (Natural, Natural) x (f y) -> M m n x -> f (M m n y)
   traverse (Ix ij_x_z) (M a) =
-    morphism M (traverse (Ix \i -> traverse (Ix \j -> ij_x_z (i, j))) a)
+    morphism M (traverse (Ix \ !i -> traverse (Ix \ !j -> ij_x_z (i, j))) a)
   {-# INLINE traverse #-}
 instance (KnownNat m, KnownNat n) => Data.Foldable (M m n) where
   foldMap :: forall x z. (Monoid z) => (x -> z) -> M m n x -> z

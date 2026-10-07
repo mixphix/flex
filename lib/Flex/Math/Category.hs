@@ -540,7 +540,7 @@ newtype Ix i x y = Ix {ix :: i -> x -> y}
 
 instance Data.Functor (Ix i z) where
   fmap :: (x -> y) -> Ix i z x -> Ix i z y
-  fmap x_y (Ix i_z_y) = Ix \i -> x_y . i_z_y i
+  fmap x_y (Ix i_z_y) = Ix \ !i -> x_y . i_z_y i
   {-# INLINE fmap #-}
 instance Control.Applicative (Ix i z) where
   pure :: x -> Ix i z x
@@ -548,23 +548,23 @@ instance Control.Applicative (Ix i z) where
   {-# INLINE pure #-}
   (<*>) :: Ix i z (x -> y) -> Ix i z x -> Ix i z y
   Ix i_z_x_y <*> Ix i_z_x =
-    Ix \i z -> i_z_x_y i z (i_z_x i z)
+    Ix \ !i z -> i_z_x_y i z (i_z_x i z)
   {-# INLINE (<*>) #-}
 instance Control.Monad (Ix i z) where
   (>>=) :: Ix i z a -> (a -> Ix i z b) -> Ix i z b
   Ix i_z_x >>= x_Iizy =
-    Ix \i z -> ix (x_Iizy (i_z_x i z)) i z
+    Ix \ !i z -> ix (x_Iizy (i_z_x i z)) i z
   {-# INLINE (>>=) #-}
 instance Control.Category (Ix i) where
   id :: Ix i x x
   id = Ix (const id)
   {-# INLINE id #-}
   (.) :: Ix i y z -> Ix i x y -> Ix i x z
-  Ix i_y_z . Ix i_x_y = Ix \i -> i_y_z i . i_x_y i
+  Ix i_y_z . Ix i_x_y = Ix \ !i -> i_y_z i . i_x_y i
   {-# INLINE (.) #-}
 instance MonadFix (Ix i z) where
   mfix :: (x -> Ix i z x) -> Ix i z x
-  mfix f = Ix \i z -> let o = ix (f o) i z in o
+  mfix f = Ix \ !i z -> let o = ix (f o) i z in o
   {-# INLINE mfix #-}
 instance Category (Ix i) where
   type Objects (Ix i) = C0
@@ -576,7 +576,7 @@ instance Category (Ix i) where
   {-# INLINE (.) #-}
 instance Morphisms (->) (->) (Ix i z) where
   morphism :: (x -> y) -> Ix i z x -> Ix i z y
-  morphism x_y (Ix i_z_y) = Ix \i -> x_y . i_z_y i
+  morphism x_y (Ix i_z_y) = Ix \ !i -> x_y . i_z_y i
   {-# INLINE morphism #-}
 instance Pure (Ix i z) where
   pure :: x -> Ix i z x
@@ -585,12 +585,12 @@ instance Pure (Ix i z) where
 instance Apply (Ix i z) where
   (<*>) :: Ix i z (x -> y) -> Ix i z x -> Ix i z y
   Ix i_z_x_y <*> Ix i_z_x =
-    Ix \i z -> i_z_x_y i z (i_z_x i z)
+    Ix \ !i z -> i_z_x_y i z (i_z_x i z)
   {-# INLINE (<*>) #-}
 instance Bind (Ix i z) where
   (>>=) :: Ix i z a -> (a -> Ix i z b) -> Ix i z b
   Ix i_z_x >>= x_Iizy =
-    Ix \i z -> ix (x_Iizy (i_z_x i z)) i z
+    Ix \ !i z -> ix (x_Iizy (i_z_x i z)) i z
   {-# INLINE (>>=) #-}
 
 type IxAlong i = C2 (Morphisms (->) (->)) (Morphisms (Ix i) (->))
@@ -619,7 +619,7 @@ instance Morphisms (Ix i) (->) ((->) i) where
   {-# INLINE morphism #-}
 instance Morphisms (Ix i) (->) (Ix i i) where
   morphism :: Ix i x y -> Ix i i x -> Ix i i y
-  morphism (Ix i_x_y) (Ix i_i'_x) = Ix \i -> i_x_y i . i_i'_x i
+  morphism (Ix i_x_y) (Ix i_i'_x) = Ix \ !i -> i_x_y i . i_i'_x i
   {-# INLINE morphism #-}
 instance Morphisms (Ix ()) (->) (Either y) where
   morphism :: Ix () x z -> Either y x -> Either y z
@@ -674,43 +674,43 @@ instance
     Ix (i, j) x y -> Compose f g x -> Compose f g y
   morphism (Ix ij_x_y) (Compose fgx) = Compose do
     morphism
-      (Ix \i -> morphism (Ix \j -> ij_x_y (i, j)))
+      (Ix \ !i -> morphism (Ix \ !j -> ij_x_y (i, j)))
       fgx
   {-# INLINE morphism #-}
 
 instance Morphisms (Ix Int) (->) List where
   morphism :: Ix Int x y -> List x -> List y
-  morphism (Ix i_x_z) = flip fix 0 \rec i -> \case
+  morphism (Ix i_x_z) = flip fix 0 \rec !i -> \case
     [] -> []
     x : xs -> i_x_z i x : rec (succ i) xs
   {-# INLINE morphism #-}
 instance Morphisms (Ix Integer) (->) List where
   morphism :: Ix Integer x y -> List x -> List y
-  morphism (Ix i_x_z) = flip fix 0 \rec i -> \case
+  morphism (Ix i_x_z) = flip fix 0 \rec !i -> \case
     [] -> []
     x : xs -> i_x_z i x : rec (succ i) xs
   {-# INLINE morphism #-}
 instance Morphisms (Ix Natural) (->) List where
   morphism :: Ix Natural x y -> List x -> List y
-  morphism (Ix i_x_z) = flip fix 0 \rec i -> \case
+  morphism (Ix i_x_z) = flip fix 0 \rec !i -> \case
     [] -> []
     x : xs -> i_x_z i x : rec (succ i) xs
   {-# INLINE morphism #-}
 instance Morphisms (Ix Int) (->) List1 where
   morphism :: Ix Int x y -> List1 x -> List1 y
-  morphism (Ix i_x_z) = flip fix 0 \rec i -> \case
+  morphism (Ix i_x_z) = flip fix 0 \rec !i -> \case
     Sole x -> Sole (i_x_z i x)
     x :|| xs -> i_x_z i x :|| rec (succ i) xs
   {-# INLINE morphism #-}
 instance Morphisms (Ix Integer) (->) List1 where
   morphism :: Ix Integer x y -> List1 x -> List1 y
-  morphism (Ix i_x_z) = flip fix 0 \rec i -> \case
+  morphism (Ix i_x_z) = flip fix 0 \rec !i -> \case
     Sole x -> Sole (i_x_z i x)
     x :|| xs -> i_x_z i x :|| rec (succ i) xs
   {-# INLINE morphism #-}
 instance Morphisms (Ix Natural) (->) List1 where
   morphism :: Ix Natural x y -> List1 x -> List1 y
-  morphism (Ix i_x_z) = flip fix 0 \rec i -> \case
+  morphism (Ix i_x_z) = flip fix 0 \rec !i -> \case
     Sole x -> Sole (i_x_z i x)
     x :|| xs -> i_x_z i x :|| rec (succ i) xs
   {-# INLINE morphism #-}
@@ -1124,37 +1124,37 @@ instance
   {-# INLINE foldWith #-}
 instance Folds (Ix Int) (->) List1 where
   foldWith :: (Monoid z) => Ix Int x z -> List1 x -> z
-  foldWith (Ix i_x_z) = flip fix 0 \rec i -> \case
+  foldWith (Ix i_x_z) = flip fix 0 \rec !i -> \case
     Sole x -> i_x_z i x
     x :|| xs -> i_x_z i x <> rec (succ i) xs
   {-# INLINE foldWith #-}
 instance Folds (Ix Integer) (->) List1 where
   foldWith :: (Monoid z) => Ix Integer x z -> List1 x -> z
-  foldWith (Ix i_x_z) = flip fix 0 \rec i -> \case
+  foldWith (Ix i_x_z) = flip fix 0 \rec !i -> \case
     Sole x -> i_x_z i x
     x :|| xs -> i_x_z i x <> rec (succ i) xs
   {-# INLINE foldWith #-}
 instance Folds (Ix Natural) (->) List1 where
   foldWith :: (Monoid z) => Ix Natural x z -> List1 x -> z
-  foldWith (Ix i_x_z) = flip fix 0 \rec i -> \case
+  foldWith (Ix i_x_z) = flip fix 0 \rec !i -> \case
     Sole x -> i_x_z i x
     x :|| xs -> i_x_z i x <> rec (succ i) xs
   {-# INLINE foldWith #-}
 instance Folds (Ix Integer) (->) List where
   foldWith :: (Monoid z) => Ix Integer x z -> List x -> z
-  foldWith (Ix i_x_z) = flip fix 0 \rec i -> \case
+  foldWith (Ix i_x_z) = flip fix 0 \rec !i -> \case
     [] -> mempty
     x : xs -> i_x_z i x <> rec (succ i) xs
   {-# INLINE foldWith #-}
 instance Folds (Ix Int) (->) List where
   foldWith :: (Monoid z) => Ix Int x z -> List x -> z
-  foldWith (Ix i_x_z) = flip fix 0 \rec i -> \case
+  foldWith (Ix i_x_z) = flip fix 0 \rec !i -> \case
     [] -> mempty
     x : xs -> i_x_z i x <> rec (succ i) xs
   {-# INLINE foldWith #-}
 instance Folds (Ix Natural) (->) List where
   foldWith :: (Monoid z) => Ix Natural x z -> List x -> z
-  foldWith (Ix i_x_z) = flip fix 0 \rec i -> \case
+  foldWith (Ix i_x_z) = flip fix 0 \rec !i -> \case
     [] -> mempty
     x : xs -> i_x_z i x <> rec (succ i) xs
   {-# INLINE foldWith #-}
@@ -1429,7 +1429,7 @@ instance Folds1 (Ix Integer) (->) List1 where
   foldWith1 ::
     (Semigroup z) =>
     Ix Integer x z -> List1 x -> z
-  foldWith1 (Ix i_x_z) = flip fix 0 \rec i -> \case
+  foldWith1 (Ix i_x_z) = flip fix 0 \rec !i -> \case
     Sole x -> i_x_z i x
     x :|| xs -> i_x_z i x <> rec (succ i) xs
   {-# INLINE foldWith1 #-}
@@ -1437,7 +1437,7 @@ instance Folds1 (Ix Int) (->) List1 where
   foldWith1 ::
     (Semigroup z) =>
     Ix Int x z -> List1 x -> z
-  foldWith1 (Ix i_x_z) = flip fix 0 \rec i -> \case
+  foldWith1 (Ix i_x_z) = flip fix 0 \rec !i -> \case
     Sole x -> i_x_z i x
     x :|| xs -> i_x_z i x <> rec (succ i) xs
   {-# INLINE foldWith1 #-}
@@ -1445,7 +1445,7 @@ instance Folds1 (Ix Natural) (->) List1 where
   foldWith1 ::
     (Semigroup z) =>
     Ix Natural x z -> List1 x -> z
-  foldWith1 (Ix i_x_z) = flip fix 0 \rec i -> \case
+  foldWith1 (Ix i_x_z) = flip fix 0 \rec !i -> \case
     Sole x -> i_x_z i x
     x :|| xs -> i_x_z i x <> rec (succ i) xs
   {-# INLINE foldWith1 #-}
@@ -1495,7 +1495,7 @@ instance
     Ix (i, j) x z -> Compose f g x -> z
   foldWith1 (Ix ij_x_z) (Compose fgx) =
     foldWith1
-      (Ix \i -> foldWith1 (Ix \j -> ij_x_z (i, j)))
+      (Ix \ !i -> foldWith1 (Ix \ !j -> ij_x_z (i, j)))
       fgx
   {-# INLINE foldWith1 #-}
 
@@ -1548,7 +1548,7 @@ instance
     Ix (i, j) x z -> (f :.: g) x -> z
   foldWith1 (Ix ij_x_z) (Comp1 fgx) =
     foldWith1
-      (Ix \i -> foldWith1 (Ix \j -> ij_x_z (i, j)))
+      (Ix \ !i -> foldWith1 (Ix \ !j -> ij_x_z (i, j)))
       fgx
   {-# INLINE foldWith1 #-}
 
@@ -2253,7 +2253,7 @@ instance Traversals (Ix Int) (->) List1 where
   traverse ::
     (Applicative g) =>
     Ix Int x (g y) -> List1 x -> g (List1 y)
-  traverse (Ix i_x_gy) = flip fix 0 \rec i -> \case
+  traverse (Ix i_x_gy) = flip fix 0 \rec !i -> \case
     Sole x -> morphism Sole (i_x_gy i x)
     x :|| xs -> liftA2 (:||) (i_x_gy i x) (rec (succ i) xs)
   {-# INLINE traverse #-}
@@ -2261,7 +2261,7 @@ instance Traversals (Ix Integer) (->) List1 where
   traverse ::
     (Applicative g) =>
     Ix Integer x (g y) -> List1 x -> g (List1 y)
-  traverse (Ix i_x_gy) = flip fix 0 \rec i -> \case
+  traverse (Ix i_x_gy) = flip fix 0 \rec !i -> \case
     Sole x -> morphism Sole (i_x_gy i x)
     x :|| xs -> liftA2 (:||) (i_x_gy i x) (rec (succ i) xs)
   {-# INLINE traverse #-}
@@ -2269,7 +2269,7 @@ instance Traversals (Ix Natural) (->) List1 where
   traverse ::
     (Applicative g) =>
     Ix Natural x (g y) -> List1 x -> g (List1 y)
-  traverse (Ix i_x_gy) = flip fix 0 \rec i -> \case
+  traverse (Ix i_x_gy) = flip fix 0 \rec !i -> \case
     Sole x -> morphism Sole (i_x_gy i x)
     x :|| xs -> liftA2 (:||) (i_x_gy i x) (rec (succ i) xs)
   {-# INLINE traverse #-}
@@ -2277,7 +2277,7 @@ instance Traversals (Ix Int) (->) List where
   traverse ::
     (Applicative g) =>
     Ix Int x (g y) -> List x -> g (List y)
-  traverse (Ix i_x_gy) = flip fix 0 \rec i -> \case
+  traverse (Ix i_x_gy) = flip fix 0 \rec !i -> \case
     [] -> pure []
     x : xs -> liftA2 (:) (i_x_gy i x) (rec (succ i) xs)
   {-# INLINE traverse #-}
@@ -2285,7 +2285,7 @@ instance Traversals (Ix Integer) (->) List where
   traverse ::
     (Applicative g) =>
     Ix Integer x (g y) -> List x -> g (List y)
-  traverse (Ix i_x_gy) = flip fix 0 \rec i -> \case
+  traverse (Ix i_x_gy) = flip fix 0 \rec !i -> \case
     [] -> pure []
     x : xs -> liftA2 (:) (i_x_gy i x) (rec (succ i) xs)
   {-# INLINE traverse #-}
@@ -2293,7 +2293,7 @@ instance Traversals (Ix Natural) (->) List where
   traverse ::
     (Applicative g) =>
     Ix Natural x (g y) -> List x -> g (List y)
-  traverse (Ix i_x_gy) = flip fix 0 \rec i -> \case
+  traverse (Ix i_x_gy) = flip fix 0 \rec !i -> \case
     [] -> pure []
     x : xs -> liftA2 (:) (i_x_gy i x) (rec (succ i) xs)
   {-# INLINE traverse #-}
@@ -2354,7 +2354,7 @@ instance
     h (Compose f g y)
   traverse (Ix ij_x_hy) (Compose fgx) = morphism Compose do
     traverse
-      (Ix \i -> traverse (Ix \j -> ij_x_hy (i, j)))
+      (Ix \ !i -> traverse (Ix \ !j -> ij_x_hy (i, j)))
       fgx
   {-# INLINE traverse #-}
 
@@ -2388,19 +2388,19 @@ instance Traversals (Ix Int) (->) IntMap where
   {-# INLINE traverse #-}
 instance Traversals (Ix Int) (->) Seq where
   traverse :: (Applicative g) => Ix Int x (g y) -> Seq x -> g (Seq y)
-  traverse (Ix i_x_gy) = flip fix 0 \rec i -> \case
+  traverse (Ix i_x_gy) = flip fix 0 \rec !i -> \case
     Seq.Empty -> pure Seq.Empty
     x Seq.:<| xs -> liftA2 (Seq.:<|) (i_x_gy i x) (rec (succ i) xs)
   {-# INLINE traverse #-}
 instance Traversals (Ix Integer) (->) Seq where
   traverse :: (Applicative g) => Ix Integer x (g y) -> Seq x -> g (Seq y)
-  traverse (Ix i_x_gy) = flip fix 0 \rec i -> \case
+  traverse (Ix i_x_gy) = flip fix 0 \rec !i -> \case
     Seq.Empty -> pure Seq.Empty
     x Seq.:<| xs -> liftA2 (Seq.:<|) (i_x_gy i x) (rec (succ i) xs)
   {-# INLINE traverse #-}
 instance Traversals (Ix Natural) (->) Seq where
   traverse :: (Applicative g) => Ix Natural x (g y) -> Seq x -> g (Seq y)
-  traverse (Ix i_x_gy) = flip fix 0 \rec i -> \case
+  traverse (Ix i_x_gy) = flip fix 0 \rec !i -> \case
     Seq.Empty -> pure Seq.Empty
     x Seq.:<| xs -> liftA2 (Seq.:<|) (i_x_gy i x) (rec (succ i) xs)
   {-# INLINE traverse #-}
@@ -2494,7 +2494,7 @@ instance
     h ((f :.: g) y)
   traverse (Ix ij_x_hy) (Comp1 fgx) = morphism Comp1 do
     traverse
-      (Ix \i -> traverse (Ix \j -> ij_x_hy (i, j)))
+      (Ix \ !i -> traverse (Ix \ !j -> ij_x_hy (i, j)))
       fgx
   {-# INLINE traverse #-}
 
@@ -2632,7 +2632,7 @@ instance Traversals1 (Ix ()) (->) Identity where
 instance Traversals1 (Ix Natural) (->) List1 where
   traverse1 ::
     (Apply g) => Ix Natural x (g y) -> List1 x -> g (List1 y)
-  traverse1 (Ix i_x_gy) = flip fix 0 \rec i -> \case
+  traverse1 (Ix i_x_gy) = flip fix 0 \rec !i -> \case
     Sole x -> morphism Sole (i_x_gy i x)
     x :|| xs -> liftA2 (:||) (i_x_gy i x) (rec (succ i) xs)
   {-# INLINE traverse1 #-}
@@ -2688,7 +2688,7 @@ instance
     h (Compose f g y)
   traverse1 (Ix eij_x_hy) (Compose fgx) = morphism Compose do
     traverse1
-      (Ix \i -> traverse1 (Ix \j -> eij_x_hy (i, j)))
+      (Ix \ !i -> traverse1 (Ix \ !j -> eij_x_hy (i, j)))
       fgx
   {-# INLINE traverse1 #-}
 
@@ -2747,7 +2747,7 @@ instance
     h ((f :.: g) y)
   traverse1 (Ix eij_x_hy) (Comp1 fgx) = morphism Comp1 do
     traverse1
-      (Ix \i -> traverse1 (Ix \j -> eij_x_hy (i, j)))
+      (Ix \ !i -> traverse1 (Ix \ !j -> eij_x_hy (i, j)))
       fgx
   {-# INLINE traverse1 #-}
 
@@ -3314,7 +3314,7 @@ ifilter i_x_b =
   morphism
     ( Procompose
         (Kleisli \(b, x) -> if b then Just x else Nothing)
-        (Ix \i x -> (i_x_b i x, x))
+        (Ix \ !i x -> (i_x_b i x, x))
     )
 {-# INLINE ifilter #-}
 
@@ -3326,7 +3326,7 @@ instance Morphisms (Procompose (Kleisli Maybe) (Ix ())) (->) Maybe where
   {-# INLINE morphism #-}
 instance Morphisms (Procompose (Kleisli Maybe) (Ix Int)) (->) List where
   morphism :: Procompose (Kleisli Maybe) (Ix Int) x y -> List x -> List y
-  morphism (Procompose (Kleisli z_my) (Ix i_x_z)) = flip fix 0 \rec i -> \case
+  morphism (Procompose (Kleisli z_my) (Ix i_x_z)) = flip fix 0 \rec !i -> \case
     [] -> []
     x : xs -> (<> rec (succ i) xs) case z_my (i_x_z i x) of
       Nothing -> []
@@ -3334,7 +3334,7 @@ instance Morphisms (Procompose (Kleisli Maybe) (Ix Int)) (->) List where
   {-# INLINE morphism #-}
 instance Morphisms (Procompose (Kleisli Maybe) (Ix Integer)) (->) List where
   morphism :: Procompose (Kleisli Maybe) (Ix Integer) x y -> List x -> List y
-  morphism (Procompose (Kleisli z_my) (Ix i_x_z)) = flip fix 0 \rec i -> \case
+  morphism (Procompose (Kleisli z_my) (Ix i_x_z)) = flip fix 0 \rec !i -> \case
     [] -> []
     x : xs -> (<> rec (succ i) xs) case z_my (i_x_z i x) of
       Nothing -> []
@@ -3342,7 +3342,7 @@ instance Morphisms (Procompose (Kleisli Maybe) (Ix Integer)) (->) List where
   {-# INLINE morphism #-}
 instance Morphisms (Procompose (Kleisli Maybe) (Ix Natural)) (->) List where
   morphism :: Procompose (Kleisli Maybe) (Ix Natural) x y -> List x -> List y
-  morphism (Procompose (Kleisli z_my) (Ix i_x_z)) = flip fix 0 \rec i -> \case
+  morphism (Procompose (Kleisli z_my) (Ix i_x_z)) = flip fix 0 \rec !i -> \case
     [] -> []
     x : xs -> (<> rec (succ i) xs) case z_my (i_x_z i x) of
       Nothing -> []
@@ -3405,7 +3405,7 @@ instance
     Compose f g y
   morphism (Procompose (Kleisli z_my) (Ix ij_x_z)) (Compose fgx) = Compose do
     morphism
-      (Ix \i -> morphism (Procompose (Kleisli z_my) (Ix (ij_x_z . (i,)))))
+      (Ix \ !i -> morphism (Procompose (Kleisli z_my) (Ix (ij_x_z . (i,)))))
       fgx
   {-# INLINE morphism #-}
 
@@ -3482,7 +3482,7 @@ instance
     (f :.: g) y
   morphism (Procompose (Kleisli z_my) (Ix ij_x_z)) (Comp1 fgx) = Comp1 do
     morphism
-      (Ix \i -> morphism (Procompose (Kleisli z_my) (Ix (ij_x_z . (i,)))))
+      (Ix \ !i -> morphism (Procompose (Kleisli z_my) (Ix (ij_x_z . (i,)))))
       fgx
   {-# INLINE morphism #-}
 
@@ -3664,7 +3664,7 @@ ifilterA i_x_gb =
   iwitherK
     ( Procompose
         (Kleisli Compose)
-        (Ix \i x -> morphism (\b -> if b then pure x else nil) (i_x_gb i x))
+        (Ix \ !i x -> morphism (\b -> if b then pure x else nil) (i_x_gb i x))
     )
 {-# INLINE ifilterA #-}
 
@@ -3686,7 +3686,7 @@ instance IxWitherable Natural List where
     g (List y)
   iwitherK (Procompose (Kleisli z_Cgmy) (Ix i_x_z)) =
     ifoldr
-      (\i -> liftA2 (maybe id (:)) . getCompose . z_Cgmy . i_x_z i)
+      (\ !i -> liftA2 (maybe id (:)) . getCompose . z_Cgmy . i_x_z i)
       (pure [])
   {-# INLINE iwitherK #-}
 instance IxWitherable Void Proxy where
@@ -3737,7 +3737,7 @@ instance (IxTraversable i f, IxWitherable j g) => IxWitherable (i, j) (Compose f
     h (Compose f g y)
   iwitherK (Procompose (Kleisli z_hmy) (Ix ij_x_z)) (Compose fgx) = morphism Compose do
     traverse
-      (Ix \i -> iwitherK (Procompose (Kleisli z_hmy) (Ix (ij_x_z . (i,)))))
+      (Ix \ !i -> iwitherK (Procompose (Kleisli z_hmy) (Ix (ij_x_z . (i,)))))
       fgx
   {-# INLINE iwitherK #-}
 
@@ -3809,7 +3809,7 @@ instance (IxTraversable i f, IxWitherable j g) => IxWitherable (i, j) (f :.: g) 
     h ((f :.: g) y)
   iwitherK (Procompose (Kleisli z_hmy) (Ix ij_x_z)) (Comp1 fgx) = morphism Comp1 do
     traverse
-      (Ix \i -> iwitherK (Procompose (Kleisli z_hmy) (Ix (ij_x_z . (i,)))))
+      (Ix \ !i -> iwitherK (Procompose (Kleisli z_hmy) (Ix (ij_x_z . (i,)))))
       fgx
   {-# INLINE iwitherK #-}
 
@@ -3821,7 +3821,7 @@ instance IxWitherable k (Map k) where
     g (Map k y)
   {-# INLINE iwitherK #-}
   iwitherK (Procompose (Kleisli z_gmy) (Ix k_x_z)) =
-    traverseMaybeWithKeyMap (\k x -> getCompose (z_gmy (k_x_z k x)))
+    traverseMaybeWithKeyMap (\ !k x -> getCompose (z_gmy (k_x_z k x)))
 instance IxWitherable Int IntMap where
   iwitherK ::
     (Applicative g) =>
@@ -3829,7 +3829,7 @@ instance IxWitherable Int IntMap where
     IntMap x ->
     g (IntMap y)
   iwitherK (Procompose (Kleisli z_gmy) (Ix i_x_z)) =
-    traverseMaybeWithKeyIntMap (\i x -> getCompose (z_gmy (i_x_z i x)))
+    traverseMaybeWithKeyIntMap (\ !i x -> getCompose (z_gmy (i_x_z i x)))
   {-# INLINE iwitherK #-}
 
 -- Comonads
@@ -4233,7 +4233,7 @@ instance (Along f) => Morphisms Op (-->) (Cokleisli f) where
 instance Morphisms Op (-->) (Ix i) where
   morphism :: Op x y -> Ix i x --> Ix i y
   morphism (Op y_x) =
-    Transform \(Ix i_x_z) -> Ix \i -> i_x_z i . y_x
+    Transform \(Ix i_x_z) -> Ix \ !i -> i_x_z i . y_x
   {-# INLINE morphism #-}
 
 -- |
@@ -4300,10 +4300,10 @@ instance Strong (Forget z) where
   {-# INLINE strong1 #-}
 instance Strong (Ix i) where
   strong0 :: Ix i x y -> Ix i (x, z) (y, z)
-  strong0 (Ix i_x_y) = Ix \i (x, z) -> (i_x_y i x, z)
+  strong0 (Ix i_x_y) = Ix \ !i (x, z) -> (i_x_y i x, z)
   {-# INLINE strong0 #-}
   strong1 :: Ix i x y -> Ix i (z, x) (z, y)
-  strong1 (Ix i_x_y) = Ix \i (z, x) -> (z, i_x_y i x)
+  strong1 (Ix i_x_y) = Ix \ !i (z, x) -> (z, i_x_y i x)
   {-# INLINE strong1 #-}
 
 -- |
@@ -4341,11 +4341,11 @@ instance (Along f) => Costrong (Cokleisli f) where
 instance Costrong (Ix i) where
   costrong0 :: Ix i (x, z) (y, z) -> Ix i x y
   costrong0 (Ix i_xz_yz) =
-    Ix \i x -> let (y, z) = i_xz_yz i (x, z) in y
+    Ix \ !i x -> let (y, z) = i_xz_yz i (x, z) in y
   {-# INLINE costrong0 #-}
   costrong1 :: Ix i (z, x) (z, y) -> Ix i x y
   costrong1 (Ix i_zx_zy) =
-    Ix \i x -> let (z, y) = i_zx_zy i (z, x) in y
+    Ix \ !i x -> let (z, y) = i_zx_zy i (z, x) in y
   {-# INLINE costrong1 #-}
 
 type Choice :: (Type -> Type -> Type) -> Constraint
@@ -4581,7 +4581,7 @@ instance Conjoined (->) where
   {-# INLINE conjoined #-}
 instance Conjoined (Ix i) where
   promap :: (Along f) => Ix i x y -> Ix i (f x) (f y)
-  promap (Ix i_x_y) = Ix (morphism . i_x_y)
+  promap (Ix i_x_y) = Ix \ !i -> morphism (i_x_y i)
   {-# INLINE promap #-}
 
 type Ixed :: Type -> (Type -> Type -> Type) -> Constraint
@@ -4601,7 +4601,7 @@ infixr 9 <.
 (<.) ::
   (Ixed i p) =>
   (Ix i xs ys -> z) -> ((x -> y) -> xs -> ys) -> p x y -> z
-(<.) iixsys x_y_xs_ys p = iixsys (Ix (x_y_xs_ys . ixed p))
+(<.) iixsys x_y_xs_ys p = iixsys (Ix \ !i -> x_y_xs_ys (ixed p i))
 {-# INLINE (<.) #-}
 
 infixr 9 .>
@@ -4614,7 +4614,7 @@ infixr 9 .>
 withIndex ::
   (Ixed i p, Along f) =>
   p (i, xs) (f (j, ys)) -> Ix i xs (f ys)
-withIndex p = Ix \i xs -> morphism snd (ixed p i (i, xs))
+withIndex p = Ix \ !i xs -> morphism snd (ixed p i (i, xs))
 {-# INLINE withIndex #-}
 
 selfIndex :: (Ixed x p) => p x y -> x -> y
@@ -4623,13 +4623,13 @@ selfIndex p = Control.join (ixed p)
 
 asIndex ::
   (Ixed i p, Phantom f) => p i (f i) -> Ix i xs (f xs)
-asIndex p = Ix \i _ -> phantom (ixed p i i)
+asIndex p = Ix \ !i _ -> phantom (ixed p i i)
 {-# INLINE asIndex #-}
 
 reindexed ::
   (Ixed j p) =>
   (i -> j) -> (Ix i x y -> z) -> p x y -> z
-reindexed i_j iixy_z p = iixy_z (Ix (ixed p . i_j))
+reindexed i_j iixy_z p = iixy_z (Ix \ !i -> ixed p (i_j i))
 {-# INLINE reindexed #-}
 
 icompose ::
@@ -4640,7 +4640,7 @@ icompose ::
   p x y ->
   z
 icompose i_j_k iixy_z ijxsys_x_y p =
-  iixy_z (Ix \i -> ijxsys_x_y (Ix (ixed p . i_j_k i)))
+  iixy_z (Ix \ !i -> ijxsys_x_y (Ix \ !j -> ixed p (i_j_k i j)))
 {-# INLINE icompose #-}
 
 infixr 9 <.>
