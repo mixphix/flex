@@ -222,8 +222,7 @@ import Data.IntSet.Internal.IntTreeCommons qualified as Internal
 import Data.Kind (Constraint, Type)
 import Data.List (List)
 import Data.List.NonEmpty (NonEmpty (..))
-import Data.List.NonEmpty qualified as List1
-import Data.List1 (List1, pattern Sole, pattern (:||))
+import Data.List1 (List1, pattern Sole, pattern (:||), data (:?))
 import Data.Map (Map)
 import Data.Map qualified as Map
 import Data.Map.Internal qualified as Map
@@ -3846,7 +3845,7 @@ instance Copure Identity where
   {-# INLINE copure #-}
 instance Copure List1 where
   copure :: List1 x -> x
-  copure = List1.head
+  copure (x :| _) = x
   {-# INLINE copure #-}
 instance Copure ((,) z) where
   copure :: (z, x) -> x
@@ -3888,10 +3887,7 @@ instance Extend Identity where
   {-# INLINE extend #-}
 instance Extend List1 where
   extend :: (List1 x -> y) -> List1 x -> List1 y
-  extend f w@(~(_ :| xs0)) =
-    f w :| case xs0 of
-      [] -> []
-      x : xs -> List1.toList (extend f (x :| xs))
+  extend lx_y lx@(~(_ :? xs)) = lx_y lx :? morphism (extend lx_y) xs
   {-# INLINE extend #-}
 instance Extend ((,) z) where
   duplicate :: (z, x) -> (z, (z, x))
