@@ -1381,7 +1381,8 @@ instance
   (^) :: M n n x -> Natural -> M n n x
   a ^ n = case n of
     0 -> one
-    _ -> a * a ^ pred n
+    _ | even n -> (a * a) ^ (n `quotient` 2)
+    _ -> a * ((a * a) ^ (n `quotient` 2))
   {-# INLINE (^) #-}
 
 rows ::
