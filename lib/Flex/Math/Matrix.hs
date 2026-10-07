@@ -59,7 +59,6 @@ module Flex.Math.Matrix
   , Laws (..)
 
     -- ** Re-exports
-  , Nat
   , KnownNat
   , natVal
   , Proxy (Proxy)
