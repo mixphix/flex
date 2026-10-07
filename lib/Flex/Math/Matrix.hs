@@ -751,13 +751,14 @@ fromList ns = case sameNat (Proxy @1) (Proxy @n) of
           _ -> Nothing
 {-# INLINE fromList #-}
 
-instance Each (V n x) (V n y) x y
 instance Indices (V n x) where
   type Index (V n x) = Natural
   type Value (V n x) = x
   index :: Natural -> Traversal' (V n x) x
   index i = lens (! i) (flip (setV i))
   {-# INLINE index #-}
+instance Each (V n x) (V n y) x y
+instance IxEach Natural (V n x) (V n y) x y
 
 instance (KnownNat n) => Collectable (V n) where
   distribute :: (Along f) => f (V n x) -> V n (f x)
