@@ -13,9 +13,9 @@ import Data.Bool
 import Data.Either
 import Data.Function
 import Data.List (List)
+import Data.List.NonEmpty (data (:|))
 import Data.List1 (List1)
 import Data.List1 qualified as List1
-import Data.Maybe
 import Data.Ord
 import GHC.Err (error)
 
@@ -56,6 +56,6 @@ mergeSorted :: (Ord x) => List x -> List x -> List x
 mergeSorted = mergeSortedBy compare
 
 mergeSorted1 :: (Ord x) => List1 x -> List1 x -> List1 x
-mergeSorted1 xs ys =
-  fromMaybe (error "mergeSorted1: empty list") $
-    List1.list1 (mergeSorted (List1.toList xs) (List1.toList ys))
+mergeSorted1 xs ys = case mergeSorted (List1.toList xs) (List1.toList ys) of
+  [] -> error "mergeSorted1: empty list"
+  z : zs -> z :| zs
