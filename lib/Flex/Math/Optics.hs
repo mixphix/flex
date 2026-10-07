@@ -203,6 +203,7 @@ module Flex.Math.Optics
   , Field19 (_19)
   , Field20 (_20)
   , Each (each)
+  , IxEach (ixeach)
   ) where
 
 import Flex.Math.Category
@@ -215,6 +216,7 @@ import Data.Coerce (coerce)
 import Data.Either
 import Data.Enum (Enum (..))
 import Data.Eq (Eq (..))
+import Data.Finite (Finite, getFinite)
 import Data.Function (const, fix, flip)
 import Data.Functor qualified as Data
 import Data.Functor.Const (Const (..))
@@ -246,7 +248,7 @@ import Data.Sequence qualified as Seq
 import Data.Set (Set)
 import Data.Set qualified as Set
 import Data.Traversable qualified as Data
-import Data.Tuple (snd, uncurry)
+import Data.Tuple (Solo (MkSolo), snd, uncurry)
 import Data.Type.Equality (type (~))
 import Data.Vector qualified as Vector
 import GHC.Arr qualified as Array
@@ -1547,15 +1549,29 @@ instance Field0 (Identity x) (Identity y) x y where
   _0 k (Identity x) = morphism Identity (k x)
   {-# INLINE _0 #-}
 
+$(Data.traverse instanceIndices [0 .. 20])
+
 class Each xs ys x y | xs -> x, ys -> y, xs y -> ys, ys x -> xs where
   each :: Traversal xs ys x y
   default each ::
     (Traversable t, xs ~ t x, ys ~ t y) =>
     Traversal xs ys x y
-  each = traverse
+  each = traversed
   {-# INLINE each #-}
 
 $(Data.traverse instanceEach [0 .. 20])
 instance Each (Map k v) (Map k v') v v'
 instance Each (IntMap v) (IntMap v') v v'
 instance Each (Seq x) (Seq y) x y
+
+class IxEach i xs ys x y | xs -> i x, ys -> i y, xs y -> ys, ys x -> xs where
+  ixeach :: IxTraversal i xs ys x y
+  default ixeach ::
+    (IxTraversable i t, xs ~ t x, ys ~ t y) =>
+    IxTraversal i xs ys x y
+  ixeach = itraversed @i
+
+$(Data.traverse instanceIxEach [0 .. 20])
+instance IxEach k (Map k v) (Map k v') v v'
+instance IxEach Int (IntMap v) (IntMap v') v v'
+instance IxEach Natural (Seq x) (Seq y) x y
