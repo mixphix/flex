@@ -909,8 +909,12 @@ iterated x_x x_fx =
 type IxFold i xs x =
   forall f. (Phantom f, Applicative f) => IxFocus i f xs xs x x
 
-folded :: forall i f x. (IxFoldable i f) => IxFold i (f x) x
-folded = conjoined (foldring foldr) (ifoldring @i ifoldr)
+folded :: forall f x. (Foldable f) => IxFold Natural (f x) x
+folded = conjoined (foldring foldr) (ifoldring natfoldr)
+ where
+  natfoldr :: (Natural -> y -> ys -> ys) -> ys -> f y -> ys
+  natfoldr f z xs = foldr (\y g !i -> f i y (g (succ i))) (const z) xs zero
+  {-# INLINE natfoldr #-}
 {-# INLINE folded #-}
 
 -- |
