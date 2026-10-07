@@ -206,7 +206,7 @@ import Data.Either (Either (..), either)
 import Data.Enum (Enum (..))
 import Data.Eq (Eq)
 import Data.Foldable qualified as Data
-import Data.Function (const, flip, ($))
+import Data.Function (const, flip)
 import Data.Functor qualified as Data
 import Data.Functor.Compose (Compose (..))
 import Data.Functor.Const (Const (..))
@@ -529,7 +529,7 @@ instance Morphisms (~>) (->) Set where
   {-# INLINE morphism #-}
 
 ($$) :: (Along f) => f (x -> z) -> x -> f z
-fxz $$ x = morphism ($ x) fxz
+fxz $$ x = morphism (\f -> f x) fxz
 {-# INLINE ($$) #-}
 
 -- |
@@ -1744,7 +1744,7 @@ type Apply :: (Type -> Type) -> Constraint
 class (Along f) => Apply f where
   {-# MINIMAL (<*>) | liftA2 #-}
   (<*>) :: f (x -> y) -> f x -> f y
-  (<*>) = liftA2 ($)
+  (<*>) = liftA2 id
   liftA2 :: (Apply f) => (x -> y -> z) -> f x -> f y -> f z
   liftA2 xyz fx fy = morphism xyz fx <*> fy
 
@@ -3854,7 +3854,7 @@ instance Copure ((,) z) where
   {-# INLINE copure #-}
 instance (Monoid z) => Copure ((->) z) where
   copure :: (Monoid z) => (z -> x) -> x
-  copure = ($ mempty)
+  copure f = f mempty
   {-# INLINE copure #-}
 instance Copure (Arg z) where
   copure :: Arg z x -> x
@@ -4009,7 +4009,7 @@ instance Collectable ((->) z) where
   collect f fx z = morphism (`f` z) fx
   {-# INLINE collect #-}
   distribute :: (Along f) => f (z -> x) -> z -> f x
-  distribute fz_x z = morphism ($ z) fz_x
+  distribute fz_x z = morphism (\f -> f z) fz_x
   {-# INLINE distribute #-}
 instance Collectable Proxy where
   collect :: (Along f) => (x -> Proxy y) -> f x -> Proxy (f y)
@@ -4542,7 +4542,7 @@ instance (Collectable f, Monad f) => Closed (Kleisli f) where
   {-# INLINE closed #-}
 instance (Along f) => Closed (Cokleisli f) where
   closed :: Cokleisli f x y -> Cokleisli f (z -> x) (z -> y)
-  closed (Cokleisli fx_y) = Cokleisli \fzx z -> fx_y (morphism ($ z) fzx)
+  closed (Cokleisli fx_y) = Cokleisli \fzx z -> fx_y (morphism (\f -> f z) fzx)
   {-# INLINE closed #-}
 instance Closed (Ix i) where
   closed :: Ix i x y -> Ix i (z -> x) (z -> y)

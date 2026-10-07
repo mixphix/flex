@@ -215,7 +215,7 @@ import Data.Coerce (coerce)
 import Data.Either
 import Data.Enum (Enum (..))
 import Data.Eq (Eq (..))
-import Data.Function (const, fix, flip, ($))
+import Data.Function (const, fix, flip)
 import Data.Functor qualified as Data
 import Data.Functor.Const (Const (..))
 import Data.Functor.Contravariant (Op (..))
@@ -1357,7 +1357,7 @@ instance (Monoid (f x)) => Monoid (Indexing f x) where
 indexing ::
   (Ixed Natural p) =>
   Focus (Indexing f) xs ys x y -> Over p f xs ys x y
-indexing focus pxfy xs = snd $ flip runIndexing 0 do
+indexing focus pxfy xs = (snd . flip runIndexing 0) do
   flip focus xs \x -> Indexing \ !i -> (succ i, ixed pxfy i x)
 {-# INLINE indexing #-}
 
@@ -1384,7 +1384,7 @@ elementsOf ::
   Focus (Indexing f) xs ys x x ->
   (Natural -> Bool) ->
   IxFocus Natural f xs ys x x
-elementsOf focus p pxfy xs = snd $ flip runIndexing 0 do
+elementsOf focus p pxfy xs = (snd . flip runIndexing 0) do
   flip focus xs \x -> Indexing \ !i -> (succ i, if p i then ixed pxfy i x else pure x)
 {-# INLINE elementsOf #-}
 

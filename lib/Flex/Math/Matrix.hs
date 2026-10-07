@@ -1,6 +1,7 @@
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE NoStarIsType #-}
+{-# OPTIONS_GHC -Wno-incomplete-uni-patterns #-}
 {-# OPTIONS_GHC -fplugin GHC.TypeLits.KnownNat.Solver #-}
 
 module Flex.Math.Matrix
@@ -81,7 +82,7 @@ import Data.Enum
 import Data.Eq
 import Data.Finite (Finite, finite, getFinite)
 import Data.Foldable qualified as Data
-import Data.Function (const, flip, ($))
+import Data.Function (const, flip)
 import Data.Functor qualified as Data
 import Data.Functor.Const (Const (Const))
 import Data.Kind (Type)
@@ -711,7 +712,7 @@ instance (KnownNat n) => Control.Applicative (V n) where
   pure = pure
   {-# INLINE pure #-}
   (<*>) :: V n (x -> y) -> V n x -> V n y
-  (<*>) = liftA2 ($)
+  (<*>) = liftA2 id
   {-# INLINE (<*>) #-}
 
 toList :: V n x -> [x]
@@ -1326,8 +1327,10 @@ instance (KnownNat m, KnownNat n) => Indices (M m n x) where
   type Value (M m n x) = x
   index :: (Natural, Natural) -> Traversal' (M m n x) x
   index (i, j) x_fx' v@(M vs)
-    | from i < n = case vs ! i ! j of
-        x -> morphism (\x' -> M ((index i . index j .~ x') vs)) (x_fx' x)
+    | from i < n =
+        morphism
+          (\x' -> M ((index i . index j .~ x') vs))
+          (x_fx' (vs ! i ! j))
     | otherwise = pure v
    where
     n = natVal (Proxy @n)
@@ -1345,11 +1348,11 @@ outerproduct u v = column u *. row v
 
 instance (KnownNat m, KnownNat n) => Matrix (M m n) (M n m) x where
   transpose :: M m n x -> M n m x
-  transpose (M a) = M $ vn @n \i -> vn @m \j -> a ! j ! i
+  transpose (M a) = M (vn @n \i -> vn @m \j -> a ! j ! i)
   {-# INLINE transpose #-}
 instance (KnownNat n, Eq x, MultiplicativeAbelian x, Ring x) => Square (M n n) x where
   trace :: M n n x -> Scalar (M n n x)
-  trace (M a) = ScalarM do sumOn (\k -> a ! k ! k) (upto @n).getConst
+  trace (M a) = ScalarM (sumOn (\k -> a ! k ! k) (upto @n).getConst)
   {-# INLINE trace #-}
   determinant :: M n n x -> Scalar (M n n x)
   determinant (M a) = ScalarM do
@@ -1437,7 +1440,7 @@ qr ::
   (KnownNat n, Eq x, Conjugate x, Root x) =>
   M n n x -> (M n n x, M n n x)
 qr a =
-  let q = fromJust . uncolumns $ orthonormalize (columns a)
+  let Just q = uncolumns (orthonormalize (columns a))
    in (q, transpose q * a)
 {-# INLINE qr #-}
 
@@ -1452,8 +1455,9 @@ lu (M a) = build 0 zero one
           | k == j = s
           | otherwise = go (succ k) (s + l ! i ! k * u ! k ! j)
         s' = go zero zero
-     in M $ vn @n \i' -> vn @n \j' ->
-          if i == i' && j == j' then a ! i' ! j' - s' else l ! i' ! j'
+     in M do
+          vn @n \i' -> vn @n \j' ->
+            if i == i' && j == j' then a ! i' ! j' - s' else l ! i' ! j'
   buildL !i !j l u
     | i == natVal (Proxy @n) = l
     | otherwise = buildL (succ i) j (buildLVal i j l u) u
@@ -1462,8 +1466,9 @@ lu (M a) = build 0 zero one
           | k == j = s
           | otherwise = go (succ k) (s + l ! j ! k * u ! k ! i)
         s' = go zero zero
-     in M $ vn @n \i' -> vn @n \j' ->
-          if i == j' && j == i' then (a ! j ! i - s') / l ! j ! j else u ! i' ! j'
+     in M do
+          vn @n \i' -> vn @n \j' ->
+            if i == j' && j == i' then (a ! j ! i - s') / l ! j ! j else u ! i' ! j'
   buildU !i !j l u
     | i == natVal (Proxy @n) = u
     | otherwise = buildU (succ i) j l (buildUVal i j l u)
@@ -1516,7 +1521,7 @@ minor ::
   forall n x.
   (KnownNat n, Eq x, MultiplicativeAbelian x, Ring x) =>
   Natural -> Natural -> M (n + 1) (n + 1) x -> Scalar (M n n x)
-minor i_ j_ (M a) = determinant @(M n n) $ M do
+minor i_ j_ (M a) = (determinant @(M n n) . M) do
   vn @n \i -> vn @n \j ->
     a ! (if i < i_ then i else i + one) ! (if j < j_ then j else j + one)
 {-# INLINE minor #-}
@@ -1558,7 +1563,7 @@ characteristicPolynomial ::
   M n n x -> List1 x
 characteristicPolynomial a = (determinant (tI - morphism pure a)).unScalar
  where
-  tI = M $ vn @n \i -> vn @n \j -> if i == j then variable else zero
+  tI = M (vn @n \i -> vn @n \j -> if i == j then variable else zero)
 {-# INLINE characteristicPolynomial #-}
 
 gramMatrix ::
