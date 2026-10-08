@@ -19,6 +19,7 @@ import Data.Bounded (Bounded (..))
 import Data.Enum (Enum (..))
 import Data.Eq (Eq ((==)))
 import Data.Finite
+import Data.Functor.Const (Const (..))
 import Data.List qualified as List
 import Data.Maybe
 import Data.Ord (Ord)
@@ -86,7 +87,7 @@ transposition f
 mkS :: forall n x. (KnownNat n, From x Integer) => V n x -> Maybe (S n)
 mkS v
   | List.sort (morphism from (toList v))
-      == morphism (from @Natural @Integer) [0 .. pred (natVal (Proxy @n))] =
+      == morphism (from @_ @Integer) (upto @n).getConst =
       Just (S (morphism (finite . from) v))
   | otherwise = Nothing
 {-# INLINE mkS #-}

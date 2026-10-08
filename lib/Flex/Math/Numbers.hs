@@ -129,7 +129,6 @@ import GHC.Base
   , and#
   , decodeFloat_Int#
   , eqWord#
-  , error
   , int2Word#
   , isTrue#
   , negateInt#
@@ -202,7 +201,7 @@ toDataRational (Ratio n d) = n Num.:% d
 reduce ::
   (Eq x, From Integer x, Signed x, Absolute x x, Euclidean x) => x -> x -> Ratio x
 reduce n d
-  | d == zero = error "Flex.Math.Numbers.reduce: Ratio has zero denominator"
+  | d == zero = GHC.throw GHC.DivideByZero
   | otherwise =
       let !d' = absolute d
           !p = gcd (absolute n) d'
