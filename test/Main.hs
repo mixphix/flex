@@ -3,13 +3,14 @@
 
 module Main where
 
+import Flex.Math
+
 import Control.Applicative qualified as Control
 import Control.Monad qualified as Control
 import Data.Bool (Bool)
-import Data.Eq
+import Data.Function (const)
 import Data.Functor qualified as Data
 import Data.Monoid
-import Data.Ord
 import GHC.Err qualified as GHC
 import GHC.Float (Double, Float)
 import Generic.Random (genericArbitrary, uniform)
@@ -17,7 +18,15 @@ import System.IO (IO)
 import Test.Hspec
 import Test.QuickCheck
 
-import Flex.Math
+instance Morphisms (->) (->) Gen where
+  morphism :: (x -> y) -> Gen x -> Gen y
+  morphism = Data.fmap
+instance Pure Gen where
+  pure :: x -> Gen x
+  pure = Control.pure
+instance Apply Gen where
+  (<*>) :: Gen (x -> y) -> Gen x -> Gen y
+  (<*>) = (Control.<*>)
 
 instance
   ( Ord x
@@ -206,18 +215,9 @@ instance
   arbitrary :: Gen (Laws InnerProduct x)
   arbitrary = genericArbitrary uniform
 
-instance (Arbitrary x) => Arbitrary (V 1 x) where
-  arbitrary :: Gen (V 1 x)
-  arbitrary = Data.fmap V1 arbitrary
-instance (Arbitrary x) => Arbitrary (V 2 x) where
-  arbitrary :: Gen (V 2 x)
-  arbitrary = Control.liftM2 V2 arbitrary arbitrary
-instance (Arbitrary x) => Arbitrary (V 3 x) where
-  arbitrary :: Gen (V 3 x)
-  arbitrary = Control.liftM3 V3 arbitrary arbitrary arbitrary
-instance (Arbitrary x) => Arbitrary (V 4 x) where
-  arbitrary :: Gen (V 4 x)
-  arbitrary = Control.liftM3 V4 arbitrary arbitrary arbitrary Control.<*> arbitrary
+instance (KnownNat n, Arbitrary x) => Arbitrary (V n x) where
+  arbitrary :: Gen (V n x)
+  arbitrary = vnM @n (const arbitrary)
 
 instance (Arbitrary x) => Arbitrary (Quaternion x) where
   arbitrary :: Gen (Quaternion x)
