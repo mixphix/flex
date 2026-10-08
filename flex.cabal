@@ -47,6 +47,8 @@ library
     Flex.Math
     Flex.Math.Action
     Flex.Math.Algebra
+    Flex.Math.Algebra.Geometric
+    Flex.Math.Algebra.Geometric.Conformal
     Flex.Math.Base
     Flex.Math.Basis
     Flex.Math.Category
