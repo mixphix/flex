@@ -103,7 +103,7 @@ module Flex.Math.Category
   , (<*)
   , (*>)
   , Applicative
-  , Collectable (collect, distribute)
+  , Collectable (type Collectability, collect, distribute)
   , cotraverse
   , Tabulation (type Table, fromTable, toTable)
   , ComplexBasis (Real, Imaginary)
@@ -3988,14 +3988,16 @@ instance (Comonad f) => Category (Cokleisli f) where
 -- The dual notion of 'Traversable'.
 type Collectable :: (Type -> Type) -> Constraint
 class (Along d) => Collectable d where
+  type Collectability d :: Type -> Constraint
+  type Collectability d = C0
   {-# MINIMAL collect | distribute #-}
-  collect :: (Along f) => (x -> d y) -> f x -> d (f y)
+  collect :: (Along f, Collectability d y) => (x -> d y) -> f x -> d (f y)
   collect f = distribute . morphism f
-  distribute :: (Along f) => f (d x) -> d (f x)
+  distribute :: (Along f, Collectability d x) => f (d x) -> d (f x)
   distribute = collect id
 
 cotraverse ::
-  (Collectable d, Along f) =>
+  (Collectable d, Along f, Collectability d x) =>
   (f x -> y) -> f (d x) -> d y
 cotraverse f = morphism f . distribute
 {-# INLINE cotraverse #-}
@@ -4029,8 +4031,10 @@ instance
   (Data.Functor f, Data.Functor g, Collectable f, Collectable g) =>
   Collectable (Product f g)
   where
+  type Collectability (Product f g) = C2 (Collectability f) (Collectability g)
   distribute ::
-    (Along h) => h (Product f g x) -> Product f g (h x)
+    (Along h, Collectability (Product f g) x) =>
+    h (Product f g x) -> Product f g (h x)
   distribute hp = Pair (collect fstP hp) (collect sndP hp)
    where
     fstP (Pair x _) = x
@@ -4040,11 +4044,17 @@ instance
   (Data.Functor f, Data.Functor g, Collectable f, Collectable g) =>
   Collectable (Compose f g)
   where
-  distribute :: (Along h) => h (Compose f g x) -> Compose f g (h x)
+  type
+    Collectability (Compose f g) =
+      C2 (Collectability g) (CC (Collectability f) g)
+  distribute ::
+    (Along h, Collectability (Compose f g) x) =>
+    h (Compose f g x) -> Compose f g (h x)
   distribute = Compose . morphism distribute . collect getCompose
   {-# INLINE distribute #-}
   collect ::
-    (Along h) => (x -> Compose f g y) -> h x -> Compose f g (h y)
+    (Along h, Collectability (Compose f g) y) =>
+    (x -> Compose f g y) -> h x -> Compose f g (h y)
   collect f =
     Compose . morphism distribute . collect (getCompose . f)
   {-# INLINE collect #-}
@@ -4058,25 +4068,36 @@ instance Collectable Par1 where
   collect x_Py = Par1 #. morphism (unPar1 #. x_Py)
   {-# INLINE collect #-}
 instance (Collectable f) => Collectable (Rec1 f) where
-  collect :: (Along g) => (x -> Rec1 f y) -> g x -> Rec1 f (g y)
+  type Collectability (Rec1 f) = Collectability f
+  collect ::
+    (Along g, Collectability (Rec1 f) y) => (x -> Rec1 f y) -> g x -> Rec1 f (g y)
   collect x_Rfy gx = Rec1 (collect (unRec1 . x_Rfy) gx)
   {-# INLINE collect #-}
 instance (Collectable f) => Collectable (M1 i c f) where
-  collect :: (Along g) => (x -> M1 i c f y) -> g x -> M1 i c f (g y)
+  type Collectability (M1 i c f) = Collectability f
+  collect ::
+    (Along g, Collectability (M1 i c f) y) =>
+    (x -> M1 i c f y) -> g x -> M1 i c f (g y)
   collect x_Micgy gx = M1 (collect (unM1 . x_Micgy) gx)
   {-# INLINE collect #-}
 instance (Collectable f, Collectable g) => Collectable (f :*: g) where
-  distribute :: (Along h) => h ((f :*: g) x) -> (f :*: g) (h x)
+  type Collectability (f :*: g) = C2 (Collectability f) (Collectability g)
+  distribute ::
+    (Along h, Collectability (f :*: g) x) => h ((f :*: g) x) -> (f :*: g) (h x)
   distribute hp = collect fstP hp :*: collect sndP hp
    where
     fstP (x :*: _) = x
     sndP (_ :*: y) = y
   {-# INLINE distribute #-}
 instance (Collectable f, Collectable g) => Collectable (f :.: g) where
-  distribute :: (Along h) => h ((f :.: g) x) -> (f :.: g) (h x)
+  type Collectability (f :.: g) = C2 (Collectability g) (CC (Collectability f) g)
+  distribute ::
+    (Along h, Collectability (f :.: g) x) => h ((f :.: g) x) -> (f :.: g) (h x)
   distribute = Comp1 . morphism distribute . collect unComp1
   {-# INLINE distribute #-}
-  collect :: (Along h) => (x -> (f :.: g) y) -> h x -> (f :.: g) (h y)
+  collect ::
+    (Along h, Collectability (f :.: g) y) =>
+    (x -> (f :.: g) y) -> h x -> (f :.: g) (h y)
   collect x_fgy = Comp1 . morphism distribute . collect (coerce x_fgy)
   {-# INLINE collect #-}
 
@@ -4088,8 +4109,8 @@ instance (Collectable f, Collectable g) => Collectable (f :.: g) where
 type Tabulation :: (Type -> Type) -> Constraint
 class (Collectable f) => Tabulation f where
   type Table f :: Type
-  fromTable :: (Table f -> x) -> f x
-  toTable :: f x -> (Table f -> x)
+  fromTable :: (Collectability f x) => (Table f -> x) -> f x
+  toTable :: (Collectability f x) => f x -> (Table f -> x)
 
 instance Tabulation ((->) z) where
   type Table ((->) z) = z
@@ -4138,10 +4159,12 @@ instance
   Tabulation (Product f g)
   where
   type Table (Product f g) = Either (Table f) (Table g)
-  fromTable :: (Table (Product f g) -> x) -> Product f g x
+  fromTable ::
+    (Collectability (Product f g) x) => (Table (Product f g) -> x) -> Product f g x
   fromTable f = Pair (fromTable (f . Left)) (fromTable (f . Right))
   {-# INLINE fromTable #-}
-  toTable :: Product f g x -> Table (Product f g) -> x
+  toTable ::
+    (Collectability (Product f g) x) => Product f g x -> Table (Product f g) -> x
   toTable (Pair fx gx) = \case
     Left f -> toTable fx f
     Right g -> toTable gx g
@@ -4151,10 +4174,12 @@ instance
   Tabulation (Compose f g)
   where
   type Table (Compose f g) = (Table f, Table g)
-  fromTable :: (Table (Compose f g) -> x) -> Compose f g x
+  fromTable ::
+    (Collectability (Compose f g) x) => (Table (Compose f g) -> x) -> Compose f g x
   fromTable = Compose . fromTable . morphism fromTable . curry
   {-# INLINE fromTable #-}
-  toTable :: Compose f g x -> Table (Compose f g) -> x
+  toTable ::
+    (Collectability (Compose f g) x) => Compose f g x -> Table (Compose f g) -> x
   toTable (Compose fgx) (tf, tg) = toTable (toTable fgx tf) tg
   {-# INLINE toTable #-}
 
@@ -4526,14 +4551,18 @@ instance Corepresentable (Ix i) where
 -- Profunctors that can act on exponentials.
 type Closed :: (Type -> Type -> Type) -> Constraint
 class (Fletched p) => Closed p where
-  closed :: p x y -> p (z -> x) (z -> y)
+  type Closedness p :: Type -> Constraint
+  type Closedness p = C0
+  closed :: (Closedness p y) => p x y -> p (z -> x) (z -> y)
 
 instance Closed (->) where
   closed :: (x -> y) -> (z -> x) -> (z -> y)
   closed = (.)
   {-# INLINE closed #-}
 instance (Collectable f, Monad f) => Closed (Kleisli f) where
-  closed :: Kleisli f x y -> Kleisli f (z -> x) (z -> y)
+  type Closedness (Kleisli f) = Collectability f
+  closed ::
+    (Closedness (Kleisli f) y) => Kleisli f x y -> Kleisli f (z -> x) (z -> y)
   closed (Kleisli x_fy) = Kleisli (distribute . (x_fy .))
   {-# INLINE closed #-}
 instance (Along f) => Closed (Cokleisli f) where
@@ -4563,7 +4592,9 @@ class
   ) =>
   Conjoined p
   where
-  promap :: forall x y f. (Along f) => p x y -> p (f x) (f y)
+  promap ::
+    forall x y f.
+    (Along f, Collectability (Representation p) y) => p x y -> p (f x) (f y)
   promap = represent . collect . sieve
   conjoined :: q (x -> y) z -> q (p x y) z -> q (p x y) z
   conjoined _ q = q
@@ -4734,7 +4765,9 @@ instance
   corepresent :: (Corepresentation (Procompose p q) x -> y) -> Procompose p q x y
   corepresent cpqx_y = Procompose (corepresent (cpqx_y . Compose)) (corepresent id)
   {-# INLINE corepresent #-}
-instance (Closed p, Closed q) => Closed (Procompose p q) where
-  closed :: Procompose p q x y -> Procompose p q (z -> x) (z -> y)
-  closed (Procompose pzy qxz) = Procompose (closed pzy) (closed qxz)
-  {-# INLINE closed #-}
+
+-- instance (Closed p, Closed q) => Closed (Procompose p q) where
+--   type Closedness (Procompose p q) = C2 (Closedness p) (Closedness q)
+--   closed :: (Closedness (Procompose p q) y) => Procompose p q x y -> Procompose p q (z -> x) (z -> y)
+--   closed (Procompose pzy qxz) = Procompose (closed pzy) (closed qxz)
+--   {-# INLINE closed #-}
