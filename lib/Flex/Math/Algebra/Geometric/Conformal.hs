@@ -3,10 +3,8 @@
 
 module Flex.Math.Algebra.Geometric.Conformal where
 
-import Flex.Math.Algebra
 import Flex.Math.Algebra.Geometric
 import Flex.Math.Algebra.Geometric qualified as Alg
-import Flex.Math.Basis
 import Flex.Math.Category
 import Flex.Math.Foldable (length)
 import Flex.Math.Matrix
@@ -25,7 +23,7 @@ import Data.Ord
 import GHC.TypeNats
 import Text.Show (Show)
 
-newtype Conformal n x = Conformal {unConformal :: Multi (V (n + 2)) x}
+newtype Conformal n x = Conformal {unConformal :: Multi (n + 2) x}
   deriving (Eq, Ord, Show)
 
 dual ::
