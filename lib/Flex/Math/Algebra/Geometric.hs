@@ -2,7 +2,21 @@
 {-# LANGUAGE ViewPatterns #-}
 {-# OPTIONS_GHC -fplugin GHC.TypeLits.KnownNat.Solver #-}
 
-module Flex.Math.Algebra.Geometric where
+module Flex.Math.Algebra.Geometric
+  ( Multi (Multi, unMulti)
+  , (!)
+  , scalar
+  , canonical
+  , pseudoscalar
+  , grade
+  , ungrade0
+  , Scalar (..)
+  , wedge
+  , dot
+  , dagger
+  , hat
+  , flipGrade
+  ) where
 
 import Flex.Math.Algebra
 import Flex.Math.Basis
@@ -72,21 +86,14 @@ canonical = (one *) . Multi . Map.fromList
 pseudoscalar ::
   forall n x.
   (KnownNat n, Eq x, Ring x, Conjugate x) =>
-  Multi n x
-pseudoscalar = canonical [(finites, one)]
-
-inversePseudoscalar ::
-  forall n x.
-  (KnownNat n, Eq x, Ring x, Conjugate x) =>
-  Multi n x
-inversePseudoscalar =
-  canonical [(finites, if even (natVal (Proxy @n)) then negative one else one)]
+  x -> Multi n x
+pseudoscalar x = canonical [(finites, x)]
 
 grade :: forall n x. (KnownNat n) => Natural -> Multi n x -> Multi n x
 grade k (Multi u) = Multi (ifilter @[Finite n] (\fs _ -> length fs == k) u)
 
-grade0 :: Multi n x -> Maybe x
-grade0 (Multi u) =
+ungrade0 :: Multi n x -> Maybe x
+ungrade0 (Multi u) =
   Map.lookupMin u >>= \case
     ([], k) | Map.null (Map.delete [] u) -> pure k
     _ -> nil
@@ -375,7 +382,7 @@ instance
   where
   reciprocal :: Multi 2 x -> Multi 2 x
   reciprocal v =
-    conjugate v /. case grade0 (v * conjugate v) of
+    conjugate v /. case ungrade0 (v * conjugate v) of
       Nothing -> throw DivideByZero
       Just sc -> sc
 
@@ -392,7 +399,7 @@ instance
   reciprocal :: Multi 3 x -> Multi 3 x
   reciprocal v =
     let numer = conjugate v * hat v * dagger v
-     in numer /. case grade0 (v * numer) of
+     in numer /. case ungrade0 (v * numer) of
           Nothing -> throw DivideByZero
           Just sc -> sc
 
@@ -409,7 +416,7 @@ instance
   reciprocal :: Multi 4 x -> Multi 4 x
   reciprocal v =
     let numer = conjugate v * flipGrade 3 (flipGrade 4 (v * conjugate v))
-     in numer /. case grade0 (v * numer) of
+     in numer /. case ungrade0 (v * numer) of
           Nothing -> throw DivideByZero
           Just sc -> sc
 
@@ -430,6 +437,6 @@ instance
             * hat v
             * dagger v
             * flipGrade 1 (flipGrade 4 (v * conjugate v * hat v * dagger v))
-     in numer /. case grade0 (v * numer) of
+     in numer /. case ungrade0 (v * numer) of
           Nothing -> throw DivideByZero
           Just sc -> sc

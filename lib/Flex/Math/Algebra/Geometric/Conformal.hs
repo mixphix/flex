@@ -1,9 +1,28 @@
 {-# LANGUAGE UndecidableInstances #-}
 {-# OPTIONS_GHC -fplugin GHC.TypeLits.KnownNat.Solver #-}
 
-module Flex.Math.Algebra.Geometric.Conformal where
+module Flex.Math.Algebra.Geometric.Conformal
+  ( Conformal (Conformal, unConformal)
+  , dual
+  , wedge
+  , dot
+  , origin
+  , infinity
+  , ep
+  , en
+  , minkowskiPlane
+  , grade
+  , ungrade0
+  , scalar
+  , point
+  , conformalToV
+  , sphere
+  , line
+  , plane
+  , translate
+  ) where
 
-import Flex.Math.Algebra.Geometric hiding (dot, scalar, wedge)
+import Flex.Math.Algebra.Geometric hiding (dot, grade, scalar, ungrade0, wedge)
 import Flex.Math.Algebra.Geometric qualified as Alg
 import Flex.Math.Category
 import Flex.Math.Foldable (length)
@@ -90,8 +109,23 @@ minkowskiPlane ::
   Conformal n x
 minkowskiPlane = wedge origin infinity
 
-scalar :: (KnownNat n, Eq x, Ring x, Conjugate x) => x -> Conformal n x
+scalar :: (KnownNat n) => x -> Conformal n x
 scalar x = Conformal (Multi (Map.fromList [([], x)]))
+
+ep :: (KnownNat n, Multiplicative x) => Conformal n x
+ep = Conformal (Multi (Map.fromList [([from @Integer 0], one)]))
+
+en :: (KnownNat n, Multiplicative x) => Conformal n x
+en = Conformal (Multi (Map.fromList [([from @Integer 1], one)]))
+
+grade :: forall n x. (KnownNat n) => Natural -> Conformal n x -> Conformal n x
+grade k (Conformal (Multi u)) = Conformal (Multi (ifilter @[Finite (n + 2)] (\fs _ -> length fs == k) u))
+
+ungrade0 :: Conformal n x -> Maybe x
+ungrade0 (Conformal (Multi u)) =
+  Map.lookupMin u >>= \case
+    ([], k) | Map.null (Map.delete [] u) -> pure k
+    _ -> nil
 
 point ::
   forall n x.
