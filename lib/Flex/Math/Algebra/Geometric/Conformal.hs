@@ -3,7 +3,7 @@
 
 module Flex.Math.Algebra.Geometric.Conformal where
 
-import Flex.Math.Algebra.Geometric
+import Flex.Math.Algebra.Geometric hiding (dot, wedge)
 import Flex.Math.Algebra.Geometric qualified as Alg
 import Flex.Math.Category
 import Flex.Math.Foldable (length)
@@ -85,6 +85,10 @@ infinity ::
   Conformal n x
 infinity = Conformal do
   canonical [([from @Integer 0], one), ([from @Integer 1], one)]
+minkowskiPlane ::
+  (KnownNat n, Eq x, Ring x, Conjugate x, Division x x x) =>
+  Conformal n x
+minkowskiPlane = wedge origin infinity
 
 vToConformal ::
   forall n x.

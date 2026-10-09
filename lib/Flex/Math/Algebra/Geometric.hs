@@ -15,7 +15,6 @@ import Flex.Math.Numbers
 import Data.Bool
 import Data.Eq
 import Data.Finite (finites)
-import Data.Function (on)
 import Data.List qualified as List
 import Data.List1 qualified as List1
 import Data.Map.Strict (Map)
@@ -98,11 +97,7 @@ instance
   where
   (+.) :: Multi n x -> Multi n x -> Multi n x
   Multi u +. Multi v = (Multi . filter (/= zero)) do
-    on
-      (Map.mergeWithKey (\_ a b -> Just (a + b)) id id)
-      unMulti
-      (canonical (Map.assocs u))
-      (canonical (Map.assocs v))
+    Map.mergeWithKey (\_ a b -> Just (a + b)) id id u v
 instance
   (KnownNat n, Eq x, Ring x, Conjugate x) =>
   Additive (Multi n x)
