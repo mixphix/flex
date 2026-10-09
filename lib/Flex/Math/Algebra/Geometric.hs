@@ -7,11 +7,12 @@ module Flex.Math.Algebra.Geometric where
 import Flex.Math.Algebra
 import Flex.Math.Basis
 import Flex.Math.Category
-import Flex.Math.Foldable (length)
+import Flex.Math.Foldable (length, product)
 import Flex.Math.Matrix hiding ((!))
 import Flex.Math.Module
 import Flex.Math.Numbers
 
+import Control.Exception
 import Data.Bool
 import Data.Eq
 import Data.Finite (finites)
@@ -60,8 +61,8 @@ Multi u ! fs = signature fs * Map.findWithDefault zero (List.sort fs) u
     _ -> signature (b : f)
   signature _ = one
 
-unit :: (KnownNat n, Eq x, Ring x, Conjugate x) => Multi n x
-unit = Multi (Map.fromList [([], one)])
+scalar :: (KnownNat n, Eq x, Ring x, Conjugate x) => x -> Multi n x
+scalar x = Multi (Map.fromList [([], x)])
 
 canonical ::
   (KnownNat n, Eq x, Ring x, Conjugate x) =>
@@ -81,8 +82,14 @@ inversePseudoscalar ::
 inversePseudoscalar =
   canonical [(finites, if even (natVal (Proxy @n)) then negative one else one)]
 
-kVector :: forall n x. (KnownNat n) => Natural -> Multi n x -> Multi n x
-kVector k (Multi u) = Multi (ifilter @[Finite n] (\fs _ -> length fs == k) u)
+grade :: forall n x. (KnownNat n) => Natural -> Multi n x -> Multi n x
+grade k (Multi u) = Multi (ifilter @[Finite n] (\fs _ -> length fs == k) u)
+
+grade0 :: Multi n x -> Maybe x
+grade0 (Multi u) =
+  Map.lookupMin u >>= \case
+    ([], k) | Map.null (Map.delete [] u) -> pure k
+    _ -> nil
 
 instance
   (KnownNat n, Eq x, Ring x, Conjugate x) =>
@@ -330,3 +337,99 @@ dot (Multi u) (Multi v) = (Multi . filter (/= zero)) do
     | otherwise = Nothing
    where
     c@(w, _) = basisMul a b
+
+dagger :: (KnownNat n, Eq x, Ring x, Conjugate x) => Multi n x -> Multi n x
+dagger (Multi u) = canonical (morphism (morphism' List.reverse) (Map.assocs u))
+
+hat ::
+  forall n x.
+  (KnownNat n, Eq x, Ring x, Conjugate x, MultiplicativeAbelian x) =>
+  Multi n x -> Multi n x
+hat (Multi u) = canonical do
+  morphism
+    ( \(fs, x) ->
+        (fs, product (List.replicate (from (length fs)) (negative @x one)) * x)
+    )
+    (Map.assocs u)
+
+flipGrade ::
+  (KnownNat n, Eq x, Ring x, Conjugate x) => Natural -> Multi n x -> Multi n x
+flipGrade k m = m - scalar (one + one) * grade k m
+
+instance
+  (KnownNat n, Eq x, Ring x, Conjugate x, MultiplicativeAbelian x) =>
+  Conjugate (Multi n x)
+  where
+  conjugate :: Multi n x -> Multi n x
+  conjugate = dagger . hat
+
+instance
+  (Eq x, Ring x, Conjugate x, Division x x x, MultiplicativeAbelian x) =>
+  Division (Multi 2 x) (Multi 2 x) (Multi 2 x)
+  where
+  (/.) :: Multi 2 x -> Multi 2 x -> Multi 2 x
+  u /. v = u * reciprocal v
+instance
+  (Eq x, Ring x, Conjugate x, Division x x x, MultiplicativeAbelian x) =>
+  MultiplicativeGroup (Multi 2 x)
+  where
+  reciprocal :: Multi 2 x -> Multi 2 x
+  reciprocal v =
+    conjugate v /. case grade0 (v * conjugate v) of
+      Nothing -> throw DivideByZero
+      Just sc -> sc
+
+instance
+  (Eq x, Ring x, Conjugate x, Division x x x, MultiplicativeAbelian x) =>
+  Division (Multi 3 x) (Multi 3 x) (Multi 3 x)
+  where
+  (/.) :: Multi 3 x -> Multi 3 x -> Multi 3 x
+  u /. v = u * reciprocal v
+instance
+  (Eq x, Ring x, Conjugate x, Division x x x, MultiplicativeAbelian x) =>
+  MultiplicativeGroup (Multi 3 x)
+  where
+  reciprocal :: Multi 3 x -> Multi 3 x
+  reciprocal v =
+    let numer = conjugate v * hat v * dagger v
+     in numer /. case grade0 (v * numer) of
+          Nothing -> throw DivideByZero
+          Just sc -> sc
+
+instance
+  (Eq x, Ring x, Conjugate x, Division x x x, MultiplicativeAbelian x) =>
+  Division (Multi 4 x) (Multi 4 x) (Multi 4 x)
+  where
+  (/.) :: Multi 4 x -> Multi 4 x -> Multi 4 x
+  u /. v = u * reciprocal v
+instance
+  (Eq x, Ring x, Conjugate x, Division x x x, MultiplicativeAbelian x) =>
+  MultiplicativeGroup (Multi 4 x)
+  where
+  reciprocal :: Multi 4 x -> Multi 4 x
+  reciprocal v =
+    let numer = conjugate v * flipGrade 3 (flipGrade 4 (v * conjugate v))
+     in numer /. case grade0 (v * numer) of
+          Nothing -> throw DivideByZero
+          Just sc -> sc
+
+instance
+  (Eq x, Ring x, Conjugate x, Division x x x, MultiplicativeAbelian x) =>
+  Division (Multi 5 x) (Multi 5 x) (Multi 5 x)
+  where
+  (/.) :: Multi 5 x -> Multi 5 x -> Multi 5 x
+  u /. v = u * reciprocal v
+instance
+  (Eq x, Ring x, Conjugate x, Division x x x, MultiplicativeAbelian x) =>
+  MultiplicativeGroup (Multi 5 x)
+  where
+  reciprocal :: Multi 5 x -> Multi 5 x
+  reciprocal v =
+    let numer =
+          conjugate v
+            * hat v
+            * dagger v
+            * flipGrade 1 (flipGrade 4 (v * conjugate v * hat v * dagger v))
+     in numer /. case grade0 (v * numer) of
+          Nothing -> throw DivideByZero
+          Just sc -> sc

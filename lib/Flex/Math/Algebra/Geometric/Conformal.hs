@@ -3,7 +3,7 @@
 
 module Flex.Math.Algebra.Geometric.Conformal where
 
-import Flex.Math.Algebra.Geometric hiding (dot, wedge)
+import Flex.Math.Algebra.Geometric hiding (dot, scalar, wedge)
 import Flex.Math.Algebra.Geometric qualified as Alg
 import Flex.Math.Category
 import Flex.Math.Foldable (length)
@@ -90,11 +90,14 @@ minkowskiPlane ::
   Conformal n x
 minkowskiPlane = wedge origin infinity
 
-vToConformal ::
+scalar :: (KnownNat n, Eq x, Ring x, Conjugate x) => x -> Conformal n x
+scalar x = Conformal (Multi (Map.fromList [([], x)]))
+
+point ::
   forall n x.
   (KnownNat n, Eq x, Ring x, Conjugate x, Division x x x) =>
   V n x -> Conformal n x
-vToConformal u = (Conformal . Multi . Map.fromList) do
+point u = (Conformal . Multi . Map.fromList) do
   ([from @Integer 0], t - half one)
     : ([from @Integer 1], t + half one)
     : List.zip (morphism (pure . from) [2 .. natVal (Proxy @n) + 1]) (Matrix.toList u)
@@ -108,11 +111,30 @@ conformalToV ::
   Conformal n x -> Maybe (V n x)
 conformalToV (Conformal mu) =
   let d = mu Alg.! [from @Integer 1] - mu Alg.! [from @Integer 0]
-      obtain s
-        | d == zero = Nothing
-        | otherwise = Just (mu Alg.! s / d)
+      obtain s = guard (d /= zero) >> pure ((mu Alg.! s) / d)
    in Matrix.fromList @n
         (justs (obtain . pure . from) [2 .. natVal (Proxy @n) + 1])
+
+sphere ::
+  (KnownNat n, Eq x, Ring x, Conjugate x, Division x x x) =>
+  V n x -> x -> Conformal n x
+sphere c r =
+  point c - scalar (one / (one + one)) * (scalar r * scalar r) * infinity
+
+line ::
+  (KnownNat n, Eq x, Ring x, Conjugate x, Division x x x) =>
+  V n x -> V n x -> Conformal n x
+line p q = point p `wedge` point q `wedge` infinity
+
+plane ::
+  (KnownNat n, Eq x, Ring x, Conjugate x, Division x x x) =>
+  V n x -> V n x -> V n x -> Conformal n x
+plane p q r = point p `wedge` point q `wedge` point r `wedge` infinity
+
+translate ::
+  (KnownNat n, Eq x, Ring x, Conjugate x, Division x x x) =>
+  V n x -> Conformal n x
+translate t = scalar one + (scalar (one / (one + one)) * point t `wedge` infinity)
 
 instance
   (KnownNat n, Eq x, Ring x, Conjugate x) =>
