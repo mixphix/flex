@@ -22,6 +22,7 @@ module Flex.Math.Algebra.Geometric.Conformal
   , sphere
   , line
   , plane
+  , planeN
   , translate
   ) where
 
@@ -239,6 +240,11 @@ plane ::
   (KnownNat n, Eq x, Ring x, Conjugate x, Division x x x) =>
   V n x -> V n x -> V n x -> Conformal n x
 plane p q r = point p `wedge` point q `wedge` point r `wedge` infinity
+
+planeN ::
+  (KnownNat n, Eq x, Ring x, Conjugate x, Division x x x) =>
+  V n x -> V n x -> Conformal n x
+planeN p n = point p `dot` (point n `wedge` infinity)
 
 translate ::
   (KnownNat n, Eq x, Ring x, Conjugate x, Division x x x) =>
