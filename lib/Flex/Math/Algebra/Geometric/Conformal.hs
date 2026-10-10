@@ -6,14 +6,17 @@ module Flex.Math.Algebra.Geometric.Conformal
   , dual
   , wedge
   , dot
+  , meet
   , origin
   , infinity
   , ep
   , en
   , minkowskiPlane
+  , scalar
+  , pseudoscalar
+  , canonical
   , grade
   , ungrade0
-  , scalar
   , point
   , conformalToV
   , sphere
@@ -22,11 +25,10 @@ module Flex.Math.Algebra.Geometric.Conformal
   , translate
   ) where
 
-import Flex.Math.Algebra.Geometric hiding (dot, grade, scalar, ungrade0, wedge)
 import Flex.Math.Algebra.Geometric qualified as Alg
 import Flex.Math.Category
 import Flex.Math.Foldable (length)
-import Flex.Math.Matrix
+import Flex.Math.Matrix hiding ((!))
 import Flex.Math.Matrix qualified as Matrix
 import Flex.Math.Module
 import Flex.Math.Numbers
@@ -34,22 +36,83 @@ import Flex.Math.Numbers
 import Data.Bool
 import Data.Eq
 import Data.Finite (finites)
+import Data.Function (flip, (&))
 import Data.List qualified as List
 import Data.List1 qualified as List1
 import Data.Map.Strict qualified as Map
 import Data.Maybe
 import Data.Ord
+import Data.Semigroup
 import GHC.TypeNats
-import Text.Show (Show)
+import Text.Show
 
-newtype Conformal n x = Conformal {unConformal :: Multi (n + 2) x}
-  deriving (Eq, Ord, Show)
+newtype Conformal n x = Conformal {unConformal :: Alg.Multi (n + 2) x}
+  deriving (Eq, Ord)
+
+instance
+  (KnownNat n, Eq x, Ring x, Conjugate x, Signed x, Show x) =>
+  Show (Conformal n x)
+  where
+  showsPrec :: Int -> Conformal n x -> ShowS
+  showsPrec pr u0 =
+    let fins = List.subsequences (finites @(n + 2))
+        u1 =
+          [ (s . es)
+          | fin <- fins
+          , let u = u0 ! fin
+                s = case sign u of
+                  Negative -> showString " - " . showsPrec 11 u
+                  Unsigned
+                    | u0 == zero && List.null fin -> showString "0"
+                    | otherwise -> showString ""
+                  Positive
+                    | List.null fin -> showsPrec pr u
+                    | otherwise -> showString " + " . if u == one then id else showsPrec 11 u
+                Endo es = flip foldWith fin do
+                  \f -> Endo do
+                    from @_ @Natural f & \case
+                      0 -> case sign u of
+                        Negative -> showString "e+"
+                        Unsigned -> id
+                        Positive -> showString "e+"
+                      1 -> case sign u of
+                        Negative -> showString "e-"
+                        Unsigned -> id
+                        Positive -> showString "e-"
+                      n -> case sign u of
+                        Negative -> showString "e" . shows (n - 2)
+                        Unsigned -> id
+                        Positive -> showString "e" . shows (n - 2)
+          ]
+     in foldr (.) id u1
+
+instance Morphisms (->) (->) (Conformal n) where
+  morphism :: (x -> y) -> Conformal n x -> Conformal n y
+  morphism x_y (Conformal u) = Conformal (morphism x_y u)
+
+(!) ::
+  forall n x.
+  (KnownNat n, Ring x, Conjugate x) =>
+  Conformal n x -> [Finite (n + 2)] -> x
+Conformal (Alg.Multi u) ! fs = signature fs * Map.findWithDefault zero (List.sort fs) u
+ where
+  signature :: [Finite (n + 2)] -> x
+  signature (a : b : f) = case compare a b of
+    GT -> negative one * signature (b : f)
+    _ -> signature (b : f)
+  signature _ = one
+
+pseudoscalar ::
+  forall n x.
+  (KnownNat n, Eq x, Ring x, Conjugate x) =>
+  x -> Conformal n x
+pseudoscalar x = canonical [(finites, x)]
 
 dual ::
   forall n x.
   (KnownNat n, Eq x, Ring x, Conjugate x) =>
   Conformal n x -> Conformal n x
-dual = (* Conformal (Multi (Map.singleton (finites @(n + 2)) one)))
+dual = (* Conformal (Alg.Multi (Map.singleton (finites @(n + 2)) one)))
 
 basisMulConformal ::
   forall n x.
@@ -70,8 +133,9 @@ basisMulConformal (s, m) (t, n) = gnome [] (s <> t) (m * n)
 wedge ::
   (KnownNat n, Eq x, AdditiveGroup x, Multiplication x x x) =>
   Conformal n x -> Conformal n x -> Conformal n x
-wedge (Conformal (Multi u)) (Conformal (Multi v)) = (Conformal . Multi . filter (/= zero)) do
-  Map.fromListWith (+) (justs id (liftA2 f (Map.assocs u) (Map.assocs v)))
+wedge (Conformal (Alg.Multi u)) (Conformal (Alg.Multi v)) =
+  (Conformal . Alg.Multi . filter (/= zero)) do
+    Map.fromListWith (+) (justs id (liftA2 f (Map.assocs u) (Map.assocs v)))
  where
   f a@(s, _) b@(t, _)
     | length s + length t == length w = Just c
@@ -82,8 +146,9 @@ wedge (Conformal (Multi u)) (Conformal (Multi v)) = (Conformal . Multi . filter 
 dot ::
   (KnownNat n, Eq x, AdditiveGroup x, Multiplication x x x) =>
   Conformal n x -> Conformal n x -> Conformal n x
-dot (Conformal (Multi u)) (Conformal (Multi v)) = (Conformal . Multi . filter (/= zero)) do
-  Map.fromListWith (+) (justs id (liftA2 f (Map.assocs u) (Map.assocs v)))
+dot (Conformal (Alg.Multi u)) (Conformal (Alg.Multi v)) =
+  (Conformal . Alg.Multi . filter (/= zero)) do
+    Map.fromListWith (+) (justs id (liftA2 f (Map.assocs u) (Map.assocs v)))
  where
   f a@(s, _) b@(t, _)
     | length t == length s + length w = Just c
@@ -91,10 +156,15 @@ dot (Conformal (Multi u)) (Conformal (Multi v)) = (Conformal . Multi . filter (/
    where
     c@(w, _) = basisMulConformal a b
 
+meet ::
+  (KnownNat n, Eq x, Ring x, Conjugate x) =>
+  Conformal n x -> Conformal n x -> Conformal n x
+meet u v = dual u `dot` v
+
 origin ::
   (KnownNat n, Eq x, Ring x, Conjugate x, Division x x x) =>
   Conformal n x
-origin = Conformal do
+origin =
   canonical
     [ ([from @Integer 0], negative (one / (one + one)))
     , ([from @Integer 1], one / (one + one))
@@ -102,27 +172,32 @@ origin = Conformal do
 infinity ::
   (KnownNat n, Eq x, Ring x, Conjugate x) =>
   Conformal n x
-infinity = Conformal do
-  canonical [([from @Integer 0], one), ([from @Integer 1], one)]
+infinity = canonical [([from @Integer 0], one), ([from @Integer 1], one)]
 minkowskiPlane ::
   (KnownNat n, Eq x, Ring x, Conjugate x, Division x x x) =>
   Conformal n x
 minkowskiPlane = wedge origin infinity
 
 scalar :: (KnownNat n) => x -> Conformal n x
-scalar x = Conformal (Multi (Map.fromList [([], x)]))
+scalar x = Conformal (Alg.Multi (Map.fromList [([], x)]))
+
+canonical ::
+  forall n x.
+  (KnownNat n, Eq x, Ring x, Conjugate x) =>
+  [([Finite (n + 2)], x)] -> Conformal n x
+canonical = Conformal . Alg.canonical
 
 ep :: (KnownNat n, Multiplicative x) => Conformal n x
-ep = Conformal (Multi (Map.fromList [([from @Integer 0], one)]))
+ep = Conformal (Alg.Multi (Map.fromList [([from @Integer 0], one)]))
 
 en :: (KnownNat n, Multiplicative x) => Conformal n x
-en = Conformal (Multi (Map.fromList [([from @Integer 1], one)]))
+en = Conformal (Alg.Multi (Map.fromList [([from @Integer 1], one)]))
 
 grade :: forall n x. (KnownNat n) => Natural -> Conformal n x -> Conformal n x
-grade k (Conformal (Multi u)) = Conformal (Multi (ifilter @[Finite (n + 2)] (\fs _ -> length fs == k) u))
+grade k (Conformal (Alg.Multi u)) = Conformal (Alg.Multi (ifilter @[Finite (n + 2)] (\fs _ -> length fs == k) u))
 
 ungrade0 :: Conformal n x -> Maybe x
-ungrade0 (Conformal (Multi u)) =
+ungrade0 (Conformal (Alg.Multi u)) =
   Map.lookupMin u >>= \case
     ([], k) | Map.null (Map.delete [] u) -> pure k
     _ -> nil
@@ -131,7 +206,7 @@ point ::
   forall n x.
   (KnownNat n, Eq x, Ring x, Conjugate x, Division x x x) =>
   V n x -> Conformal n x
-point u = (Conformal . Multi . Map.fromList) do
+point u = (Conformal . Alg.Multi . Map.fromList) do
   ([from @Integer 0], t - half one)
     : ([from @Integer 1], t + half one)
     : List.zip (morphism (pure . from) [2 .. natVal (Proxy @n) + 1]) (Matrix.toList u)
@@ -145,9 +220,9 @@ conformalToV ::
   Conformal n x -> Maybe (V n x)
 conformalToV (Conformal mu) =
   let d = mu Alg.! [from @Integer 1] - mu Alg.! [from @Integer 0]
-      obtain s = guard (d /= zero) >> pure ((mu Alg.! s) / d)
-   in Matrix.fromList @n
-        (justs (obtain . pure . from) [2 .. natVal (Proxy @n) + 1])
+      obtain s = (mu Alg.! s) / d
+   in guard (d /= zero) >> Matrix.fromList @n do
+        morphism (obtain . pure . from) [2 .. natVal (Proxy @n) + 1]
 
 sphere ::
   (KnownNat n, Eq x, Ring x, Conjugate x, Division x x x) =>
@@ -203,8 +278,9 @@ instance
   Multiplication (Conformal n x) (Conformal n x) (Conformal n x)
   where
   (*.) :: Conformal n x -> Conformal n x -> Conformal n x
-  Conformal (Multi v) *. Conformal (Multi w) = (Conformal . Multi . filter (/= zero)) do
-    Map.fromListWith (+) (liftA2 basisMulConformal (Map.assocs v) (Map.assocs w))
+  Conformal (Alg.Multi v) *. Conformal (Alg.Multi w) =
+    (Conformal . Alg.Multi . filter (/= zero)) do
+      Map.fromListWith (+) (liftA2 basisMulConformal (Map.assocs v) (Map.assocs w))
 instance
   (KnownNat n, Eq x, Ring x, Conjugate x) =>
   Multiplicative (Conformal n x)
