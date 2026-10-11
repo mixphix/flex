@@ -101,7 +101,7 @@ import Flex.Math.Function
 import Flex.Math.Projective
 import Flex.Math.Suspension
 
-import Data.Bool (Bool (..), not, otherwise)
+import Data.Bool (Bool (..), not, otherwise, (&&))
 import Data.Bounded (Bounded)
 import Data.Complex (Complex ((:+)))
 import Data.Either
@@ -168,8 +168,8 @@ instance
   showsPrec :: Int -> Ratio x -> ShowS
   showsPrec prec (Ratio n d) =
     showParen
-      (prec > 10)
-      (showString "Ratio " . showsPrec 11 n . showString " " . showsPrec 11 d)
+      (d /= one && prec > 10)
+      (showsPrec prec n . if d == one then id else showString "/" . showsPrec prec d)
 
 pattern Ratio ::
   ( Eq x
