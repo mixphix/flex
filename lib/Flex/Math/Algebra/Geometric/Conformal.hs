@@ -1,8 +1,10 @@
 {-# LANGUAGE UndecidableInstances #-}
 {-# OPTIONS_GHC -fplugin GHC.TypeLits.KnownNat.Solver #-}
+{-# OPTIONS_GHC -Wno-incomplete-uni-patterns #-}
 
 module Flex.Math.Algebra.Geometric.Conformal
   ( inversion
+  , half
   , Conformal (Conformal, unConformal)
   , (!)
   , dual
@@ -30,6 +32,8 @@ module Flex.Math.Algebra.Geometric.Conformal
   , translate
   -- , rotate
   , dilate
+  , conformalTransformation
+  , midpoint
   ) where
 
 import Flex.Math.Category
@@ -51,6 +55,9 @@ import Data.Maybe
 import Data.Ord
 import Data.Semigroup
 import Text.Show
+
+half :: (Addition x x x, Multiplicative x, Division x x x) => x -> x
+half = (/ (one + one))
 
 newtype Conformal n x = Conformal {unConformal :: Map [Suspension (Finite n)] x}
   deriving (Eq, Ord)
@@ -112,7 +119,7 @@ exp_ alpha =
       [ foldl (*) invfac (List.replicate coeff alpha)
       | coeff <- [1 .. 10000]
       , let fac = foldl (*) 1 [1 .. coeff]
-            invfac = one / scalar (from fac)
+            invfac = scalar (one / from fac)
       ]
 
 (!) ::
@@ -232,7 +239,11 @@ point ::
   forall n x.
   (KnownNat n, Eq x, Ring x, Conjugate x, Division x x x) =>
   V n x -> Conformal n x
-point u = (vectorPart u - ep) * infinity * (vectorPart u - ep)
+point u =
+  negative (scalar (half one))
+    * (vectorPart u - ep)
+    * infinity
+    * (vectorPart u - ep)
 
 vectorPart :: (KnownNat n) => V n x -> Conformal n x
 vectorPart u =
@@ -269,7 +280,7 @@ translate ::
   (KnownNat n, Eq x, Ring x, Conjugate x, Division x x x) =>
   V n x -> Conformal n x -> Conformal n x
 translate va x =
-  let a = vectorPart (negative (morphism (/ (one + one)) va))
+  let a = vectorPart (morphism (negative . half) va)
       ta = one + (infinity * a)
       ta_ = one + (a * infinity)
    in ta_ * x * ta
@@ -281,6 +292,14 @@ dilate alpha x =
   let ea_ = scalar (exp (negative alpha))
       ea = morphism (exp alpha *.) (conformalToV x)
    in ea_ * maybe zero point ea
+
+conformalTransformation ::
+  (KnownNat n, Eq x, Ring x, Conjugate x, Division x x x) =>
+  V n x -> Conformal n x -> Conformal n x
+conformalTransformation va x =
+  let a = vectorPart va
+      ka = (one - scalar (half one) * origin * a)
+   in ka * x * ka
 
 instance
   (KnownNat n, Eq x, Ring x, Conjugate x) =>
@@ -349,19 +368,15 @@ instance
   (/.) :: Conformal n x -> x -> Conformal n x
   Conformal v /. x = Conformal (morphism (/ x) v)
 
-instance
-  (KnownNat n, Eq x, Ring x, Conjugate x, Division x x x) =>
-  Division (Conformal n x) (Conformal n x) (Conformal n x)
-  where
-  (/.) :: Conformal n x -> Conformal n x -> Conformal n x
-  u /. v = u * reciprocal v
-instance
-  (KnownNat n, Eq x, Ring x, Conjugate x, Division x x x) =>
-  MultiplicativeGroup (Conformal n x)
-  where
-  reciprocal :: Conformal n x -> Conformal n x
-  reciprocal x = negative ep * x * ep
-
 inversion ::
   (KnownNat n, Eq x, Ring x, Conjugate x, Division x x x) => V n x -> V n x
-inversion p = fromJust (conformalToV (reciprocal (point p)))
+inversion p = fromJust (conformalToV (ep * point p * ep))
+
+midpoint ::
+  (KnownNat n, Eq x, Ring x, Conjugate x, Division x x x) =>
+  V n x -> V n x -> V n x
+midpoint u v =
+  let x = scalar (half one) * (point u + point v)
+      Just xdotn = ungrade0 (join (*) (x `dot` infinity))
+   in (fromJust . conformalToV) do
+        scalar (negative (half one) / xdotn) * (x * infinity * x)
