@@ -6,6 +6,7 @@ module Flex.Math.Algebra.Geometric.Conformal
   ( inversion
   , half
   , Conformal (Conformal, unConformal)
+  , scalarMultiple
   , (!)
   , dual
   , wedge
@@ -31,6 +32,7 @@ module Flex.Math.Algebra.Geometric.Conformal
   , sphereP
   , line
   , plane
+  , hyperplane
   -- , exp_
   , translate
   , dilate
@@ -56,6 +58,8 @@ import Data.Map.Strict qualified as Map
 import Data.Maybe
 import Data.Ord
 import Data.Semigroup
+import Data.Type.Ord
+import GHC.TypeNats
 import Text.Show
 
 half :: (Addition x x x, Multiplicative x, Division x x x) => x -> x
@@ -70,6 +74,17 @@ eneg = South
 
 pseud :: (KnownNat n) => [Suspension (Finite n)]
 pseud = [South] <> morphism Meridian finites <> [North]
+
+scalarMultiple ::
+  forall n x.
+  (KnownNat n, Eq x, Ring x, Conjugate x, Division x x x) =>
+  Conformal n x -> Conformal n x -> Bool
+scalarMultiple (Conformal u) (Conformal v) = fromMaybe False do
+  (_, ux) <- Map.lookupMin u
+  (_, vx) <- Map.lookupMin v
+  guard (ux /= zero && vx /= zero)
+  pure do
+    scalar (one / ux) * (Conformal u) == scalar (one / vx) * (Conformal v)
 
 instance
   (KnownNat n, Eq x, Ring x, Conjugate x, Signed x, Show x) =>
@@ -269,7 +284,7 @@ sphereP p0 p1 p2 p3 =
   point p0 `wedge` point p1 `wedge` point p2 `wedge` point p3
 
 line ::
-  (KnownNat n, Eq x, Ring x, Conjugate x, Division x x x) =>
+  (KnownNat n, Eq x, Field x, Conjugate x) =>
   V n x -> V n x -> Conformal n x
 line p q = point p `wedge` point q `wedge` infinity one
 
@@ -277,6 +292,12 @@ plane ::
   (KnownNat n, Eq x, Ring x, Conjugate x, Division x x x) =>
   V n x -> V n x -> V n x -> Conformal n x
 plane p q r = point p `wedge` point q `wedge` point r `wedge` infinity one
+
+hyperplane ::
+  forall m n x.
+  (KnownNat n, m <= n + 1, Eq x, Ring x, Conjugate x, Division x x x) =>
+  V m (V n x) -> Conformal n x
+hyperplane = foldr wedge (infinity one) . morphism point
 
 translate ::
   (KnownNat n, Eq x, Ring x, Conjugate x, Division x x x) =>
