@@ -1,6 +1,6 @@
 {-# LANGUAGE UndecidableInstances #-}
-{-# OPTIONS_GHC -fplugin GHC.TypeLits.KnownNat.Solver #-}
 {-# OPTIONS_GHC -Wno-incomplete-uni-patterns #-}
+{-# OPTIONS_GHC -fplugin GHC.TypeLits.KnownNat.Solver #-}
 
 module Flex.Math.Algebra.Geometric.Conformal
   ( inversion
@@ -13,7 +13,9 @@ module Flex.Math.Algebra.Geometric.Conformal
   , meet
   , expansion
   , origin
+  , originCoeff
   , infinity
+  , infinityCoeff
   , ep
   , en
   , minkowskiPlane
@@ -24,20 +26,20 @@ module Flex.Math.Algebra.Geometric.Conformal
   , ungrade0
   , point
   , vectorPart
-  , conformalToV
+  , unpoint
   , sphere
+  , sphereP
   , line
   , plane
-  , exp_
+  -- , exp_
   , translate
-  -- , rotate
   , dilate
-  , conformalTransformation
+  , transvert
   , midpoint
   ) where
 
 import Flex.Math.Category
-import Flex.Math.Foldable (length, sum)
+import Flex.Math.Foldable (length)
 import Flex.Math.Matrix hiding ((!))
 import Flex.Math.Matrix qualified as Matrix
 import Flex.Math.Numbers
@@ -66,24 +68,27 @@ eneg, epos :: (KnownNat n) => Suspension (Finite n)
 epos = North
 eneg = South
 
+pseud :: (KnownNat n) => [Suspension (Finite n)]
+pseud = [South] <> morphism Meridian finites <> [North]
+
 instance
   (KnownNat n, Eq x, Ring x, Conjugate x, Signed x, Show x) =>
   Show (Conformal n x)
   where
   showsPrec :: Int -> Conformal n x -> ShowS
   showsPrec pr u0 =
-    let fins = List.subsequences ([eneg] <> morphism Meridian finites <> [epos])
+    let basis = List.subsequences pseud
         u1 =
           [ s . es
-          | fin <- fins
-          , let u = u0 ! fin
+          | bv <- basis
+          , let u = u0 ! bv
                 s = case sign u of
                   Negative -> showString " - " . showsPrec 11 (negative u)
                   Unsigned
-                    | u0 == zero && List.null fin -> showString "0"
+                    | u0 == zero && List.null bv -> showString "0"
                     | otherwise -> showString ""
                   Positive -> showString " + " . showsPrec 11 u
-                Endo es = flip foldWith fin \f -> Endo do
+                Endo es = flip foldWith bv \f -> Endo do
                   morphism (from @_ @Natural) f & \case
                     South -> case sign u of
                       Negative -> showString "e-"
@@ -103,24 +108,6 @@ instance
 instance Morphisms (->) (->) (Conformal n) where
   morphism :: (x -> y) -> Conformal n x -> Conformal n y
   morphism x_y (Conformal u) = Conformal (morphism x_y u)
-
-exp_ ::
-  ( KnownNat n
-  , From Int x
-  , Eq x
-  , Ring x
-  , Conjugate x
-  , Division x x x
-  ) =>
-  Conformal n x -> Conformal n x
-exp_ alpha =
-  one
-    + sum
-      [ foldl (*) invfac (List.replicate coeff alpha)
-      | coeff <- [1 .. 10000]
-      , let fac = foldl (*) 1 [1 .. coeff]
-            invfac = scalar (one / from fac)
-      ]
 
 (!) ::
   forall n x.
@@ -153,9 +140,9 @@ basisMulConformal (s, m) (t, n) = gnome [] (s <> t) (m * n)
     EQ -> back pre rest if a == eneg then negative c else c
     GT -> back pre (b : a : rest) (negative c)
    where
-    back p r c' = case List1.list1 p of
-      Nothing -> gnome [] r c'
-      Just p' -> gnome (List1.init p') (List1.last p' : r) c'
+    back p = case List1.list1 p of
+      Nothing -> gnome []
+      Just p' -> gnome (List1.init p') . (List1.last p' :)
   gnome pre rest c = (pre <> rest, c)
 
 wedge ::
@@ -191,27 +178,36 @@ expansion u v = u `wedge` negative (dual v)
 
 origin ::
   (KnownNat n, Eq x, Ring x, Conjugate x, Division x x x) =>
-  Conformal n x
-origin =
+  x -> Conformal n x
+origin x =
   canonical
-    [ ([epos], one)
-    , ([eneg], negative one)
+    [ ([epos], half x)
+    , ([eneg], negative (half x))
     ]
+
+originCoeff ::
+  (KnownNat n, Eq x, Ring x, Conjugate x, Division x x x) => Conformal n x -> x
+originCoeff u = (maybe zero half . ungrade0) (u `dot` infinity one)
+
 infinity ::
   (KnownNat n, Eq x, Ring x, Conjugate x) =>
-  Conformal n x
-infinity = canonical [([epos], one), ([eneg], one)]
+  x -> Conformal n x
+infinity x = canonical [([epos], x), ([eneg], x)]
+
+infinityCoeff ::
+  (KnownNat n, Eq x, Ring x, Conjugate x, Division x x x) => Conformal n x -> x
+infinityCoeff u = (maybe zero id . ungrade0) (u `dot` origin one)
+
 minkowskiPlane ::
   (KnownNat n, Eq x, Ring x, Conjugate x, Division x x x) =>
   Conformal n x
-minkowskiPlane = wedge origin infinity
+minkowskiPlane = origin one `wedge` infinity one
 
 scalar :: (KnownNat n) => x -> Conformal n x
-scalar x = Conformal (Map.fromList [([], x)])
+scalar x = Conformal (Map.singleton [] x)
 
-pseudoscalar :: (KnownNat n) => x -> Conformal n x
-pseudoscalar x = Conformal do
-  Map.fromList [([eneg] <> morphism Meridian finites <> [epos], x)]
+pseudoscalar :: (KnownNat n, Eq x, Ring x, Conjugate x) => x -> Conformal n x
+pseudoscalar x = canonical [(List.reverse pseud, x)]
 
 canonical ::
   forall n x.
@@ -220,14 +216,14 @@ canonical ::
 canonical = (one *) . Conformal . Map.fromList
 
 ep :: (KnownNat n, Multiplicative x) => Conformal n x
-ep = Conformal (Map.fromList [([epos], one)])
+ep = Conformal (Map.singleton [epos] one)
 
 en :: (KnownNat n, Multiplicative x) => Conformal n x
-en = Conformal (Map.fromList [([eneg], one)])
+en = Conformal (Map.singleton [eneg] one)
 
 grade :: forall n x. (KnownNat n) => Natural -> Conformal n x -> Conformal n x
-grade k (Conformal u) =
-  Conformal (ifilter @[Suspension (Finite n)] (\fs _ -> length fs == k) u)
+grade k (Conformal u) = Conformal do
+  ifilter @[Suspension (Finite n)] (\fs _ -> length fs == k) u
 
 ungrade0 :: (Additive x) => Conformal n x -> Maybe x
 ungrade0 (Conformal u) = case Map.lookupMin u of
@@ -242,63 +238,92 @@ point ::
 point u =
   negative (scalar (half one))
     * (vectorPart u - ep)
-    * infinity
+    * infinity one
     * (vectorPart u - ep)
 
 vectorPart :: (KnownNat n) => V n x -> Conformal n x
-vectorPart u =
-  (Conformal . Map.fromList) do
-    List.zip (morphism (pure . Meridian) finites) (Matrix.toList u)
+vectorPart u = (Conformal . Map.fromList) do
+  List.zip (morphism (pure . Meridian) finites) (Matrix.toList u)
 
-conformalToV ::
+unpoint ::
   forall n x.
   (KnownNat n, Eq x, Ring x, Conjugate x, Division x x x) =>
   Conformal n x -> Maybe (V n x)
-conformalToV mu =
+unpoint mu =
   let d = mu ! [eneg] - mu ! [epos]
       obtain s = (mu ! s) / d
-   in guard (d /= zero) >> Matrix.fromList @n do
-        morphism (obtain . pure . Meridian . from) (finites @n)
+   in guard (d /= zero) >> Matrix.fromList do
+        morphism (obtain . pure . Meridian) finites
 
 sphere ::
   (KnownNat n, Eq x, Ring x, Conjugate x, Division x x x) =>
   V n x -> x -> Conformal n x
-sphere c r =
-  point c - scalar ((r * r) / (one + one)) * infinity
+sphere c r = dual do
+  point c - scalar ((r * r) / (one + one)) * infinity one
+
+sphereP ::
+  forall n x.
+  (KnownNat n, Eq x, Ring x, Conjugate x, Division x x x) =>
+  V n x -> V n x -> V n x -> V n x -> Conformal n x
+sphereP p0 p1 p2 p3 =
+  point p0 `wedge` point p1 `wedge` point p2 `wedge` point p3
 
 line ::
   (KnownNat n, Eq x, Ring x, Conjugate x, Division x x x) =>
   V n x -> V n x -> Conformal n x
-line p q = point p `wedge` point q `wedge` infinity
+line p q = point p `wedge` point q `wedge` infinity one
 
 plane ::
   (KnownNat n, Eq x, Ring x, Conjugate x, Division x x x) =>
   V n x -> V n x -> V n x -> Conformal n x
-plane p q r = point p `wedge` point q `wedge` point r `wedge` infinity
+plane p q r = point p `wedge` point q `wedge` point r `wedge` infinity one
 
 translate ::
   (KnownNat n, Eq x, Ring x, Conjugate x, Division x x x) =>
   V n x -> Conformal n x -> Conformal n x
 translate va x =
   let a = vectorPart (morphism (negative . half) va)
-      ta = one + (infinity * a)
-      ta_ = one + (a * infinity)
+      ta = one + (infinity one * a)
+      ta_ = one + (a * infinity one)
    in ta_ * x * ta
 
 dilate ::
-  (KnownNat n, Eq x, Ring x, Conjugate x, Division x x x, Logarithmic x) =>
+  forall n x.
+  ( KnownNat n
+  , Eq x
+  , Ring x
+  , Conjugate x
+  , Signed x
+  , MultiplicativeGroup x
+  , Logarithmic x
+  , Hyperbolic x
+  ) =>
   x -> Conformal n x -> Conformal n x
-dilate alpha x =
-  let ea_ = scalar (exp (negative alpha))
-      ea = morphism (exp alpha *.) (conformalToV x)
-   in ea_ * maybe zero point ea
+dilate alpha u0 = case sign alpha of
+  Negative -> dilate (negative alpha) case u0 of
+    Conformal u -> Conformal do
+      imorphism
+        @[Suspension (Finite n)]
+        ( \basisVectors x ->
+            if basisVectors `List.elem` [[epos], [eneg]] then x else negative x
+        )
+        u
+  Unsigned -> origin one
+  Positive ->
+    let d =
+          scalar @n (cosh (half (log alpha)))
+            + minkowskiPlane @n @x *. sinh (half (log alpha))
+        d_ =
+          scalar @n (cosh (half (log alpha)))
+            - minkowskiPlane @n @x *. sinh (half (log alpha))
+     in d_ * u0 * d
 
-conformalTransformation ::
+transvert ::
   (KnownNat n, Eq x, Ring x, Conjugate x, Division x x x) =>
   V n x -> Conformal n x -> Conformal n x
-conformalTransformation va x =
+transvert va x =
   let a = vectorPart va
-      ka = (one - scalar (half one) * origin * a)
+      ka = (one - origin (half one) * a)
    in ka * x * ka
 
 instance
@@ -335,9 +360,8 @@ instance
   Multiplication (Conformal n x) (Conformal n x) (Conformal n x)
   where
   (*.) :: Conformal n x -> Conformal n x -> Conformal n x
-  Conformal v *. Conformal w =
-    (Conformal . filter (/= zero)) do
-      Map.fromListWith (+) (liftA2 basisMulConformal (Map.assocs v) (Map.assocs w))
+  Conformal v *. Conformal w = (Conformal . filter (/= zero)) do
+    Map.fromListWith (+) (liftA2 basisMulConformal (Map.assocs v) (Map.assocs w))
 instance
   (KnownNat n, Eq x, Ring x, Conjugate x) =>
   Multiplicative (Conformal n x)
@@ -370,13 +394,13 @@ instance
 
 inversion ::
   (KnownNat n, Eq x, Ring x, Conjugate x, Division x x x) => V n x -> V n x
-inversion p = fromJust (conformalToV (ep * point p * ep))
+inversion p = fromJust (unpoint (ep * point p * ep))
 
 midpoint ::
   (KnownNat n, Eq x, Ring x, Conjugate x, Division x x x) =>
   V n x -> V n x -> V n x
 midpoint u v =
   let x = scalar (half one) * (point u + point v)
-      Just xdotn = ungrade0 (join (*) (x `dot` infinity))
-   in (fromJust . conformalToV) do
-        scalar (negative (half one) / xdotn) * (x * infinity * x)
+      Just xdotn = ungrade0 (join (*) (x `dot` infinity one))
+   in (fromJust . unpoint) do
+        scalar (negative (half one) / xdotn) * (x * infinity one * x)
