@@ -123,6 +123,9 @@ instance
 instance Morphisms (->) (->) (Conformal n) where
   morphism :: (x -> y) -> Conformal n x -> Conformal n y
   morphism x_y (Conformal u) = Conformal (morphism x_y u)
+instance Morphisms (Ix [Suspension (Finite n)]) (->) (Conformal n) where
+  morphism :: Ix [Suspension (Finite n)] x y -> Conformal n x -> Conformal n y
+  morphism (Ix fs_x_y) (Conformal u) = Conformal (morphism (Ix fs_x_y) u)
 
 (!) ::
   forall n x.
