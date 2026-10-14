@@ -31,6 +31,7 @@ module Flex.Math.Algebra.Geometric.Conformal
   , point
   , vectorPart
   , unpoint
+  , undipole
   , sphere
   , sphereP
   , line
@@ -182,7 +183,9 @@ dot ::
 dot (Conformal u) (Conformal v) = (Conformal . filter (/= zero)) do
   Map.fromListWith (+) (justs id (liftA2 f (Map.assocs u) (Map.assocs v)))
  where
-  f a@(s, _) b@(t, _) = guard (length t == length s + length w) >> pure c
+  f a@(s, _) b@(t, _) =
+    guard (length t == length s + length w || length s == length t + length w)
+      >> pure c
    where
     c@(w, _) = basisMulConformal a b
 
@@ -286,11 +289,26 @@ unpoint ::
   forall n x.
   (KnownNat n, Eq x, Ring x, Conjugate x, Division x x x) =>
   Conformal n x -> Maybe (V n x)
-unpoint mu =
+unpoint mu = do
   let d = mu ! [eneg] - mu ! [epos]
       obtain s = (mu ! s) / d
-   in guard (d /= zero) >> Matrix.fromList do
-        morphism (obtain . pure . Meridian) finites
+  guard (d /= zero) >> Matrix.fromList do
+    morphism (obtain . pure . Meridian) finites
+
+undipole ::
+  forall n x.
+  (KnownNat n, Eq x, Root x, Conjugate x) =>
+  Conformal n x -> Maybe (V n x, V n x)
+undipole u = do
+  b2 <- ungrade0 (u * u)
+  let beta = 2 √ b2
+      f = scalar (reciprocal beta) * u
+      p0 = scalar (half one) * (one + f)
+      p1 = scalar (half one) * (one - f)
+      un = u `dot` infinity one
+  a <- unpoint (negative p1 * un)
+  b <- unpoint (p0 * un)
+  pure (a, b)
 
 sphere ::
   (KnownNat n, Eq x, Ring x, Conjugate x, Division x x x) =>
