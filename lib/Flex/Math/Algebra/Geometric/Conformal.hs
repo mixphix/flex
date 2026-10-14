@@ -11,6 +11,8 @@ module Flex.Math.Algebra.Geometric.Conformal
   , dual
   , wedge
   , dot
+  , lcontr
+  , rcontr
   , meet
   , expansion
   , origin
@@ -25,6 +27,7 @@ module Flex.Math.Algebra.Geometric.Conformal
   , canonical
   , grade
   , ungrade0
+  , maxGrade
   , point
   , vectorPart
   , unpoint
@@ -183,6 +186,16 @@ dot (Conformal u) (Conformal v) = (Conformal . filter (/= zero)) do
    where
     c@(w, _) = basisMulConformal a b
 
+lcontr ::
+  (KnownNat n, Eq x, Ring x, Conjugate x) =>
+  Conformal n x -> Conformal n x -> Conformal n x
+lcontr u v = (u `wedge` (v * pseudoscalar (negative one))) * pseudoscalar one
+
+rcontr ::
+  (KnownNat n, Eq x, Ring x, Conjugate x) =>
+  Conformal n x -> Conformal n x -> Conformal n x
+rcontr u v = pseudoscalar one * ((pseudoscalar (negative one) * u) `wedge` v)
+
 meet ::
   (KnownNat n, Eq x, Ring x, Conjugate x) =>
   Conformal n x -> Conformal n x -> Conformal n x
@@ -242,6 +255,12 @@ en = Conformal (Map.singleton [eneg] one)
 grade :: forall n x. (KnownNat n) => Natural -> Conformal n x -> Conformal n x
 grade k (Conformal u) = Conformal do
   ifilter @[Suspension (Finite n)] (\fs _ -> length fs == k) u
+
+maxGrade :: forall n x. (KnownNat n, Eq x, Ring x) => Conformal n x -> Natural
+maxGrade (Conformal u) = maybe zero getMax do
+  ifoldWith @[Suspension (Finite n)]
+    (\bv x -> guard (x /= zero) >> pure (Max (length bv)))
+    u
 
 ungrade0 :: (Additive x) => Conformal n x -> Maybe x
 ungrade0 (Conformal u) = case Map.lookupMin u of
