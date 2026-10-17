@@ -73,27 +73,19 @@ instance (KnownNat n, Show x) => Show (V n x) where
   {-# INLINE showsPrec #-}
 
 pattern V1 :: x -> V 1 x
-pattern V1 x <- V (Vector.Strict.unsafeHead -> x)
- where
-  V1 x = V (Vector.Strict.singleton x)
+pattern V1 x = V [x]
 {-# COMPLETE V1 #-}
 
 pattern V2 :: x -> x -> V 2 x
-pattern V2 x y <- V (Vector.Strict.slice 0 2 -> [x, y])
- where
-  V2 x y = V (Vector.Strict.fromListN 2 [x, y])
+pattern V2 x y = V [x, y]
 {-# COMPLETE V2 #-}
 
 pattern V3 :: x -> x -> x -> V 3 x
-pattern V3 x y z <- V (Vector.Strict.slice 0 3 -> [x, y, z])
- where
-  V3 x y z = V (Vector.Strict.fromListN 3 [x, y, z])
+pattern V3 x y z = V [x, y, z]
 {-# COMPLETE V3 #-}
 
 pattern V4 :: x -> x -> x -> x -> V 4 x
-pattern V4 x y z w <- V (Vector.Strict.slice 0 4 -> [x, y, z, w])
- where
-  V4 x y z w = V (Vector.Strict.fromListN 4 [x, y, z, w])
+pattern V4 x y z w = V [x, y, z, w]
 {-# COMPLETE V4 #-}
 
 (++) :: V m x -> V n x -> V (m + n) x
