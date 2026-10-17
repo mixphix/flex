@@ -91,6 +91,9 @@ module Flex.Math.Category
   , Traversable1
   , sequence1
   , for1
+  , MaybeF (NothingF, JustF)
+  , traverse1F
+  , itraverse1F
   , IxTraversable1
   , itraverse1
   , ifor1
@@ -239,6 +242,7 @@ import Data.Traversable qualified as Data
 import Data.Tuple (curry, fst, snd, uncurry)
 import Data.Type.Equality (type (~))
 import Data.Vector qualified as Vector
+import Data.Vector.Strict qualified as Vector.Strict
 import Data.Void (Void, absurd)
 import GHC.Arr (Array)
 import GHC.Arr qualified as Array
@@ -250,6 +254,7 @@ import GHC.Real (fromIntegral)
 import GHC.ST
 import Numeric.Natural (Natural)
 import System.IO (IO)
+import Text.Show (Show)
 
 -- Categories and Functors
 
@@ -519,6 +524,9 @@ instance Morphisms (->) (->) Seq where
 instance Morphisms (->) (->) Vector.Vector where
   morphism :: (x -> y) -> Vector.Vector x -> Vector.Vector y
   morphism = Data.fmap
+instance Morphisms (->) (->) Vector.Strict.Vector where
+  morphism :: (x -> y) -> Vector.Strict.Vector x -> Vector.Strict.Vector y
+  morphism = Data.fmap
 
 type OrdAlong f = Morphisms (~>) (->) f
 
@@ -752,6 +760,18 @@ instance Morphisms (Ix Integer) (->) Vector.Vector where
 instance Morphisms (Ix Natural) (->) Vector.Vector where
   morphism :: Ix Natural x y -> Vector.Vector x -> Vector.Vector y
   morphism (Ix i_x_y) = Vector.imap (i_x_y . fromIntegral)
+  {-# INLINE morphism #-}
+instance Morphisms (Ix Int) (->) Vector.Strict.Vector where
+  morphism :: Ix Int x y -> Vector.Strict.Vector x -> Vector.Strict.Vector y
+  morphism (Ix i_x_y) = Vector.Strict.imap i_x_y
+  {-# INLINE morphism #-}
+instance Morphisms (Ix Integer) (->) Vector.Strict.Vector where
+  morphism :: Ix Integer x y -> Vector.Strict.Vector x -> Vector.Strict.Vector y
+  morphism (Ix i_x_y) = Vector.Strict.imap (i_x_y . fromIntegral)
+  {-# INLINE morphism #-}
+instance Morphisms (Ix Natural) (->) Vector.Strict.Vector where
+  morphism :: Ix Natural x y -> Vector.Strict.Vector x -> Vector.Strict.Vector y
+  morphism (Ix i_x_y) = Vector.Strict.imap (i_x_y . fromIntegral)
   {-# INLINE morphism #-}
 
 instance Morphisms (Ix Void) (->) V1 where
@@ -1018,6 +1038,10 @@ instance Folds (->) (->) Vector.Vector where
   foldWith :: (Monoid z) => (x -> z) -> Vector.Vector x -> z
   foldWith = Data.foldMap
   {-# INLINE foldWith #-}
+instance Folds (->) (->) Vector.Strict.Vector where
+  foldWith :: (Monoid z) => (x -> z) -> Vector.Strict.Vector x -> z
+  foldWith = Data.foldMap'
+  {-# INLINE foldWith #-}
 
 -- | > type IxFoldable i = C2 (Folds (->) (->)) (Folds (Ix i) (->))
 type IxFoldable i = C2 (Folds (->) (->)) (Folds (Ix i) (->))
@@ -1195,6 +1219,18 @@ instance Folds (Ix Integer) (->) Vector.Vector where
 instance Folds (Ix Natural) (->) Vector.Vector where
   foldWith :: (Monoid z) => Ix Natural x z -> Vector.Vector x -> z
   foldWith (Ix i_x_z) = Vector.foldMap (uncurry (i_x_z . fromIntegral)) . Vector.indexed
+  {-# INLINE foldWith #-}
+instance Folds (Ix Int) (->) Vector.Strict.Vector where
+  foldWith :: (Monoid z) => Ix Int x z -> Vector.Strict.Vector x -> z
+  foldWith (Ix i_x_z) = Data.foldMap' (uncurry i_x_z) . Vector.Strict.indexed
+  {-# INLINE foldWith #-}
+instance Folds (Ix Integer) (->) Vector.Strict.Vector where
+  foldWith :: (Monoid z) => Ix Integer x z -> Vector.Strict.Vector x -> z
+  foldWith (Ix i_x_z) = Data.foldMap' (uncurry (i_x_z . fromIntegral)) . Vector.Strict.indexed
+  {-# INLINE foldWith #-}
+instance Folds (Ix Natural) (->) Vector.Strict.Vector where
+  foldWith :: (Monoid z) => Ix Natural x z -> Vector.Strict.Vector x -> z
+  foldWith (Ix i_x_z) = Data.foldMap' (uncurry (i_x_z . fromIntegral)) . Vector.Strict.indexed
   {-# INLINE foldWith #-}
 
 instance Folds (Ix Void) (->) V1 where
@@ -1816,6 +1852,13 @@ instance Apply Vector.Vector where
   (<*>) :: Vector.Vector (x -> y) -> Vector.Vector x -> Vector.Vector y
   (<*>) = (Control.<*>)
   {-# INLINE (<*>) #-}
+instance Apply Vector.Strict.Vector where
+  (<*>) ::
+    Vector.Strict.Vector (x -> y) ->
+    Vector.Strict.Vector x ->
+    Vector.Strict.Vector y
+  (<*>) = (Control.<*>)
+  {-# INLINE (<*>) #-}
 instance Apply Complex where
   (<*>) :: Complex (x -> y) -> Complex x -> Complex y
   (ry :+ iy) <*> (r :+ i) = ry r :+ iy i
@@ -1931,6 +1974,10 @@ instance Pure List where
 instance Pure Vector.Vector where
   pure :: x -> Vector.Vector x
   pure = Vector.singleton
+  {-# INLINE pure #-}
+instance Pure Vector.Strict.Vector where
+  pure :: x -> Vector.Strict.Vector x
+  pure = Vector.Strict.singleton
   {-# INLINE pure #-}
 instance (Pure f, Pure g) => Pure (Product f g) where
   pure :: x -> Product f g x
@@ -2175,6 +2222,14 @@ instance Traversals (->) (->) Vector.Vector where
   traverse x_gy v =
     let !n = Vector.length v
      in morphism (Vector.fromListN n) (traverse x_gy (Vector.toList v))
+  {-# INLINE traverse #-}
+instance Traversals (->) (->) Vector.Strict.Vector where
+  traverse ::
+    (Applicative g) =>
+    (x -> g y) -> Vector.Strict.Vector x -> g (Vector.Strict.Vector y)
+  traverse x_gy v =
+    let !n = Vector.Strict.length v
+     in morphism (Vector.Strict.fromListN n) (traverse x_gy (Vector.Strict.toList v))
   {-# INLINE traverse #-}
 
 instance Traversals (->) (->) V1 where
@@ -2425,6 +2480,36 @@ instance Traversals (Ix Natural) (->) Vector.Vector where
     let !n = Vector.length v
      in morphism (Vector.fromListN n) (traverse (Ix i_x_gy) (Vector.toList v))
   {-# INLINE traverse #-}
+instance Traversals (Ix Int) (->) Vector.Strict.Vector where
+  traverse ::
+    (Applicative g) =>
+    Ix Int x (g y) -> Vector.Strict.Vector x -> g (Vector.Strict.Vector y)
+  traverse (Ix i_x_gy) v =
+    let !n = Vector.Strict.length v
+     in morphism
+          (Vector.Strict.fromListN n)
+          (traverse (Ix i_x_gy) (Vector.Strict.toList v))
+  {-# INLINE traverse #-}
+instance Traversals (Ix Integer) (->) Vector.Strict.Vector where
+  traverse ::
+    (Applicative g) =>
+    Ix Integer x (g y) -> Vector.Strict.Vector x -> g (Vector.Strict.Vector y)
+  traverse (Ix i_x_gy) v =
+    let !n = Vector.Strict.length v
+     in morphism
+          (Vector.Strict.fromListN n)
+          (traverse (Ix i_x_gy) (Vector.Strict.toList v))
+  {-# INLINE traverse #-}
+instance Traversals (Ix Natural) (->) Vector.Strict.Vector where
+  traverse ::
+    (Applicative g) =>
+    Ix Natural x (g y) -> Vector.Strict.Vector x -> g (Vector.Strict.Vector y)
+  traverse (Ix i_x_gy) v =
+    let !n = Vector.Strict.length v
+     in morphism
+          (Vector.Strict.fromListN n)
+          (traverse (Ix i_x_gy) (Vector.Strict.toList v))
+  {-# INLINE traverse #-}
 
 instance Traversals (Ix Void) (->) V1 where
   traverse :: (Applicative g) => Ix Void x (g y) -> V1 x -> g (V1 y)
@@ -2514,6 +2599,34 @@ sequence1 = traverse1 (id :: x -> x)
 for1 :: (Traversable1 f, Apply g) => f x -> (x -> g y) -> g (f y)
 for1 = flip traverse1
 {-# INLINE for1 #-}
+
+data MaybeF f x
+  = NothingF x
+  | JustF (f x)
+  deriving (Show)
+instance (Along f) => Morphisms (->) (->) (MaybeF f) where
+  morphism :: (x -> y) -> MaybeF f x -> MaybeF f y
+  morphism x_y = \case
+    NothingF x -> NothingF (x_y x)
+    JustF fx -> JustF (morphism x_y fx)
+instance (Apply g) => Apply (MaybeF g) where
+  (<*>) :: (Apply g) => MaybeF g (x -> y) -> MaybeF g x -> MaybeF g y
+  (<*>) = \cases
+    (NothingF x_y) (NothingF x) -> NothingF (x_y x)
+    (NothingF x_y) (JustF fx) -> JustF (morphism x_y fx)
+    (JustF fxy) (NothingF x) -> JustF (morphism (\x_y -> x_y x) fxy)
+    (JustF fxy) (JustF fx) -> JustF (fxy <*> fx)
+instance Pure (MaybeF g) where
+  pure :: x -> MaybeF g x
+  pure = NothingF
+
+traverse1F ::
+  (Traversable f, Apply g) => (x -> g y) -> f x -> MaybeF g (f y)
+traverse1F x_gy = traverse (JustF . x_gy)
+
+itraverse1F ::
+  (IxTraversable i f, Apply g) => (i -> x -> g y) -> f x -> MaybeF g (f y)
+itraverse1F i_x_gy = traverse (Ix do (JustF .) . i_x_gy)
 
 instance Traversals1 (->) (->) Identity where
   traverse1 :: (Apply g) => (x -> g y) -> Identity x -> g (Identity y)

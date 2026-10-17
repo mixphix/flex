@@ -46,14 +46,14 @@ module Flex.Math.Algebra.Geometric.Conformal
 
 import Flex.Math.Category
 import Flex.Math.Foldable (length)
-import Flex.Math.Matrix hiding ((!))
-import Flex.Math.Matrix qualified as Matrix
 import Flex.Math.Numbers
 import Flex.Math.Suspension
+import Flex.Math.Vector hiding ((!))
+import Flex.Math.Vector qualified as V
 
 import Data.Bool
 import Data.Eq
-import Data.Finite (finites)
+import Data.Finite (Finite, finites)
 import Data.Function (flip, (&))
 import Data.List qualified as List
 import Data.List1 qualified as List1
@@ -283,7 +283,7 @@ point u =
 
 vectorPart :: (KnownNat n) => V n x -> Conformal n x
 vectorPart u = (Conformal . Map.fromList) do
-  List.zip (morphism (pure . Meridian) finites) (Matrix.toList u)
+  List.zip (morphism (pure . Meridian) finites) (V.toList u)
 
 unpoint ::
   forall n x.
@@ -292,7 +292,7 @@ unpoint ::
 unpoint mu = do
   let d = mu ! [eneg] - mu ! [epos]
       obtain s = (mu ! s) / d
-  guard (d /= zero) >> Matrix.fromList do
+  guard (d /= zero) >> V.fromList do
     morphism (obtain . pure . Meridian) finites
 
 undipole ::

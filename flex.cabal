@@ -70,6 +70,7 @@ library
     Flex.Math.Structure
     Flex.Math.Suspension
     Flex.Math.Transformer
+    Flex.Math.Vector
 
   other-modules:
     Flex.Math.Optics.TH

@@ -13,6 +13,7 @@ import Flex.Math.Basis
 import Flex.Math.Category
 import Flex.Math.Matrix
 import Flex.Math.Numbers
+import Flex.Math.Vector
 
 import Data.Bool
 import Data.Bounded (Bounded (..))

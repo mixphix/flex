@@ -6,10 +6,10 @@ module Flex.Math.LieBracket
   , Laws (..)
   ) where
 
-import Flex.Math.Matrix
 import Flex.Math.Module
 import Flex.Math.Numbers
 import Flex.Math.Structure
+import Flex.Math.Vector
 
 import Data.Bool (Bool)
 import Data.Eq (Eq (..))

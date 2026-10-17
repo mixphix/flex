@@ -120,10 +120,10 @@ module Flex.Math
     -- *** Examples
   , Complex ((:+))
   , Quaternion (..)
-  , V (VV, V1, V2, V3, V4, V5, V6, V7, V8)
-  , (!)
+  , V (V1, V2, V3, V4)
   , vn
-  , vnM
+  , vnA
+  , (!)
   , upto
   , orthogonalize
   , orthonormalize
@@ -313,9 +313,6 @@ module Flex.Math
   )
 where
 
-import Data.Eq (Eq (..))
-import Data.List1 (List1)
-import Data.Ord (Ord (..), Ordering (..), comparing)
 import Flex.Math.Action
 import Flex.Math.Algebra
 import Flex.Math.Base
@@ -336,6 +333,11 @@ import Flex.Math.Projective
 import Flex.Math.Rack
 import Flex.Math.Structure
 import Flex.Math.Suspension
+import Flex.Math.Vector
+
+import Data.Eq (Eq (..))
+import Data.List1 (List1)
+import Data.Ord (Ord (..), Ordering (..), comparing)
 import GHC.Base (Double)
 import GHC.Num (Num)
 import GHC.Real qualified as Num

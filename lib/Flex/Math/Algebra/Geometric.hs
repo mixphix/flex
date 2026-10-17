@@ -22,14 +22,14 @@ import Flex.Math.Algebra
 import Flex.Math.Basis
 import Flex.Math.Category
 import Flex.Math.Foldable (length, product)
-import Flex.Math.Matrix hiding ((!))
 import Flex.Math.Module
 import Flex.Math.Numbers
+import Flex.Math.Vector hiding ((!))
 
 import Control.Exception
 import Data.Bool
 import Data.Eq
-import Data.Finite (finites)
+import Data.Finite (Finite, finites)
 import Data.List qualified as List
 import Data.List1 qualified as List1
 import Data.Map.Strict (Map)

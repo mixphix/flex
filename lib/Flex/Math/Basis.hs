@@ -11,6 +11,7 @@ import Flex.Math.Minkowski
 import Flex.Math.Module
 import Flex.Math.Numbers
 import Flex.Math.Perplex
+import Flex.Math.Vector
 
 import Data.Eq (Eq ((==)))
 
