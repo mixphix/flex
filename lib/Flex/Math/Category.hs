@@ -7,13 +7,6 @@
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE UndecidableSuperClasses #-}
 
-{- HLINT ignore "Avoid lambda" -}
-{- HLINT ignore "Eta reduce" -}
-{- HLINT ignore "Use first" -}
-{- HLINT ignore "Use unless" -}
-{- HLINT ignore "Use when" -}
-{- HLINT ignore "Use >=>" -}
-
 module Flex.Math.Category
   ( -- * Constrained categories
     Category (type Objects, id, (.))
@@ -26,6 +19,8 @@ module Flex.Math.Category
     -- ** Other examples of categories
   , Ix (Ix, ix)
   , type (~>) (OrdArrow, unOrdArrow)
+  , Kleisli (Kleisli, runKleisli)
+  , Cokleisli (Cokleisli, runCokleisli)
 
     -- * Functors
   , Morphisms (morphism)
