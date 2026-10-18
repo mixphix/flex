@@ -40,17 +40,17 @@ import Control.Applicative qualified as Control
 import Data.Bool
 import Data.Enum
 import Data.Eq
-import Data.Finite (Finite, finite, getFinite)
+import Data.Finite
 import Data.Foldable qualified as Data
 import Data.Function (fix, flip)
 import Data.Functor qualified as Data
 import Data.Functor.Const (Const (Const))
-import Data.Kind (Type)
+import Data.Kind
 import Data.List qualified as List
 import Data.Maybe
-import Data.Ord (Ord (..))
+import Data.Ord
 import Data.Proxy
-import Data.Semigroup (Endo (..))
+import Data.Semigroup
 import Data.Traversable qualified as Data
 import Data.Type.Equality (type (~))
 import Data.Type.Ord
@@ -317,8 +317,8 @@ toList (V v) = Vector.Strict.toList v
 
 fromList :: forall n x. (KnownNat n) => [x] -> Maybe (V n x)
 fromList xs
-  | length xs == natVal (Proxy @n) =
-      pure (V (Vector.Strict.fromListN (from (natVal (Proxy @n))) xs))
+  | length xs == natVal (Proxy @n) = (pure . V) do
+      Vector.Strict.fromListN (from (natVal (Proxy @n))) xs
   | otherwise = nil
 {-# INLINE fromList #-}
 
@@ -337,11 +337,11 @@ instance (KnownNat n) => Collectable (V n) where
   {-# INLINE distribute #-}
 instance (KnownNat n) => Tabulation (V n) where
   type Table (V n) = Finite n
-  fromTable :: (Table (V n) -> x) -> V n x
-  fromTable tx = vn @n \i -> tx (finite (from i))
+  fromTable :: (Finite n -> x) -> V n x
+  fromTable i_x = vn (i_x . from)
   {-# INLINE fromTable #-}
-  toTable :: V n x -> Table (V n) -> x
-  toTable v i = v ! from (getFinite i)
+  toTable :: V n x -> Finite n -> x
+  toTable v i = v ! from i
   {-# INLINE toTable #-}
 
 instance (Addition x x x) => Addition (V n x) (V n x) (V n x) where
