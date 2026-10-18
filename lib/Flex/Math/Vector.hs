@@ -4,7 +4,7 @@
 {-# OPTIONS_GHC -fplugin GHC.TypeLits.KnownNat.Solver #-}
 
 module Flex.Math.Vector
-  ( V (unV)
+  ( V (V, unV)
   , data V1
   , data V2
   , data V3

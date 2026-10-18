@@ -176,7 +176,9 @@ instance (KnownNat m, KnownNat n, Ord x) => Ord (M m n x) where
 instance (KnownNat m, KnownNat n, Show x) => Show (M m n x) where
   showsPrec :: Int -> M m n x -> ShowS
   showsPrec prec (M a) = showParen (prec > 10) do
-    showString "M {" . foldWith inside a . showString "}"
+    showString "M {"
+      . appEndo (foldWith (Endo . inside) a)
+      . showString "}"
    where
     inside ::
       forall k. (KnownNat k, Show x) => V k x -> ShowS

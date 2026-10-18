@@ -25,6 +25,7 @@ import Data.List qualified as List
 import Data.Maybe
 import Data.Ord (Ord)
 import Data.Tuple
+import Data.Vector.Strict qualified as Vector.Strict
 import Text.Show (Show)
 
 newtype S n = S {s :: V n (Finite n)}
@@ -64,7 +65,7 @@ instance (KnownNat n) => AdditiveGroup (S n) where
   {-# INLINE negative #-}
 
 permute :: forall n x. (KnownNat n) => S n -> V n x -> V n x
-permute (S s) u = vn @n \i -> u ! from (s ! i)
+permute (S (V s)) (V v) = V (Vector.Strict.backpermute v (morphism from s))
 {-# INLINE permute #-}
 
 transposition :: forall n. (KnownNat n) => Finite n -> S n
