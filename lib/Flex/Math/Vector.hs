@@ -186,7 +186,7 @@ shifted = shifted' (natVal (Proxy @n))
 {-# INLINE shifted #-}
 
 reverse :: forall n x. (KnownNat n) => V n x -> V n x
-reverse v = vn @n \i -> v ! (natVal (Proxy @n) - 1 - i)
+reverse (V v) = V (Vector.Strict.reverse v)
 {-# INLINE reverse #-}
 
 instance Morphisms (->) (->) (V n) where
