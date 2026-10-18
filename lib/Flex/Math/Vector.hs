@@ -98,7 +98,10 @@ vn i_x = V do Vector.Strict.generate (from (natVal (Proxy @n))) (i_x . from)
 
 vnA :: forall g n x. (KnownNat n, Apply g) => (Natural -> g x) -> g (V n x)
 vnA i_gx = morphism V do
-  flip fix 0 \rec n -> liftA2 (Vector.Strict.cons) (i_gx n) (rec (succ n))
+  flip fix 0 \rec n ->
+    if succ n == natVal (Proxy @n)
+      then morphism Vector.Strict.singleton (i_gx n)
+      else liftA2 (Vector.Strict.cons) (i_gx n) (rec (succ n))
 {-# INLINE vnA #-}
 
 upto :: forall n. (KnownNat n) => Const [Natural] n
