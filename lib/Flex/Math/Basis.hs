@@ -20,9 +20,7 @@ class (Module (v x), Tabulation v) => Basis v x where
 
 instance (KnownNat n, Ring x) => Basis (V n) x where
   basis :: Finite n -> V n x
-  basis j' =
-    let j = from (getFinite j')
-     in vn @n \i -> if i == j then one else zero
+  basis j = vn (indicator (== from j))
   {-# INLINE basis #-}
 
 instance (Ring x) => Basis Complex x where

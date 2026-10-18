@@ -40,6 +40,7 @@ module Flex.Math.Numbers
   , MultiplicativeAbelian
   , MultiplicativeGroup (reciprocal)
   , MultiplicativeAbelianGroup
+  , indicator
   , Distributive
   , Semiring
   , Ring
@@ -2466,6 +2467,9 @@ instance
   {-# INLINE reciprocal #-}
 
 type MultiplicativeAbelianGroup = C2 MultiplicativeAbelian MultiplicativeGroup
+
+indicator :: (Additive x, Multiplicative x) => (q -> Bool) -> q -> x
+indicator isQ q = if isQ q then one else zero
 
 -- Power
 
