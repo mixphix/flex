@@ -60,11 +60,10 @@ import Control.Applicative qualified as Control
 import Data.Bool
 import Data.Enum
 import Data.Eq
-import Data.Finite (Finite, getFinite)
+import Data.Finite (Finite, finites, getFinite)
 import Data.Foldable qualified as Data
-import Data.Function (const, flip)
+import Data.Function (const, flip, on)
 import Data.Functor qualified as Data
-import Data.Functor.Const (Const (Const))
 import Data.List qualified as List
 import Data.List1 (List1)
 import Data.Maybe
@@ -436,6 +435,7 @@ instance
   a <•> b = case trace @(M m m) (a *. adjoint @x @(M m n) @(M n m) b) of
     ScalarM x -> ScalarM x
   {-# INLINE (<•>) #-}
+instance (KnownNat m, KnownNat n, Eq x, Field x) => Vector (M m n x)
 instance
   ( KnownNat n
   , Eq x
@@ -453,7 +453,6 @@ instance
 instance
   (KnownNat n, Eq x, Ring x) =>
   AssociativeAlgebra (M n n x)
-instance (KnownNat m, KnownNat n, Eq x, Field x) => Vector (M m n x)
 
 instance (KnownNat m, KnownNat n) => Indices (M m n x) where
   type Index (M m n x) = (Natural, Natural)
@@ -485,14 +484,14 @@ instance (KnownNat m, KnownNat n) => Matrix (M m n) (M n m) x where
   {-# INLINE transpose #-}
 instance (KnownNat n, Eq x, MultiplicativeAbelian x, Ring x) => Square (M n n) x where
   trace :: M n n x -> Scalar (M n n x)
-  trace (M a) = ScalarM (sumOn (\k -> a ! k ! k) (upto @n).getConst)
+  trace (M a) = ScalarM (sumOn (\k -> a ! from k ! from k) (finites @n))
   {-# INLINE trace #-}
   determinant :: M n n x -> Scalar (M n n x)
   determinant (M a) = ScalarM do
     flip sumOn (List.permutations ns) \p ->
-      signature p * productOn (\x -> a ! x ! (p List.!! from x)) ns
+      signature p * productOn (\x -> a ! from x ! from (p List.!! from x)) ns
    where
-    Const ns = upto @n
+    ns = finites @n
     signature p = product do
       i <- ns
       j <- List.dropWhile (<= i) ns
@@ -506,8 +505,8 @@ permanent ::
   (KnownNat n, MultiplicativeAbelian x, Ring x) =>
   M n n x -> Scalar (M n n x)
 permanent (M a) = ScalarM do
-  flip sumOn (List.permutations (upto @n).getConst) \p ->
-    productOn (\x -> a ! x ! (p List.!! from x)) (upto @n).getConst
+  flip sumOn (List.permutations (finites @n)) \p ->
+    productOn (\x -> a ! from x ! from (p List.!! from x)) (finites @n)
 
 instance
   (KnownNat n, AdditiveAbelian x, Multiplicative x) =>
@@ -707,39 +706,39 @@ gramMatrix vs = M do vn @m \i -> vn @m \j -> (vs ! i <•> vs ! j).unScalar
 diagonal :: forall n x. (KnownNat n, Additive x, Eq x) => M n n x -> Bool
 diagonal (M a) = all
   do \(i, j) -> i == j || a ! i ! j == zero
-  do join (liftM2 (,)) (upto @n).getConst
+  do join (liftM2 (on (,) from)) (finites @n)
 {-# INLINE diagonal #-}
 
 upperTriangular ::
   forall n x. (KnownNat n, Additive x, Eq x) => M n n x -> Bool
 upperTriangular (M a) = Data.all
   do \(i, j) -> i <= j || a ! i ! j == zero
-  do join (liftM2 (,)) (upto @n).getConst
+  do join (liftM2 (on (,) from)) (finites @n)
 {-# INLINE upperTriangular #-}
 
 lowerTriangular ::
   forall n x. (KnownNat n, Additive x, Eq x) => M n n x -> Bool
 lowerTriangular (M a) = Data.all
   do \(i, j) -> i >= j || a ! i ! j == zero
-  do join (liftM2 (,)) (upto @n).getConst
+  do join (liftM2 (on (,) from)) (finites @n)
 {-# INLINE lowerTriangular #-}
 
 symmetric :: forall n x. (KnownNat n, Eq x) => M n n x -> Bool
 symmetric (M a) = Data.all
   do \(i, j) -> a ! i ! j == a ! j ! i
   do
-    i <- (upto @n).getConst
-    j <- List.dropWhile (<= i) (upto @n).getConst
-    pure (i, j)
+    i <- finites @n
+    j <- List.dropWhile (<= i) finites
+    pure (from i, from j)
 {-# INLINE symmetric #-}
 
 hermitian :: forall n x. (KnownNat n, Eq x, Conjugate x) => M n n x -> Bool
 hermitian (M a) = Data.all
   do \(i, j) -> a ! i ! j == conjugate (a ! j ! i)
   do
-    i <- (upto @n).getConst
-    j <- List.dropWhile (< i) (upto @n).getConst
-    pure (i, j)
+    i <- finites @n
+    j <- List.dropWhile (< i) finites
+    pure (from i, from j)
 {-# INLINE hermitian #-}
 
 pattern M22 :: x -> x -> x -> x -> M 2 2 x

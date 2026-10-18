@@ -9,7 +9,6 @@ module Flex.Math.Vector
   , data V2
   , data V3
   , data V4
-  , upto
   , (++)
   , vn
   , vnA
@@ -44,7 +43,6 @@ import Data.Finite
 import Data.Foldable qualified as Data
 import Data.Function (fix, flip)
 import Data.Functor qualified as Data
-import Data.Functor.Const (Const (Const))
 import Data.Kind
 import Data.List qualified as List
 import Data.Maybe
@@ -60,6 +58,9 @@ import GHC.Generics (Generic)
 import GHC.TypeNats
 import Text.Show
 
+-- |
+-- A @'V' n x@ is a 'Vector.Strict.Vector' with its length encoded at the type level.
+-- This allows for efficient vector mathematics to be computed.
 type V :: Nat -> Type -> Type
 newtype V n x = V {unV :: Vector.Strict.Vector x}
   deriving (Eq, Ord, Data.Functor, Data.Foldable, Data.Traversable)
@@ -72,30 +73,48 @@ instance (KnownNat n, Show x) => Show (V n x) where
       . showString "}"
   {-# INLINE showsPrec #-}
 
+-- |
+-- Match on a 'V' of length 1.
 pattern V1 :: x -> V 1 x
 pattern V1 x = V [x]
+
 {-# COMPLETE V1 #-}
 
+-- |
+-- Match on a 'V' of length 2.
 pattern V2 :: x -> x -> V 2 x
 pattern V2 x y = V [x, y]
+
 {-# COMPLETE V2 #-}
 
+-- |
+-- Match on a 'V' of length 3.
 pattern V3 :: x -> x -> x -> V 3 x
 pattern V3 x y z = V [x, y, z]
+
 {-# COMPLETE V3 #-}
 
+-- |
+-- Match on a 'V' of length 4.
 pattern V4 :: x -> x -> x -> x -> V 4 x
 pattern V4 x y z w = V [x, y, z, w]
+
 {-# COMPLETE V4 #-}
 
+-- |
+-- Append the second 'V' to the first.
 (++) :: V m x -> V n x -> V (m + n) x
 V u ++ V v = V (u <> v)
 {-# INLINE (++) #-}
 
+-- |
+-- /O(n)/. Generate a 'V' from a function.
 vn :: forall n x. (KnownNat n) => (Natural -> x) -> V n x
 vn i_x = V do Vector.Strict.generate (from (natVal (Proxy @n))) (i_x . from)
 {-# INLINE vn #-}
 
+-- |
+-- /O(n)/ Generate a 'V' from an 'Apply' function.
 vnA :: forall g n x. (KnownNat n, Apply g) => (Natural -> g x) -> g (V n x)
 vnA i_gx = morphism V do
   flip fix 0 \rec n ->
@@ -104,14 +123,14 @@ vnA i_gx = morphism V do
       else liftA2 (Vector.Strict.cons) (i_gx n) (rec (succ n))
 {-# INLINE vnA #-}
 
-upto :: forall n. (KnownNat n) => Const [Natural] n
-upto = Const [0 .. natVal (Proxy @n) - 1]
-{-# INLINE upto #-}
-
+-- |
+-- /O(1)/ Index.
 (!) :: V n x -> Natural -> x
 (V v) ! n = v Vector.Strict.! from n
 {-# INLINE (!) #-}
 
+-- |
+-- /O(1)/ Update.
 setV :: Natural -> x -> V n x -> V n x
 setV n x (V v) = V do v Vector.Strict.// [(from n, x)]
 {-# INLINE setV #-}
@@ -149,26 +168,36 @@ instance (KnownNat n) => Field7 (V n x) (V n x) x x where
   _7 = lens (! 7) (flip (setV 7))
   {-# INLINE _7 #-}
 
+-- |
+-- Attach a single element to the beginning of a 'V'.
 cons :: (KnownNat n) => x -> V n x -> V (1 + n) x
 cons x (V v) = V (Vector.Strict.cons x v)
 {-# INLINE cons #-}
 
+-- |
+-- Extract the first element from the beginning of a 'V'.
 uncons :: forall n x. (KnownNat n) => V (1 + n) x -> (x, V n x)
 uncons (V v) = case Vector.Strict.uncons v of
   Nothing -> error "Flex.Math.Vector.uncons: empty V"
   Just (x, v') -> (x, V v')
 {-# INLINE uncons #-}
 
+-- |
+-- Attach a single element to the end of a 'V'.
 snoc :: (KnownNat n) => V n x -> x -> V (n + 1) x
 snoc (V v) x = V (Vector.Strict.snoc v x)
 {-# INLINE snoc #-}
 
+-- |
+-- Extract the last element from the end of a 'V'.
 unsnoc :: forall n x. (KnownNat n) => V (n + 1) x -> (V n x, x)
 unsnoc (V v) = case Vector.Strict.unsnoc v of
   Nothing -> error "Flex.Math.Vector.uncons: empty V"
   Just (v', x) -> (V v', x)
 {-# INLINE unsnoc #-}
 
+-- |
+-- Test whether two 'V's are a cyclic shift of one another.
 shifted ::
   forall n x.
   ( KnownNat n
@@ -185,6 +214,8 @@ shifted = shifted' (natVal (Proxy @n))
           (u0, u') -> shifted' (pred k) (snoc u' u0) v
 {-# INLINE shifted #-}
 
+-- |
+-- Reverse a 'V'.
 reverse :: forall n x. (KnownNat n) => V n x -> V n x
 reverse (V v) = V (Vector.Strict.reverse v)
 {-# INLINE reverse #-}
@@ -311,10 +342,14 @@ instance (KnownNat n) => Control.Applicative (V n) where
   (<*>) = liftA2 id
   {-# INLINE (<*>) #-}
 
+-- |
+-- Convert a 'V' to a list.
 toList :: V n x -> [x]
 toList (V v) = Vector.Strict.toList v
 {-# INLINE toList #-}
 
+-- |
+-- Convert a list to a 'V' given that it is the right length.
 fromList :: forall n x. (KnownNat n) => [x] -> Maybe (V n x)
 fromList xs
   | length xs == natVal (Proxy @n) = (pure . V) do
@@ -477,16 +512,22 @@ instance (KnownNat n, Ring x, Conjugate x) => Sesquilinear (V n x) where
   {-# INLINE (<•>) #-}
 instance (KnownNat n, Ring x, Conjugate x) => InnerProduct (V n x)
 
+-- |
+-- @'projection' u v@ computes the parallel part of @v@ in the @u@ direction.
 projection ::
   forall n x. (KnownNat n, Field x, Conjugate x) => V n x -> V n x -> V n x
 projection u v = ((u <•> v) / quadrance u) *. u
 {-# INLINE projection #-}
 
+-- |
+-- @'householder' q x@ computes the Householder reflection of @x@ in the @q@ axis.
 householder ::
   forall n x. (KnownNat n, Field x, Conjugate x) => V n x -> V n x -> V n x
 householder q x = x - (one + one) * ((q <•> x) / quadrance q) *. q
 {-# INLINE householder #-}
 
+-- |
+-- Apply the Gram-Schmidt procedure to obtain an orthogonal list.
 orthogonalize ::
   (KnownNat n, Field x, Conjugate x) =>
   [V n x] -> [V n x]
@@ -499,6 +540,8 @@ orthogonalize (v0 : vs0) = gramSchmidt1 [v0] vs0
      in gramSchmidt1 (u : ns) vs
 {-# INLINE orthogonalize #-}
 
+-- |
+--- Apply the Gram-Schmidt procedure to obtain an orthonormal list.
 orthonormalize ::
   (KnownNat n, Field x, Conjugate x, Root x) =>
   [V n x] -> [V n x]

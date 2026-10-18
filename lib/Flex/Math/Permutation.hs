@@ -16,17 +16,16 @@ import Flex.Math.Numbers
 import Flex.Math.Vector
 
 import Data.Bool
-import Data.Bounded (Bounded (..))
-import Data.Enum (Enum (..))
-import Data.Eq (Eq ((==)))
+import Data.Bounded
+import Data.Enum
+import Data.Eq
 import Data.Finite
-import Data.Functor.Const (Const (..))
 import Data.List qualified as List
 import Data.Maybe
-import Data.Ord (Ord)
+import Data.Ord
 import Data.Tuple
 import Data.Vector.Strict qualified as Vector.Strict
-import Text.Show (Show)
+import Text.Show
 
 newtype S n = S {s :: V n (Finite n)}
   deriving newtype
@@ -70,26 +69,24 @@ permute (S (V s)) (V v) = V (Vector.Strict.backpermute v (morphism from s))
 
 transposition :: forall n. (KnownNat n) => Finite n -> S n
 transposition f
-  | f == maxBound = S do
-      vn @n \case
-        i
-          | Just ix <- i `List.elemIndex` [from f, zero] -> case ix of
-              0 -> from (zero @Natural)
-              _ -> f
-          | otherwise -> from i
-  | otherwise = S do
-      vn @n \case
-        i
-          | Just ix <- i `List.elemIndex` [from f, succ (from f)] -> case ix of
-              0 -> succ f
-              _ -> f
-          | otherwise -> from i
+  | f == maxBound = (S . vn) \case
+      i
+        | Just ix <- i `List.elemIndex` [from f, zero] -> case ix of
+            0 -> from (zero @Natural)
+            _ -> f
+        | otherwise -> from i
+  | otherwise = (S . vn) \case
+      i
+        | Just ix <- i `List.elemIndex` [from f, succ (from f)] -> case ix of
+            0 -> succ f
+            _ -> f
+        | otherwise -> from i
 {-# INLINE transposition #-}
 
 mkS :: forall n x. (KnownNat n, From x Integer) => V n x -> Maybe (S n)
 mkS v
   | List.sort (morphism from (toList v))
-      == morphism (from @_ @Integer) (upto @n).getConst =
+      == morphism (from @_ @Integer) (finites @n) =
       Just (S (morphism (finite . from) v))
   | otherwise = Nothing
 {-# INLINE mkS #-}
