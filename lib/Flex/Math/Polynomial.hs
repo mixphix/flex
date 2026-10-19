@@ -20,6 +20,7 @@ import Flex.Math.Numbers
 import Control.Monad.ST.Strict
 import Data.Bits (shiftR)
 import Data.Bool
+import Data.Either
 import Data.Enum
 import Data.Eq
 import Data.Function (fix)
@@ -29,6 +30,7 @@ import Data.Maybe
 import Data.Ord
 import Data.Vector.Strict qualified as Vector.Strict
 import Data.Vector.Strict.Mutable qualified as Vector.Strict.Mutable
+import Flex.Math.Function
 import GHC.Base (inline)
 import GHC.Generics (Generic)
 import Text.Show
@@ -121,7 +123,7 @@ instance (Additive x) => Additive (Polynomial x) where
   zero = Polynomial Vector.Strict.empty
 instance (AdditiveAbelian x) => AdditiveAbelian (Polynomial x)
 instance
-  (Additive x, Subtraction x x x) =>
+  (Eq x, Additive x, Subtraction x x x) =>
   Subtraction (Polynomial x) (Polynomial x) (Polynomial x)
   where
   (-.) :: Polynomial x -> Polynomial x -> Polynomial x
@@ -141,10 +143,15 @@ instance
         Vector.Strict.unsafeCopy
           (Vector.Strict.Mutable.unsafeSlice y (x - y) zs)
           (Vector.Strict.unsafeSlice y (x - y) xs)
-    morphism Polynomial do
-      Vector.Strict.unsafeFreeze zs
+    zs' <- Vector.Strict.unsafeFreeze zs
+    let reduce n
+          | n == zero = zero
+          | Vector.Strict.unsafeIndex zs' (pred n) == zero = reduce (pred n)
+          | otherwise = n
+    pure do
+      Polynomial (Vector.Strict.unsafeSlice 0 (reduce (Vector.Strict.length zs')) zs')
   {-# INLINEABLE (-.) #-}
-instance (AdditiveGroup x) => AdditiveGroup (Polynomial x) where
+instance (Eq x, AdditiveGroup x) => AdditiveGroup (Polynomial x) where
   negative :: Polynomial x -> Polynomial x
   negative (Polynomial xs) = Polynomial (morphism negative xs)
   {-# INLINE negative #-}
@@ -244,7 +251,7 @@ instance (Division x x x) => Division (Polynomial x) x (Polynomial x) where
 
 instance (Additive x, Subtraction x x x, Multiplicative x) => Distributive (Polynomial x)
 instance (Additive x, Subtraction x x x, Multiplicative x) => Semiring (Polynomial x)
-instance (AdditiveAbelianGroup x, Multiplicative x) => Ring (Polynomial x)
+instance (Eq x, AdditiveAbelianGroup x, Multiplicative x) => Ring (Polynomial x)
 
 instance (From y x) => From y (Scalar (Polynomial x)) where
   from :: y -> Scalar (Polynomial x)
@@ -348,3 +355,25 @@ instance (Ring x, AdditiveAbelian x, Eq x) => Module (Polynomial x) where
       , Generic
       )
 instance (Eq x, Field x) => Vector (Polynomial x)
+
+instance (Eq x, Field x) => Euclidean (Polynomial x) where
+  euclidean ::
+    Polynomial x -> Polynomial x -> (Polynomial x, Polynomial x)
+  euclidean (Polynomial a) (Polynomial b) =
+    let d = degree (Polynomial b)
+        c = Vector.Strict.last b
+     in loop (zero, Polynomial a) \(q, Polynomial r) ->
+          let dr = degree (Polynomial r)
+           in if dr >= d
+                then
+                  let s = monomial (dr -. d) (Vector.Strict.last r / c)
+                   in Left (q + s, Polynomial r - (s * Polynomial b))
+                else Right (q, Polynomial r)
+  {-# INLINE euclidean #-}
+
+  degree :: (Eq x, Field x) => Polynomial x -> Natural
+  degree (Polynomial xs) = case Vector.Strict.length xs of
+    n
+      | n <= 1 -> zero
+      | otherwise -> from n - 1
+  {-# INLINE degree #-}

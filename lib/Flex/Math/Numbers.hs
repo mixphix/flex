@@ -98,14 +98,12 @@ module Flex.Math.Numbers
   ) where
 
 import Flex.Math.Category
-import Flex.Math.Function
 import Flex.Math.Projective
 import Flex.Math.Suspension
 
 import Data.Bool (Bool (..), not, otherwise, (&&))
 import Data.Bounded (Bounded)
 import Data.Complex (Complex ((:+)))
-import Data.Either
 import Data.Enum (Enum (..))
 import Data.Eq (Eq (..))
 import Data.Finite (Finite, getFinite, modulo)
@@ -113,7 +111,6 @@ import Data.Fixed
 import Data.Function (flip, on)
 import Data.Int
 import Data.Kind (Type)
-import Data.List qualified as List
 import Data.List.NonEmpty (NonEmpty ((:|)))
 import Data.List1 hiding ((++))
 import Data.Maybe
@@ -2781,25 +2778,6 @@ instance Euclidean (Complex Integer) where
   {-# INLINE euclidean #-}
   degree :: Complex Integer -> Natural
   degree (a :+ b) = absolute ((a * a) + (b * b))
-  {-# INLINE degree #-}
-instance (Eq x, Field x) => Euclidean (List1 x) where
-  euclidean ::
-    List1 x -> List1 x -> (List1 x, List1 x)
-  euclidean a b =
-    let d = degree b
-        c = last b
-     in loop (zero, a) \(q, r) ->
-          let dr = degree r
-              s = List.genericReplicate (dr -. d :: Integer) zero |: (last r / c)
-           in if dr >= d
-                then Left (q + s, r - (s * b))
-                else Right (poly q, poly r)
-  {-# INLINE euclidean #-}
-
-  degree :: (Eq x, Field x) => List1 x -> Natural
-  degree = \case
-    Sole _ -> zero
-    _ :|| xs -> one @Natural + degree xs
   {-# INLINE degree #-}
 
 -- Modulo
