@@ -7,16 +7,16 @@ module Flex.Math.Transformer
   ( MonadTrans (lift)
   , MonadState (state, gets, put, modify)
   , get
-  , StateT (runStateT)
-  , EitherT (runEitherT)
+  , StateT (StateT, runStateT)
+  , EitherT (EitherT, runEitherT)
   , MonadEither (throw, catch)
-  , EitherStateT (runEitherStateT)
+  , EitherStateT (EitherStateT, runEitherStateT)
   , EitherState
   , runEitherState
-  , MaybeT (runMaybeT)
+  , MaybeT (MaybeT, runMaybeT)
   , hoistMaybe
   , fromEitherT
-  , ContT (runContT)
+  , ContT (ContT, runContT)
   , evalContT
   , reset
   , shift

@@ -3,6 +3,7 @@
 
 module Flex.Math.Distribution
   ( Probability (Probability, runProbability)
+  , Distribution (Distribution, distribution)
   , normalize
   , shrink
   , foldD
