@@ -22,7 +22,7 @@ module Flex.Math.Distribution
 
 import Flex.Math.Category
 import Flex.Math.Foldable
-import Flex.Math.Numbers hiding (Fractional)
+import Flex.Math.Numbers
 
 import Control.Applicative qualified as Control
 import Control.Monad qualified as Control
@@ -139,8 +139,8 @@ instance (Ord x, Show x) => Show (Distribution x) where
     padWith n c x = paddedWith n c (show x)
     paddedWith :: Natural -> Char -> String -> String
     paddedWith n c x =
-      let nx = from n - length x
-       in List.replicate (from nx) c <> x
+      let nx = from n - List.length x
+       in List.replicate nx c <> x
   {-# INLINE show #-}
 
 instance Morphisms (->) (->) Distribution where
