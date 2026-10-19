@@ -120,6 +120,7 @@ module Flex.Math
     -- *** Examples
   , Complex ((:+))
   , Quaternion (..)
+  , Polynomial.Polynomial (unPolynomial)
   , V (V1, V2, V3, V4)
   , vn
   , vnA
@@ -233,6 +234,12 @@ module Flex.Math
   , IxFilterable
   , ijusts
   , ifilter
+  , Witherable (witherK)
+  , wither
+  , filterA
+  , IxWitherable (iwitherK)
+  , iwither
+  , ifilterA
 
     -- * Extensions of number types
   , Projective (Projective, Infinity)
@@ -267,18 +274,6 @@ module Flex.Math
   , asum1
   , asum
   , Option (Option, getOption)
-  , Filterable
-  , justs
-  , filter
-  , IxFilterable
-  , ijusts
-  , ifilter
-  , Witherable (witherK)
-  , wither
-  , filterA
-  , IxWitherable (iwitherK)
-  , iwither
-  , ifilterA
 
     -- ** Folds
   , length
@@ -309,6 +304,11 @@ module Flex.Math
 
     -- ** Bases
   , Basis (basis)
+  , ComplexBasis (..)
+  , QuaternionBasis (..)
+  , DualBasis (..)
+  , PerplexBasis (..)
+  , MinkowskiBasis (..)
   )
 where
 
@@ -328,6 +328,7 @@ import Flex.Math.Module
 import Flex.Math.Numbers
 import Flex.Math.Permutation
 import Flex.Math.Perplex
+import Flex.Math.Polynomial qualified as Polynomial
 import Flex.Math.Projective
 import Flex.Math.Rack
 import Flex.Math.Structure

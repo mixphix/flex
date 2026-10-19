@@ -13,11 +13,11 @@ module Flex.Math.Algebra
 import Flex.Math.Category
 import Flex.Math.Module
 import Flex.Math.Numbers
+import Flex.Math.Polynomial
 import Flex.Math.Structure
 
 import Data.Bool (Bool)
 import Data.Eq (Eq (..))
-import Data.List1 (List1)
 import GHC.Generics (Generic)
 import GHC.Show (Show)
 
@@ -56,9 +56,9 @@ instance Structure Algebra where
 deriving instance (Show v, Show (Scalar v)) => Show (Signature Algebra v)
 deriving instance (Show v, Show (Scalar v)) => Show (Laws Algebra v)
 
-instance (Eq x, Field x) => Algebra (List1 x)
 instance (Eq x, Field x) => Algebra (Complex x)
 instance (Eq x, Field x) => Algebra (Quaternion x)
+instance (Eq x, Field x) => Algebra (Polynomial x)
 
 class (Algebra v) => Unital v
 instance Structure Unital where
@@ -90,9 +90,9 @@ instance Structure Unital where
 deriving instance (Show v, Show (Scalar v)) => Show (Signature Unital v)
 deriving instance (Show v, Show (Scalar v)) => Show (Laws Unital v)
 
-instance (Eq x, Field x) => Unital (List1 x)
 instance (Eq x, Field x) => Unital (Complex x)
 instance (Eq x, Field x) => Unital (Quaternion x)
+instance (Eq x, Field x) => Unital (Polynomial x)
 
 class (Unital v) => AssociativeAlgebra v
 instance Structure AssociativeAlgebra where
@@ -126,9 +126,9 @@ deriving instance
   (Show v, Show (Scalar v)) => Show (Signature AssociativeAlgebra v)
 deriving instance (Show v, Show (Scalar v)) => Show (Laws AssociativeAlgebra v)
 
-instance (Eq x, Field x) => AssociativeAlgebra (List1 x)
 instance (Eq x, Field x) => AssociativeAlgebra (Complex x)
 instance (Eq x, Field x) => AssociativeAlgebra (Quaternion x)
+instance (Eq x, Field x) => AssociativeAlgebra (Polynomial x)
 
 class (MultiplicativeAbelian (Scalar v), Unital v) => CommutativeAlgebra v
 instance Structure CommutativeAlgebra where
@@ -162,8 +162,8 @@ deriving instance
   (Show v, Show (Scalar v)) => Show (Signature CommutativeAlgebra v)
 deriving instance (Show v, Show (Scalar v)) => Show (Laws CommutativeAlgebra v)
 
-instance (Eq x, Field x) => CommutativeAlgebra (List1 x)
 instance (Eq x, Field x) => CommutativeAlgebra (Complex x)
+instance (Eq x, Field x) => CommutativeAlgebra (Polynomial x)
 
 class (Unital v, MultiplicativeGroup v) => DivisionAlgebra v
 instance Structure DivisionAlgebra where

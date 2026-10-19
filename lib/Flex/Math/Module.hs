@@ -18,7 +18,6 @@ module Flex.Math.Module
   , imag
   , Quaternion (..)
   , QuaternionBasis (E, I, J, K)
-  , variable
   , Signature (..)
   , Term (..)
   , Laws (..)
@@ -36,7 +35,6 @@ import Data.Eq (Eq (..))
 import Data.Foldable qualified as Data
 import Data.Functor qualified as Data
 import Data.Kind (Type)
-import Data.List1
 import Data.Ord (Ord (..))
 import Data.Traversable qualified as Data
 import GHC.Generics (Generic)
@@ -742,115 +740,3 @@ instance (AdditiveGroup x) => Conjugate (Quaternion x) where
   conjugate :: Quaternion x -> Quaternion x
   conjugate (Quaternion z i j k) = Quaternion z (negative i) (negative j) (negative k)
   {-# INLINE conjugate #-}
-
--- Polynomials
-
-variable :: (Additive x, Multiplicative x) => List1 x
-variable = zero :|| Sole one
-{-# INLINE variable #-}
-
-instance (From y x) => From y (Scalar (List1 x)) where
-  from :: y -> Scalar (List1 x)
-  from n = ScalarList1 (from n)
-  {-# INLINE from #-}
-
-instance
-  (Addition x x x) =>
-  Addition (Scalar (List1 x)) (Scalar (List1 x)) (Scalar (List1 x))
-  where
-  (+.) :: Scalar (List1 x) -> Scalar (List1 x) -> Scalar (List1 x)
-  ScalarList1 x +. ScalarList1 y = ScalarList1 (x + y)
-  {-# INLINE (+.) #-}
-instance
-  (Subtraction x x x) =>
-  Subtraction (Scalar (List1 x)) (Scalar (List1 x)) (Scalar (List1 x))
-  where
-  (-.) :: Scalar (List1 x) -> Scalar (List1 x) -> Scalar (List1 x)
-  ScalarList1 x -. ScalarList1 y = ScalarList1 (x - y)
-  {-# INLINE (-.) #-}
-instance
-  (Multiplication x x x) =>
-  Multiplication (Scalar (List1 x)) (Scalar (List1 x)) (Scalar (List1 x))
-  where
-  (*.) :: Scalar (List1 x) -> Scalar (List1 x) -> Scalar (List1 x)
-  ScalarList1 x *. ScalarList1 y = ScalarList1 (x * y)
-  {-# INLINE (*.) #-}
-instance
-  (Division x x x) =>
-  Division (Scalar (List1 x)) (Scalar (List1 x)) (Scalar (List1 x))
-  where
-  (/.) :: Scalar (List1 x) -> Scalar (List1 x) -> Scalar (List1 x)
-  ScalarList1 x /. ScalarList1 y = ScalarList1 (x / y)
-  {-# INLINE (/.) #-}
-instance
-  (Eq x, Additive x, Multiplicative x) =>
-  Multiplication (Scalar (List1 x)) (List1 x) (List1 x)
-  where
-  (*.) :: Scalar (List1 x) -> List1 x -> List1 x
-  ScalarList1 k *. x = k *. x
-  {-# INLINE (*.) #-}
-instance
-  (Eq x, Additive x, Multiplicative x) =>
-  Multiplication (List1 x) (Scalar (List1 x)) (List1 x)
-  where
-  (*.) :: List1 x -> Scalar (List1 x) -> List1 x
-  x *. ScalarList1 k = x *. k
-  {-# INLINE (*.) #-}
-instance
-  (Eq x, Additive x, Division x x x) =>
-  Division (List1 x) (Scalar (List1 x)) (List1 x)
-  where
-  (/.) :: List1 x -> Scalar (List1 x) -> List1 x
-  x /. ScalarList1 k = x /. k
-  {-# INLINE (/.) #-}
-instance (Power x r x) => Power (Scalar (List1 x)) r (Scalar (List1 x)) where
-  (^) :: Scalar (List1 x) -> r -> Scalar (List1 x)
-  ScalarList1 x ^ r = ScalarList1 (x ^ r)
-  {-# INLINE (^) #-}
-instance (Absolute x x) => Absolute (Scalar (List1 x)) x where
-  absolute :: Scalar (List1 x) -> x
-  absolute (ScalarList1 k) = absolute k
-  {-# INLINE absolute #-}
-instance (Absolute x x) => Absolute (Scalar (List1 x)) (Scalar (List1 x)) where
-  absolute :: Scalar (List1 x) -> Scalar (List1 x)
-  absolute (ScalarList1 k) = ScalarList1 (absolute k)
-  {-# INLINE absolute #-}
-
-instance
-  (Additive x, Subtraction x x x, Multiplicative x) =>
-  Semiring (Scalar (List1 x))
-instance
-  (AdditiveAbelian x, AdditiveGroup x, Multiplicative x) =>
-  Ring (Scalar (List1 x))
-instance (Domain x) => Domain (Scalar (List1 x))
-
-instance (Ring x, AdditiveAbelian x, Eq x) => Module (List1 x) where
-  newtype Scalar (List1 x) = ScalarList1 {unScalar :: x}
-    deriving newtype
-      ( Eq
-      , Ord
-      , Show
-      , Signed
-      , Conjugate
-      , Additive
-      , AdditiveAbelian
-      , AdditiveGroup
-      , Multiplicative
-      , MultiplicativeAbelian
-      , MultiplicativeGroup
-      , Distributive
-      , IntegralDomain
-      , Field
-      , Root
-      , Generic
-      )
-instance (Eq x, Field x) => Vector (List1 x)
-
-instance (Additive x) => Additive (Quaternion (Complex x)) where
-  zero :: Quaternion (Complex x)
-  zero = Quaternion zero zero zero zero
-  {-# INLINE zero #-}
-instance (AdditiveGroup x, Multiplicative x) => Multiplicative (Quaternion (Complex x)) where
-  one :: Quaternion (Complex x)
-  one = Quaternion one zero zero zero
-  {-# INLINE one #-}

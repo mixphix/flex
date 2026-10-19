@@ -53,6 +53,7 @@ import Flex.Math.Foldable
 import Flex.Math.Module
 import Flex.Math.Numbers
 import Flex.Math.Optics
+import Flex.Math.Polynomial (Polynomial, data X)
 import Flex.Math.Structure
 import Flex.Math.Vector
 
@@ -65,12 +66,12 @@ import Data.Foldable qualified as Data
 import Data.Function (const, flip, on)
 import Data.Functor qualified as Data
 import Data.List qualified as List
-import Data.List1 (List1)
 import Data.Maybe
 import Data.Ord (Ord (..), Ordering (..))
 import Data.Proxy
 import Data.Semigroup (Endo (..))
 import Data.Traversable qualified as Data
+import Flex.Math.Polynomial qualified as Polynomial
 import GHC.Generics (Generic)
 import GHC.TypeNats
 import Text.Show
@@ -692,10 +693,10 @@ adjugate = transpose . cofactorMatrix
 characteristicPolynomial ::
   forall n x.
   (KnownNat n, Eq x, MultiplicativeAbelian x, Ring x) =>
-  M n n x -> List1 x
-characteristicPolynomial a = (determinant (tI - morphism pure a)).unScalar
+  M n n x -> Polynomial x
+characteristicPolynomial a = (determinant (tI - morphism (Polynomial.fromList . pure) a)).unScalar
  where
-  tI = M (vn @n \i -> vn @n \j -> if i == j then variable else zero)
+  tI = M (vn @n \i -> vn @n \j -> if i == j then X else zero)
 {-# INLINE characteristicPolynomial #-}
 
 gramMatrix ::
