@@ -2642,28 +2642,28 @@ remainder :: (Euclidean x) => x -> x -> x
 remainder = (snd .) . euclidean
 {-# INLINE remainder #-}
 
-even :: (Eq x, Euclidean x, Additive x) => x -> Bool
+even :: (Eq x, Euclidean x) => x -> Bool
 even x = remainder x (one + one) == zero
 {-# INLINE even #-}
 
-odd :: (Eq x, Euclidean x, Additive x) => x -> Bool
+odd :: (Eq x, Euclidean x) => x -> Bool
 odd = not . even
 {-# INLINE odd #-}
 
-gcd :: (Eq x, Euclidean x, Additive x) => x -> x -> x
+gcd :: (Eq x, Euclidean x) => x -> x -> x
 gcd x y
   | y == zero = x
   | otherwise = gcd y (remainder x y)
 {-# INLINE gcd #-}
 
-lcm :: (Eq x, Euclidean x, Additive x, Multiplicative x) => x -> x -> x
+lcm :: (Eq x, Euclidean x) => x -> x -> x
 lcm x y
   | x == zero = zero
   | y == zero = zero
   | otherwise = quotient x (gcd x y) * y
 {-# INLINE lcm #-}
 
-evenOdd :: (Eq x, Euclidean x, Additive x, Multiplicative x) => x -> (x, x)
+evenOdd :: (Eq x, Euclidean x) => x -> (x, x)
 evenOdd n
   | n == zero = (zero, one)
   | otherwise = case n `euclidean` (one + one) of
