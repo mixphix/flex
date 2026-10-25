@@ -6,8 +6,8 @@ module Flex.Math.Polynomial
   ( Polynomial (Polynomial, unPolynomial)
   , fromList
   , toList
-  , data X
-  , (!)
+  , data Œ
+  , evaluate
   , monomial
   , derivative
   , Scalar (..)
@@ -26,7 +26,6 @@ import Data.Eq
 import Data.Function (fix)
 import Data.List (List)
 import Data.List qualified as List
-import Data.Maybe
 import Data.Ord
 import Data.Vector.Strict qualified as Vector.Strict
 import Data.Vector.Strict.Mutable qualified as Vector.Strict.Mutable
@@ -65,21 +64,24 @@ toList :: Polynomial x -> [x]
 toList (Polynomial xs) = Vector.Strict.toList xs
 {-# INLINE toList #-}
 
-pattern X :: (Eq x, Additive x, Multiplicative x) => Polynomial x
-pattern X <- ((Polynomial [zero, one] ==) -> True)
+pattern Œ :: (Eq x, Additive x, Multiplicative x) => Polynomial x
+pattern Œ <- ((Polynomial [zero, one] ==) -> True)
  where
-  X = Polynomial [zero, one]
+  Œ = Polynomial [zero, one]
 
-(!) :: (Additive x) => Polynomial x -> Natural -> x
-Polynomial xs ! n = case xs Vector.Strict.!? from n of
-  Nothing -> zero
-  Just x -> x
-{-# INLINE (!) #-}
+-- (!) :: (Additive x) => Polynomial x -> Natural -> x
+-- Polynomial xs ! n = case xs Vector.Strict.!? from n of
+--   Nothing -> zero
+--   Just x -> x
+-- {-# INLINE (!) #-}
 
 monomial :: (Additive x) => Natural -> x -> Polynomial x
 monomial j x = Polynomial do
   Vector.Strict.generate (from j + 1) \i -> if i == from j then x else zero
 {-# INLINE monomial #-}
+
+evaluate :: (AdditiveAbelianGroup x, Semiring x) => x -> Polynomial x -> x
+evaluate ø (Polynomial p) = foldr (\x _p -> x + ø * _p) zero p
 
 derivative ::
   (From Natural x, Multiplication x x x) => Polynomial x -> Polynomial x

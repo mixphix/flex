@@ -53,7 +53,7 @@ import Flex.Math.Foldable
 import Flex.Math.Module
 import Flex.Math.Numbers
 import Flex.Math.Optics
-import Flex.Math.Polynomial (Polynomial, data X)
+import Flex.Math.Polynomial (Polynomial, data Œ)
 import Flex.Math.Structure
 import Flex.Math.Vector
 
@@ -696,7 +696,7 @@ characteristicPolynomial ::
   M n n x -> Polynomial x
 characteristicPolynomial a = (determinant (tI - morphism (Polynomial.fromList . pure) a)).unScalar
  where
-  tI = M (vn @n \i -> vn @n \j -> if i == j then X else zero)
+  tI = M (vn @n \i -> vn @n \j -> if i == j then Œ else zero)
 {-# INLINE characteristicPolynomial #-}
 
 gramMatrix ::
