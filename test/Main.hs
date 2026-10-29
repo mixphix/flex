@@ -217,7 +217,7 @@ instance
 
 instance (KnownNat n, Arbitrary x) => Arbitrary (V n x) where
   arbitrary :: Gen (V n x)
-  arbitrary = vnM @n (const arbitrary)
+  arbitrary = vnA @_ @n (const arbitrary)
 
 instance (Arbitrary x) => Arbitrary (Quaternion x) where
   arbitrary :: Gen (Quaternion x)

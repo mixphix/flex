@@ -8,9 +8,9 @@ build-type:      Simple
 license-file:    LICENSE
 license:         BSD-2-Clause
 synopsis:
-  
+  Flex Math
 description:
-  
+  Flex Math
 tested-with:
   GHC==9.14.1,
 
