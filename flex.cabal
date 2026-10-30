@@ -34,7 +34,7 @@ library
   hs-source-dirs:     lib
 
   build-depends:
-    , base
+    , base < 5
     , containers >= 0.8
     , finite-typelits
     , ghc-typelits-knownnat
