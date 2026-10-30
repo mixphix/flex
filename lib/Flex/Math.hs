@@ -318,7 +318,7 @@ import Flex.Math.Function
 import Flex.Math.Lattice
 import Flex.Math.LieBracket
 import Flex.Math.Matrix
-import Flex.Math.Minkowski (Minkowski (..))
+import Flex.Math.Minkowski (Minkowski (..), Scalar (..))
 import Flex.Math.Module
 import Flex.Math.Numbers
 import Flex.Math.Permutation
