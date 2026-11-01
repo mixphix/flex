@@ -1408,6 +1408,7 @@ instance AdditiveAbelian Word32
 instance AdditiveAbelian Int64
 instance AdditiveAbelian Word64
 instance AdditiveAbelian Int
+instance AdditiveAbelian Word
 instance AdditiveAbelian Natural
 instance AdditiveAbelian Integer
 instance AdditiveAbelian Rational

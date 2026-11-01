@@ -15,6 +15,7 @@ module Flex.Math.Category
   , C2
   , CC
   , Composed
+  , Dictionary (Dictionary)
 
     -- ** Other examples of categories
   , Ix (Ix, ix)
@@ -264,6 +265,9 @@ instance (c0 x, c1 x) => C2 c0 c1 x
 type CC :: (k -> Constraint) -> (j -> k) -> (j -> Constraint)
 class (c0 (f x)) => CC c0 f x
 instance (c0 (f x)) => CC c0 f x
+
+data Dictionary c where
+  Dictionary :: (c) => Dictionary c
 
 type Composed ::
   (j -> Constraint) -> (k -> Constraint) -> (j -> k) -> Constraint
